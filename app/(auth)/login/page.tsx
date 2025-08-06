@@ -45,6 +45,7 @@
 import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client'; // Assuming @ is configured for your project root
 import { useRouter } from 'next/navigation';
+import Link from "next/link";
 
 // Reusing the LeafIcon for consistency
 const LeafIcon = (props) => (
@@ -92,9 +93,9 @@ export default function LoginPage() {
     <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl w-full">
       {/* Header */}
       <div className="text-center mb-8">
-        <a href="/" className="inline-block mb-4" aria-label="Go to Homepage">
+        <Link href="/" className="inline-block mb-4" aria-label="Go to Homepage">
           <LeafIcon className="h-12 w-12 text-green-600" />
-        </a>
+        </Link>
         <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
         <p className="text-gray-500 mt-2">Sign in to manage your farm.</p>
       </div>
@@ -163,9 +164,9 @@ export default function LoginPage() {
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-gray-500">
         Not a member?{' '}
-        <a href="/signup" className="font-medium text-green-600 hover:text-green-500">
+        <Link href="/signup" className="font-medium text-green-600 hover:text-green-500">
           Sign Up
-        </a>
+        </Link>
       </p>
     </div>
   );
