@@ -47,8 +47,8 @@ const PublicHeader = () => (
           </Link>
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/marketplace" className="text-green-600 font-semibold border-b-2 border-green-600">Marketplace</Link>
-            <a href="/#about" className="text-gray-600 hover:text-green-600 transition-colors">About</a>
-            <a href="/#contact" className="text-gray-600 hover:text-green-600 transition-colors">Contact</a>
+            <Link href="/#about" className="text-gray-600 hover:text-green-600 transition-colors">About</Link>
+            <Link href="/#contact" className="text-gray-600 hover:text-green-600 transition-colors">Contact</Link>
           </nav>
           <div className="flex items-center space-x-4">
             <Link href="/login" className="text-green-600 hover:text-green-700 font-medium transition-colors">Sign In</Link>
@@ -72,23 +72,23 @@ const PublicFooter = () => (
             <div>
               <h4 className="text-lg font-semibold mb-4">Links</h4>
               <ul>
-                <li className="mb-2"><a href="/marketplace" className="hover:text-green-400 transition-colors">Marketplace</a></li>
-                <li className="mb-2"><a href="/login" className="hover:text-green-400 transition-colors">Sign In</a></li>
-                <li className="mb-2"><a href="/signup" className="hover:text-green-400 transition-colors">Sign Up</a></li>
+                <li className="mb-2"><Link href="/marketplace" className="hover:text-green-400 transition-colors">Marketplace</Link></li>
+                <li className="mb-2"><Link href="/login" className="hover:text-green-400 transition-colors">Sign In</Link></li>
+                <li className="mb-2"><Link href="/signup" className="hover:text-green-400 transition-colors">Sign Up</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Company</h4>
               <ul>
-                <li className="mb-2"><a href="/#about" className="hover:text-green-400 transition-colors">About Us</a></li>
-                <li className="mb-2"><a href="/#contact" className="hover:text-green-400 transition-colors">Contact</a></li>
+                <li className="mb-2"><Link href="/#about" className="hover:text-green-400 transition-colors">About Us</Link></li>
+                <li className="mb-2"><Link href="/#contact" className="hover:text-green-400 transition-colors">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Legal</h4>
               <ul>
-                <li className="mb-2"><a href="#" className="hover:text-green-400 transition-colors">Privacy Policy</a></li>
-                <li className="mb-2"><a href="#" className="hover:text-green-400 transition-colors">Terms of Service</a></li>
+                <li className="mb-2"><Link href="#" className="hover:text-green-400 transition-colors">Privacy Policy</Link></li>
+                <li className="mb-2"><Link href="#" className="hover:text-green-400 transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
           </div>

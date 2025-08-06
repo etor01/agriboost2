@@ -19,8 +19,8 @@ const PublicHeader = () => (
           </Link>
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/marketplace" className="text-green-600 font-semibold border-b-2 border-green-600">Marketplace</Link>
-            <a href="/#about" className="text-gray-600 hover:text-green-600 transition-colors">About</a>
-            <a href="/#contact" className="text-gray-600 hover:text-green-600 transition-colors">Contact</a>
+            <Link href="/#about" className="text-gray-600 hover:text-green-600 transition-colors">About</Link>
+            <Link href="/#contact" className="text-gray-600 hover:text-green-600 transition-colors">Contact</Link>
           </nav>
           <div className="flex items-center space-x-4">
             <Link href="/login" className="text-green-600 hover:text-green-700 font-medium transition-colors">Sign In</Link>
