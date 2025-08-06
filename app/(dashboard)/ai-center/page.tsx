@@ -38,7 +38,7 @@ export default function AiCenterPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+ const [analysisResult, setAnalysisResult] = useState<unknown>(null); //const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [scansRemaining, setScansRemaining] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -176,7 +176,7 @@ export default function AiCenterPage() {
             </div>
           ) : (
             <div className="flex justify-center items-center h-full text-center text-gray-500">
-              <p>Upload an image and click "Analyze" to see the results here.</p>
+              <p>Upload an image and click &quot;Analyze&quot; to see the results here.</p>
             </div>
           )}
         </div>
@@ -188,7 +188,7 @@ export default function AiCenterPage() {
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-sm">
             <h2 className="text-2xl font-bold text-gray-900">Out of Scans!</h2>
             <p className="text-gray-600 mt-2">
-              You've used all your free AI scans. Upgrade to a 5-Star Farmer plan to get unlimited scans and more premium features.
+              You&apos;ve used all your free AI scans. Upgrade to a 5-Star Farmer plan to get unlimited scans and more premium features.
             </p>
             <div className="mt-6">
               <Link href="/finances" className="block w-full px-6 py-3 text-base font-bold text-white bg-green-600 rounded-lg">
