@@ -1,0 +1,12 @@
+6. How to Use Local SVG Icons
+
+Create a folder named icons inside your public directory.
+
+Download an SVG icon (e.g., from lucide.dev) and save it as public/icons/leaf.svg.
+
+In your component, import Image from next/image and use it like this:
+
+import Image from 'next/image';
+
+// ... inside your component
+<Image src="/icons/leaf.svg" alt="Leaf Icon" width={32} height={32} />

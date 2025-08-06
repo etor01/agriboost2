@@ -1,0 +1,96 @@
+// app/admin/layout.tsx
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+
+// --- ICONS ---
+const MenuIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
+const XIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+const ShieldIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>;
+const LogOutIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
+
+// Admin Sidebar Navigation Links
+const adminNavItems = [
+  { name: 'Dashboard', href: '/admin/dashboard' },
+  { name: 'Farmers', href: '/admin/farmers' },
+  // Add other admin links here later, e.g., Finances, Crops
+];
+
+// Admin Sidebar Component
+function AdminSidebar({ isOpen, setIsOpen }) {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
+  return (
+    <>
+      <div 
+        className={`fixed inset-0 bg-black/60 z-30 lg:hidden ${isOpen ? 'block' : 'hidden'}`}
+        onClick={() => setIsOpen(false)}
+      ></div>
+      <aside className={`fixed top-0 left-0 h-full w-64 bg-gray-900 text-white flex flex-col z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <Link href="/admin/dashboard" className="flex items-center space-x-3">
+            <ShieldIcon className="h-8 w-8 text-blue-500" />
+            <span className="text-2xl font-bold">Admin</span>
+          </Link>
+           <button onClick={() => setIsOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
+                <XIcon className="h-6 w-6" />
+            </button>
+        </div>
+        
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          {adminNavItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white`}
+            >
+              {item.name}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="p-6 border-t border-gray-700">
+          <button onClick={handleSignOut} className="flex w-full items-center px-4 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
+            <LogOutIcon className="h-5 w-5 mr-3" />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+// Main Admin Layout Component
+export default function AdminDashboardLayout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="bg-gray-100 min-h-screen">
+      <AdminSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <div className="lg:pl-64">
+        <header className="lg:hidden bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-20">
+            <button onClick={() => setSidebarOpen(true)}>
+                <MenuIcon className="h-6 w-6 text-gray-600" />
+            </button>
+            <div className="flex items-center space-x-2">
+                <ShieldIcon className="h-7 w-7 text-blue-500" />
+                <span className="text-xl font-bold text-gray-800">Admin Panel</span>
+            </div>
+            <div className="w-6"></div>
+        </header>
+        <main className="p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

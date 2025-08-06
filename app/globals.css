@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* app/globals.css */
+
+input,
+textarea,
+select {
+  color: #1f2937; /* This is Tailwind's gray-800 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af; /* This is Tailwind's gray-400 */
+}
