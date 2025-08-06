@@ -41,6 +41,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from "next/link";
 import { createClient } from '@/lib/supabase/client'; // Assuming @ is configured for your project root
 
 // Reusing the LeafIcon for consistency
@@ -104,9 +105,9 @@ export default function SignUpPage() {
     <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl w-full">
       {/* Header */}
       <div className="text-center mb-8">
-        <a href="/" className="inline-block mb-4" aria-label="Go to Homepage">
+        <Link href="/" className="inline-block mb-4" aria-label="Go to Homepage">
           <LeafIcon className="h-12 w-12 text-green-600" />
-        </a>
+        </Link>
         <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
         <p className="text-gray-500 mt-2">Join AgriBoost and revolutionize your farming.</p>
       </div>
