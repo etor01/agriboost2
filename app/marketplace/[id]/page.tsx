@@ -41,7 +41,16 @@ const PublicFooter = () => (
 );
 
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
+// export default async function ListingDetailPage({ params }: { params: { id: string } }) {
+//     const supabase = createClient();
+
+type ListingDetailPageProps = {
+  params: {
+    id: string;
+  };
+};
+
+export default async function ListingDetailPage({ params }: ListingDetailPageProps) {
     const supabase = createClient();
 
     // Fetch the specific listing and join it with the seller's profile information
