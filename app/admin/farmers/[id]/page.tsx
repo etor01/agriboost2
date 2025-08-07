@@ -39,7 +39,23 @@ function VerificationForm({ userId, currentStatus }) {
     );
 }
 
-export default async function FarmerDetailsPage({ params }: { params: { id: string } }) {
+// export default async function FarmerDetailsPage({ params }: { params: { id: string } }) {
+//     const supabase = await createClient();
+
+//     const { data: farmer, error } = await supabase
+//         .from('profiles')
+//         .select(`*`)
+//         .eq('id', params.id)
+//         .single();
+    
+//     // To get the user's email, we must use an admin client
+//     // as the auth.users table is not directly queryable.
+//     const { data: { user: authUser } } = await supabase.auth.admin.getUserById(params.id);
+
+//     if (error || !farmer) {
+//         notFound();
+//     }
+    export default async function FarmerDetailsPage({ params }: FarmerDetailsPageProps) {
     const supabase = await createClient();
 
     const { data: farmer, error } = await supabase
@@ -47,9 +63,7 @@ export default async function FarmerDetailsPage({ params }: { params: { id: stri
         .select(`*`)
         .eq('id', params.id)
         .single();
-    
-    // To get the user's email, we must use an admin client
-    // as the auth.users table is not directly queryable.
+
     const { data: { user: authUser } } = await supabase.auth.admin.getUserById(params.id);
 
     if (error || !farmer) {
