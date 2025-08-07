@@ -44,32 +44,45 @@ const PublicFooter = () => (
 // export default async function ListingDetailPage({ params }: { params: { id: string } }) {
 //     const supabase = createClient();
 
-type ListingDetailPageProps = {
-  params: {
-    id: string;
-  };
-};
+// type ListingDetailPageProps = {
+//   params: {
+//     id: string;
+//   };
+// };
 
-export default async function ListingDetailPage({ params }: ListingDetailPageProps) {
+// export default async function ListingDetailPage({ params }: ListingDetailPageProps) {
+//     const supabase = createClient();
+
+//     // Fetch the specific listing and join it with the seller's profile information
+//     const { data: listing, error } = await supabase
+//         .from('market_listings')
+//         .select(`
+//             *,
+//             profile:profiles (
+//                 full_name,
+//                 avatar_url,
+//                 verification_status
+//             )
+//         `)
+//         .eq('id', params.id)
+//         .eq('status', 'active')
+//         .single();
+
+//     if (error || !listing) {
+//         notFound(); // Show a 404 page if the listing doesn't exist or isn't active
+//     }
+    export default async function ListingDetailPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
 
-    // Fetch the specific listing and join it with the seller's profile information
     const { data: listing, error } = await supabase
         .from('market_listings')
-        .select(`
-            *,
-            profile:profiles (
-                full_name,
-                avatar_url,
-                verification_status
-            )
-        `)
+        .select(`*, profile:profiles (full_name, avatar_url, verification_status)`)
         .eq('id', params.id)
         .eq('status', 'active')
         .single();
 
     if (error || !listing) {
-        notFound(); // Show a 404 page if the listing doesn't exist or isn't active
+        notFound();
     }
 
     return (
