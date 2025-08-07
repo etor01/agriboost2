@@ -6,11 +6,11 @@ import { notFound } from 'next/navigation';
 import FarmClientPage from './farm-client-page';
 
 type FarmIdPageProps = {
-  params: {
+  props: {
     id: string;
   };
 };
-export default async function FarmPage({ params }: { params: FarmIdPageProps}) {
+export default async function FarmPage({ props }: { props: FarmIdPageProps}) {
   
   const supabase = createClient();
   
@@ -22,7 +22,7 @@ export default async function FarmPage({ params }: { params: FarmIdPageProps}) {
   const { data: farm, error: farmError } = await supabase
     .from('farms')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', props.id)
     .eq('user_id', user.id)
     .single();
 
