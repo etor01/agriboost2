@@ -12,7 +12,7 @@ type FarmIdPageProps = {
 };
 export default async function FarmPage({ params }: { params: FarmIdPageProps}) {
   
-  const supabase = await createClient();
+  const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
