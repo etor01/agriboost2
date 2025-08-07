@@ -101,7 +101,7 @@ const PublicFooter = () => (
 
 
 export default async function MarketplacePage() {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch all active listings from the database
     const { data: listings, error } = await supabase

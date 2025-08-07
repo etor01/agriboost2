@@ -68,6 +68,7 @@ function DashboardHeader({ profile }) {
 // --- Fetch Live Weather ---
 async function getWeatherData() {
   try {
+    //hard coded location will be update later by location feature
     const lat = 6.6885;
     const lon = -1.6244;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;

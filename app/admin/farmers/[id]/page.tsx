@@ -37,8 +37,13 @@ function VerificationForm({ userId, currentStatus }) {
         </div>
     );
 }
+type FarmerDetailsPageProps = {
+    params: {
+        id: string;
+    };
+}
 
-export default async function FarmerDetailsPage({ params }: { params: { id: string } }) {
+export default async function FarmerDetailsPage({ params }: FarmerDetailsPageProps) {
     const supabase = await createClient();
 
     const { data: farmer, error } = await supabase

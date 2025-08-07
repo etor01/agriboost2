@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { PageProps } from '@/lib/types';
 
 // --- ICONS ---
 const LeafIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 4 13V8a2 2 0 0 1 2-2h4l2 4-2 4h4a2 2 0 0 1 2 2v2a7 7 0 0 1-7 7z" /><path d="M11 20A7 7 0 0 1 4 13V8" /><path d="M13 8V4.5A1.5 1.5 0 0 1 14.5 3L16 4.5V8" /></svg>;
@@ -46,8 +47,8 @@ const PublicFooter = () => (
       </footer>
 );
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
-    const supabase = await createClient();
+export default async function ListingDetailPage({ params }: PageProps) {
+    const supabase = createClient();
 
     const { data: listing, error } = await supabase
         .from('market_listings')
