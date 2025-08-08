@@ -1,60 +1,10 @@
-// 'use client';
-
-// import { useState } from 'react';
-// import { supabase } from '@/lib/supabaseClient';
-// import { useRouter } from 'next/navigation';
-
-// export default function LoginPage() {
-//   const [email, setEmail] = useState('');
-//   const [password, setPassword] = useState('');
-//   const router = useRouter();
-
-//   async function handleLogin() {
-//     const { error } = await supabase.auth.signInWithPassword({ email, password });
-//     if (error) alert(error.message);
-//     else router.push('/dashboard');
-//   }
-
-//   return (
-//     <div className="flex flex-col items-center justify-center h-screen">
-//       <h1 className="text-2xl font-bold mb-4">Login</h1>
-//       <input
-//         className="border p-2 mb-2"
-//         type="email"
-//         placeholder="Email"
-//         onChange={(e) => setEmail(e.target.value)}
-//       />
-//       <input
-//         className="border p-2 mb-2"
-//         type="password"
-//         placeholder="Password"
-//         onChange={(e) => setPassword(e.target.value)}
-//       />
-//       <button
-//         className="bg-blue-600 text-white px-4 py-2 rounded"
-//         onClick={handleLogin}
-//       >
-//         Login
-//       </button>
-//     </div>
-//   );
-// }
-
 'use client';
 
 import React, { useState } from 'react';
-import { createClient } from '@/lib/supabase/client'; // Assuming @ is configured for your project root
+import { createClient } from '@/lib/supabase/client'; 
 import { useRouter } from 'next/navigation';
 import Link from "next/link";
-
-// Reusing the LeafIcon for consistency
-const LeafIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M11 20A7 7 0 0 1 4 13V8a2 2 0 0 1 2-2h4l2 4-2 4h4a2 2 0 0 1 2 2v2a7 7 0 0 1-7 7z" />
-    <path d="M11 20A7 7 0 0 1 4 13V8" />
-    <path d="M13 8V4.5A1.5 1.5 0 0 1 14.5 3L16 4.5V8" />
-  </svg>
-);
+import Image from "next/image";
 
 export default function LoginPage() {
   // State to manage form inputs
@@ -94,7 +44,7 @@ export default function LoginPage() {
       {/* Header */}
       <div className="text-center mb-8">
         <Link href="/" className="inline-block mb-4" aria-label="Go to Homepage">
-          <LeafIcon className="h-12 w-12 text-green-600" />
+          <Image alt="leaf icon" src="/icons/logo.png" width={60} height={60} />
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
         <p className="text-gray-500 mt-2">Sign in to manage your farm.</p>

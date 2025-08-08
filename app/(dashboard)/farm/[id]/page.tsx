@@ -10,7 +10,7 @@ type FarmIdPageProps = {
     id: string;
   };
 };
-export default async function FarmPage({ props }: { props: FarmIdPageProps}) {
+export default async function FarmPage({ params }: { params: FarmIdPageProps}) {
   
   const supabase = createClient();
   
@@ -22,7 +22,7 @@ export default async function FarmPage({ props }: { props: FarmIdPageProps}) {
   const { data: farm, error: farmError } = await supabase
     .from('farms')
     .select('*')
-    .eq('id', props.id)
+    .eq('id', params.id)
     .eq('user_id', user.id)
     .single();
 

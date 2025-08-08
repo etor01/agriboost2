@@ -4,12 +4,7 @@
 import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-
-const LeafIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M11 20A7 7 0 0 1 4 13V8a2 2 0 0 1 2-2h4l2 4-2 4h4a2 2 0 0 1 2 2v2a7 7 0 0 1-7 7z" /><path d="M11 20A7 7 0 0 1 4 13V8" /><path d="M13 8V4.5A1.5 1.5 0 0 1 14.5 3L16 4.5V8" />
-  </svg>
-);
+import Image from 'next/image';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -39,7 +34,9 @@ export default function ForgotPasswordPage() {
   return (
     <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl w-full">
       <div className="text-center mb-8">
-        <Link href="/" className="inline-block mb-4"><LeafIcon className="h-12 w-12 text-green-600" /></Link>
+        <Link href="/" className="inline-block mb-4">
+          <Image alt="leaf icon" src="/icons/logo.png" width={60} height={60} />
+        </Link>
         <h1 className="text-3xl font-bold text-gray-900">Forgot Password</h1>
         <p className="text-gray-500 mt-2">Enter your email to receive a reset link.</p>
       </div>

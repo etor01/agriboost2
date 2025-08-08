@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { PageProps } from '@/lib/types';
+import Image from 'next/image';
 
 // --- ICONS ---
-const LeafIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 4 13V8a2 2 0 0 1 2-2h4l2 4-2 4h4a2 2 0 0 1 2 2v2a7 7 0 0 1-7 7z" /><path d="M11 20A7 7 0 0 1 4 13V8" /><path d="M13 8V4.5A1.5 1.5 0 0 1 14.5 3L16 4.5V8" /></svg>;
+
 const MapPinIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>;
 const ArrowLeftIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
 
@@ -15,7 +16,7 @@ const PublicHeader = () => (
      <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <LeafIcon className="h-8 w-8 text-green-600" />
+            <Image alt="leaf icon" src="/icons/logo.png" width={40} height={40} />
             <span className="text-2xl font-bold text-gray-800">AgriBoost</span>
           </Link>
           <nav className="hidden md:flex items-center space-x-8">
@@ -94,17 +95,17 @@ export default async function ListingDetailPage({ params }: PageProps) {
                                 <h2 className="text-lg font-semibold text-gray-800">Description</h2>
                                 <p className="text-gray-600 mt-2 whitespace-pre-wrap">{listing.description || 'No description provided.'}</p>
                             </div>
-                            <div className="mt-6 border-t pt-6">
+                             <div className="mt-6 border-t pt-6">
                                 <h2 className="text-lg font-semibold text-gray-800">About the Farmer</h2>
                                 <div className="flex items-center mt-4">
                                     <img 
-                                        src={listing.profile.avatar_url || `https://i.pravatar.cc/150?u=${listing.user_id}`}
-                                        alt={listing.profile.full_name}
+                                        src={listing.profile?.avatar_url || `https://i.pravatar.cc/150?u=${listing.user_id}`}
+                                        alt={listing.profile?.full_name || 'Farmer'}
                                         className="h-14 w-14 rounded-full object-cover"
                                     />
                                     <div className="ml-4">
-                                        <p className="font-bold text-gray-800">{listing.profile.full_name}</p>
-                                        {listing.profile.verification_status === 'verified' && (
+                                        <p className="font-bold text-gray-800">{listing.profile?.full_name || 'Anonymous Farmer'}</p>
+                                        {listing.profile?.verification_status === 'verified' && (
                                             <span className="text-xs font-semibold text-green-800 bg-green-100 px-2 py-0.5 rounded-full">
                                                 Verified Farmer
                                             </span>

@@ -2,36 +2,8 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link'; // Import the Link component
-
-// --- ICONS ---
-const LeafIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M11 20A7 7 0 0 1 4 13V8a2 2 0 0 1 2-2h4l2 4-2 4h4a2 2 0 0 1 2 2v2a7 7 0 0 1-7 7z" />
-    <path d="M11 20A7 7 0 0 1 4 13V8" />
-    <path d="M13 8V4.5A1.5 1.5 0 0 1 14.5 3L16 4.5V8" />
-  </svg>
-);
-const BarChartIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" x2="12" y1="20" y2="10" />
-    <line x1="18" x2="18" y1="20" y2="4" />
-    <line x1="6" x2="6" y1="20" y2="16" />
-  </svg>
-);
-const ShoppingCartIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="9" cy="21" r="1" />
-    <circle cx="20" cy="21" r="1" />
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-  </svg>
-);
-const DollarSignIcon = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23" />
-        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
-);
+import Link from 'next/link'; 
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
@@ -40,7 +12,7 @@ export default function LandingPage() {
       <header className="absolute top-0 left-0 w-full z-10 bg-white/80 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <LeafIcon className="h-8 w-8 text-green-600" />
+            <Image alt="leaf icon" src="/icons/logo.png" width={40} height={40} />
             <span className="text-2xl font-bold text-gray-800">AgriBoost</span>
           </Link>
           <nav className="hidden md:flex items-center space-x-8">
@@ -84,22 +56,28 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="bg-gray-50 p-8 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6"><LeafIcon className="h-8 w-8" /></div>
+                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6"><Image alt="leaf icon" src="/icons/logobw.png" width={45} height={45} /></div>
                 <h3 className="text-xl font-bold mb-3">AI Crop Care</h3>
                 <p className="text-gray-600">Receive personalized routines, disease detection, and fertilizer guides to maximize your yield.</p>
               </div>
               <div className="bg-gray-50 p-8 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6"><BarChartIcon className="h-8 w-8" /></div>
+                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6">
+                  <Image alt="growth icon" src="/icons/stock-market.png" width={45} height={45} />
+                </div>
                 <h3 className="text-xl font-bold mb-3">Growth Analytics</h3>
                 <p className="text-gray-600">Monitor your farm&apos;s performance with easy-to-understand dashboards and reports.</p>
               </div>
               <div className="bg-gray-50 p-8 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6"><ShoppingCartIcon className="h-8 w-8" /></div>
+                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6">
+                  <Image alt="cart icon" src="/icons/trolley.png" width={45} height={45} />
+                </div>
                 <h3 className="text-xl font-bold mb-3">Direct Marketplace</h3>
                 <p className="text-gray-600">List your harvest and sell directly to buyers, cutting out the middleman and increasing profits.</p>
               </div>
               <div className="bg-gray-50 p-8 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6"><DollarSignIcon className="h-8 w-8" /></div>
+                <div className="bg-green-100 text-green-600 rounded-full h-16 w-16 flex items-center justify-center mb-6">
+                  <Image alt="money icon" src="/icons/profit.png" width={45} height={45} />
+                </div>
                 <h3 className="text-xl font-bold mb-3">Financial Tools</h3>
                 <p className="text-gray-600">Access equipment funding, loans, and investment opportunities to grow your farming business.</p>
               </div>
