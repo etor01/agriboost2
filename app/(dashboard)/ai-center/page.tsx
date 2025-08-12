@@ -1,36 +1,46 @@
 // app/(dashboard)/ai-center/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { analyzeCropImage } from './actions';
 
 // --- ICONS ---
-const UploadCloudIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+const UploadCloudIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="16 16 12 12 8 16"></polyline>
-    <line x1="12" y1="12" x2="12" y2="21"></line>
-    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
-    <polyline points="16 16 12 12 8 16"></polyline>
+    <polyline points="16 16 12 12 8 16" />
+    <line x1="12" y1="12" x2="12" y2="21" />
+    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+    <polyline points="16 16 12 12 8 16" />
   </svg>
 );
-const CheckCircleIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+
+const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
   </svg>
 );
-const AlertTriangleIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+
+const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-    <line x1="12" y1="9" x2="12" y2="13"></line>
-    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
+
+// --- TYPES ---
+interface AnalysisResult {
+  is_healthy: boolean;
+  disease_name: string;
+  confidence_score: number;
+  recommendations: string;
+}
 
 export default function AiCenterPage() {
   const supabase = createClient();
@@ -38,11 +48,12 @@ export default function AiCenterPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isLoading, setIsLoading] = useState(false);
- const [analysisResult, setAnalysisResult] = useState<unknown>(null); //const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState('');
   const [scansRemaining, setScansRemaining] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  // Fetch scan count
   useEffect(() => {
     const fetchScanCount = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -56,16 +67,15 @@ export default function AiCenterPage() {
       }
     };
     fetchScanCount();
-  }, []);
+  }, [supabase]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAnalysisResult(null); // Reset previous result
-      setError('');
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+    if (!file) return;
+    setAnalysisResult(null);
+    setError('');
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleAnalyze = async () => {
@@ -77,6 +87,7 @@ export default function AiCenterPage() {
       setError('Please select an image to analyze.');
       return;
     }
+
     setIsLoading(true);
     setError('');
 
@@ -89,12 +100,13 @@ export default function AiCenterPage() {
 
     const fileExt = imageFile.name.split('.').pop();
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
     const { error: uploadError } = await supabase.storage
       .from('disease_images')
       .upload(fileName, imageFile);
 
     if (uploadError) {
-      setError('Error uploading image: ' + uploadError.message);
+      setError(`Error uploading image: ${uploadError.message}`);
       setIsLoading(false);
       return;
     }
@@ -103,12 +115,12 @@ export default function AiCenterPage() {
       .from('disease_images')
       .getPublicUrl(fileName);
 
-    const result = await analyzeCropImage(publicUrl, null); // Passing null for cropId for now
+    const result = await analyzeCropImage(publicUrl, null);
 
     if (result.success) {
       setAnalysisResult(result.analysis);
     } else {
-      setError(result.message);
+      setError(result.message || 'An error occurred during analysis.');
     }
 
     setIsLoading(false);
@@ -116,6 +128,7 @@ export default function AiCenterPage() {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">AI Disease Detection Center</h1>
         <div className="text-sm font-semibold text-white bg-green-600 px-4 py-2 rounded-lg">
@@ -124,7 +137,7 @@ export default function AiCenterPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Uploader Column */}
+        {/* Upload Section */}
         <div className="bg-white p-6 rounded-2xl shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Upload Crop Image</h2>
           <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
@@ -153,7 +166,7 @@ export default function AiCenterPage() {
           </button>
         </div>
 
-        {/* Result Column */}
+        {/* Analysis Result */}
         <div className="bg-white p-6 rounded-2xl shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Analysis Result</h2>
           {isLoading ? (
@@ -163,7 +176,9 @@ export default function AiCenterPage() {
           ) : analysisResult ? (
             <div className="space-y-4">
               <div className={`flex items-start p-4 rounded-lg ${analysisResult.is_healthy ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-                {analysisResult.is_healthy ? <CheckCircleIcon className="h-6 w-6 mr-3 flex-shrink-0" /> : <AlertTriangleIcon className="h-6 w-6 mr-3 flex-shrink-0" />}
+                {analysisResult.is_healthy
+                  ? <CheckCircleIcon className="h-6 w-6 mr-3 flex-shrink-0" />
+                  : <AlertTriangleIcon className="h-6 w-6 mr-3 flex-shrink-0" />}
                 <div>
                   <h3 className="font-bold text-lg">{analysisResult.disease_name}</h3>
                   <p className="text-sm">Confidence: {(analysisResult.confidence_score * 100).toFixed(1)}%</p>
