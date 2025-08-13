@@ -12,6 +12,7 @@ export async function analyzeCropImage(file: File) {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${HF_API_KEY}`,
+        "Content-Type": "image/jpeg"
       },
       body: file, // Send the actual file
     });
