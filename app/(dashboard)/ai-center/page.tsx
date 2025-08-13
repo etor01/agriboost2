@@ -1,4 +1,3 @@
-// app/(dashboard)/ai-center/page.tsx
 'use client';
 
 import React, { useState, useEffect, ChangeEvent } from 'react';
@@ -53,25 +52,26 @@ export default function AiCenterPage() {
   const [scansRemaining, setScansRemaining] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // Fetch scan count
+  // Fetch scan count on mount
   useEffect(() => {
-    const fetchScanCount = async () => {
+    (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('ai_scans_remaining')
-          .eq('id', user.id)
-          .single();
-        setScansRemaining(profile?.ai_scans_remaining ?? 0);
-      }
-    };
-    fetchScanCount();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('ai_scans_remaining')
+        .eq('id', user.id)
+        .single();
+
+      setScansRemaining(profile?.ai_scans_remaining ?? 0);
+    })();
   }, [supabase]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setAnalysisResult(null);
     setError('');
     setImageFile(file);
@@ -79,14 +79,8 @@ export default function AiCenterPage() {
   };
 
   const handleAnalyze = async () => {
-    if (scansRemaining <= 0) {
-      setShowUpgradeModal(true);
-      return;
-    }
-    if (!imageFile) {
-      setError('Please select an image to analyze.');
-      return;
-    }
+    if (scansRemaining <= 0) return setShowUpgradeModal(true);
+    if (!imageFile) return setError('Please select an image to analyze.');
 
     setIsLoading(true);
     setError('');
