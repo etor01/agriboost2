@@ -23,7 +23,7 @@ export async function updateSession(request: NextRequest) {
     remove(name: string, options: CookieOptions) {
       request.cookies.set({ name, value: '', ...options })
       response = NextResponse.next({ request: { headers: request.headers }})
-      response.cookies.set({ name, value, ...options })
+      response.cookies.set({ name, value: '', ...options })
     },
   };
 
@@ -33,46 +33,36 @@ export async function updateSession(request: NextRequest) {
     { cookies: cookieHandlers }
   )
 
+  // This will refresh the session and its token
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  const protectedRoutes = ['/dashboard', '/profile', '/farm', '/finances', '/ai-center', '/marketplace/new']
   const adminRoutes = ['/admin']
+  const authRoutes = ['/login', '/signup', '/forgot-password']
 
-  // If a user is trying to access an admin route, we must perform a role check.
-  if (user && adminRoutes.some(path => pathname.startsWith(path))) {
-    console.log(`[Middleware] Attempting to access admin route: ${pathname}`);
-
-    // Create a special client with the SERVICE_ROLE_KEY to bypass RLS
-    const serviceClient = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { cookies: cookieHandlers }
-    );
-
-    // Fetch the user's profile from the database
-    const { data: profile, error } = await serviceClient
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-    
-    // --- THIS IS OUR DEBUGGING LINE ---
-    // It will print the result of our database query to the terminal.
-    console.log(`[Middleware] User: ${user.email}, Role found in DB: ${profile?.role}`);
-
-    if (error) {
-        console.error('[Middleware] Error fetching profile:', error.message);
-    }
-    
-    // If the query fails or the role is not 'admin', redirect them.
-    if (error || profile?.role !== 'admin') {
-        console.log('[Middleware] Access DENIED. Redirecting to /dashboard.');
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-
-    console.log('[Middleware] Access GRANTED to admin route.');
+  // Rule 1: If user is not signed in, redirect protected/admin routes to /login
+  if (!user && (protectedRoutes.some(path => pathname.startsWith(path)) || adminRoutes.some(path => pathname.startsWith(path)))) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Allow the request to proceed if no rules matched
+  // Rule 2: If user is signed in, prevent access to auth routes
+  if (user && authRoutes.some(path => pathname.startsWith(path))) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Rule 3: If user is trying to access an admin route, verify their role from the session token
+  if (user && adminRoutes.some(path => pathname.startsWith(path))) {
+    // Read the role directly from the user's session token (app_metadata).
+    // This is instant and requires no database call.
+    const userRole = user.app_metadata?.role;
+
+    if (userRole !== 'admin') {
+        // If the role is not 'admin', redirect them away.
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  // If none of the rules match, allow the request to proceed
   return response
 }
