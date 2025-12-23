@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import logo from '../../public/icons/logo.png';
 
 export default function Header(){
     return(
          <header className="absolute top-0 left-0 w-full z-10 bg-white/80 backdrop-blur-sm shadow-sm">
             <div className="container mx-auto px-6 py-4 flex justify-between items-center">
             <Link href="/" className="flex items-center space-x-2">
-                <Image alt="leaf icon" src="@public/icons/logo.png" width={40} height={40} />
+                <Image alt="leaf icon" src={logo} width={40} height={40} />
                 <span className="text-2xl font-bold text-gray-800">AgriBoost</span>
             </Link>
             <nav className="hidden md:flex items-center space-x-8">
