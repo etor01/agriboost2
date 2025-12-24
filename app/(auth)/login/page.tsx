@@ -18,7 +18,9 @@ export default function LoginPage() {
   const router = useRouter();
 
   // Handler for form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e:{
+    preventDefault: () => void;
+  }) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -107,6 +109,7 @@ export default function LoginPage() {
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:bg-green-400 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
+            {/*add a spinner loader later*/}
           </button>
         </div>
       </form>
