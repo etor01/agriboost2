@@ -10,7 +10,7 @@ import FeatureSection from '@/components/FeatureSection';
 export default function LandingPage() {
   return (
     <div className="bg-gray-50 text-gray-800 font-sans">
-      {/* Header */}
+     
       <Header />
 
       <main>
