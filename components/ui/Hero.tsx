@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Hero(){
     return(
         <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32">
-                        <div className="absolute inset-0 bg-cover bg-center opacity-50" style={{backgroundImage: "url('/background.jpg')"}}></div>
+                        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{backgroundImage: "url('/background.jpg')"}}></div>
                         <div className="relative container mx-auto px-6 text-center">
                             <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-4">
                                 Empowering Farmers with <span className="text-green-600">Smart Technology</span>

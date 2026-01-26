@@ -2,8 +2,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-
-const HF_API_URL = 'https://api-inference.huggingface.co/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification';
+//const HF_API_URL = 'https://router.huggingface.co/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification';
+const HF_API_URL = 'https://router.huggingface.co/hf-inference/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification';
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY!; // Make sure this is in your .env.local and Vercel environment variables
 
 // This is a helper function to create simple recommendations based on the disease name.
