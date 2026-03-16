@@ -10,3 +10,5 @@ import Image from 'next/image';
 
 // ... inside your component
 <Image src="/icons/leaf.svg" alt="Leaf Icon" width={32} height={32} />
+
+dont forget to commit
