@@ -1,6 +1,6 @@
 # Agriboost 🌱
 
-Agriboost is a scalable, AI-powered agricultural platform designed to empower farmers, streamline agricultural commerce, and provide actionable insights for investors and administrators.
+Agriboost is a scalable, AI-powered agricultural platform designed to empower farmers, streamline agricultural commerce, and provide actionable insights for investors.
 
 ## 🚀 Features (MVP)
 
