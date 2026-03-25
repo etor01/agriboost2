@@ -1,38 +1,42 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ─────────────────────────────────────────── */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --input-text: #1f2937; /* gray-800 */
+  --input-placeholder: #9ca3af; /* gray-400 */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #fff;
+  --color-foreground: #000;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Dark Mode (class-based) ────────────────────────────────── */
+.dark {
+  --background: #fff;
+  --foreground: #000;
+  --input-text: #f3f4f6; /* gray-100 */
+  --input-placeholder: #6b7280; /* gray-500 */
 }
 
+/* ─── Base Reset ─────────────────────────────────────────────── */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-/* app/globals.css */
 
 input,
 textarea,
 select {
-  color: #1f2937; /* This is Tailwind's gray-800 */
+  color: var(--input-text);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #9ca3af; /* This is Tailwind's gray-400 */
+  color: var(--input-placeholder);
 }
