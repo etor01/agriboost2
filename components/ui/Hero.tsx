@@ -12,7 +12,7 @@ export default function Hero() {
       {/* Soft Accent Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-gradient-to-b from-green-50/50 to-transparent -z-10"></div>
 
-      <div className="relative container mx-auto px-6">
+      <div className="relative top-30 container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center p-8 md:p-12 bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
           <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 leading-[1.1] mb-6 tracking-tight">
             Empowering Farmers with <br />
