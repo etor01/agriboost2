@@ -5,8 +5,8 @@ export default function Hero() {
     <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden h-screen w-full">
       {/* Background Layer */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-70 "
-        style={{ backgroundImage: "url('/background.jpg')" }}
+        className="absolute inset-0 bg-cover bg-center opacity-100 "
+        style={{ backgroundImage: "url('/features.jpg')" }}
       ></div>
 
       {/* Soft Accent Glow */}
