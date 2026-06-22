@@ -30,7 +30,7 @@ const navItems = [
   {
     name: "AI Center",
     href: "/ai-center",
-    emoji: "🤖",
+    emoji: "🔎",
     desc: "Smart Tools",
   },
   {
@@ -55,7 +55,7 @@ function Sidebar({
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/");
   };
 
   return (
