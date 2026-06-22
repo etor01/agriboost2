@@ -31,7 +31,7 @@ const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const RECENT_ACTIVITY = [
   { icon: "🌱", title: "Maize field watered", sub: "North Farm · 2 hours ago", color: "bg-green-100 text-green-600" },
   { icon: "📦", title: "New marketplace listing live", sub: "White Yam (50kg) · 5 hours ago", color: "bg-blue-100 text-blue-600" },
-  { icon: "🤖", title: "AI crop health scan complete", sub: "Cassava field · 1 day ago", color: "bg-purple-100 text-purple-600" },
+  { icon: "🔎", title: "AI crop health scan complete", sub: "Cassava field · 1 day ago", color: "bg-purple-100 text-purple-600" },
   { icon: "💰", title: "Payment received", sub: "GH₵ 340.00 from Kofi Mensah · 2 days ago", color: "bg-amber-100 text-amber-600" },
   { icon: "⚠️", title: "Weather alert: Rain expected", sub: "Kumasi region · 2 days ago", color: "bg-red-100 text-red-600" },
 ];
@@ -45,9 +45,9 @@ const TASKS = [
 ];
 
 const QUICK_ACTIONS = [
-  { label: "Add New Farm", emoji: "🚜", href: "/profile", color: "from-emerald-500 to-green-500" },
+  { label: "Add New Farm", emoji: "🚜", href: "/farm/new", color: "from-emerald-500 to-green-500" },
   { label: "Create Listing", emoji: "📦", href: "/marketplace/new", color: "from-blue-500 to-cyan-500" },
-  { label: "AI Crop Scan", emoji: "🤖", href: "/ai-center", color: "from-purple-500 to-violet-500" },
+  { label: "AI Crop Scan", emoji: "🔎", href: "/ai-center", color: "from-purple-500 to-violet-500" },
   { label: "View Finances", emoji: "💰", href: "/finances", color: "from-amber-500 to-orange-500" },
 ];
 
