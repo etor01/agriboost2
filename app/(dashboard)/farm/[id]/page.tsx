@@ -1,47 +1,20 @@
 // app/(dashboard)/farm/[id]/page.tsx
+// NOTE: Original Supabase logic commented out — MVP demo with dummy data
 
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { notFound } from 'next/navigation';
-import FarmClientPage from './farm-client-page';
+// --- ORIGINAL LOGIC (commented out) ---
+// import { createClient } from '@/lib/supabase/server';
+// import { redirect } from 'next/navigation';
+// export default async function FarmPage({ params }) {
+//   const supabase = await createClient();
+//   const { data: { user } } = await supabase.auth.getUser();
+//   if (!user) redirect('/login');
+//   const { data: farm } = await supabase.from('farms').select('*').eq('id', params.id).single();
+//   const { data: crops } = await supabase.from('crops').select('*').eq('farm_id', params.id);
+//   return <FarmClientPage farm={farm} initialCrops={crops} user={user} />;
+// }
 
-type FarmIdPageProps = {
-  props: {
-    id: string;
-  };
-};
-export default async function FarmPage({ params }: { params: FarmIdPageProps}) {
-  
-  const supabase = createClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login');
-  }
+import FarmDetailClient from "./farm-client-page";
 
-  const { data: farm, error: farmError } = await supabase
-    .from('farms')
-    .select('*')
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-    .single();
-
-  if (farmError || !farm) {
-    notFound(); 
-  }
-
-  const { data: crops, error: cropsError } = await supabase
-    .from('crops')
-    .select(`
-      *,
-      crop_care_tasks ( * )
-    `)
-    .eq('farm_id', params.id)
-    .order('planting_date', { ascending: false });
-    
-  if (cropsError) {
-      console.error("Error fetching crops:", cropsError);
-  }
-
-  return <FarmClientPage farm={farm} initialCrops={crops || []} user={user} />;
+export default function FarmPage({ params }: { params: { id: string } }) {
+  return <FarmDetailClient farmId={params.id} />;
 }
