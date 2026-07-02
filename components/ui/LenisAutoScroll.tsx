@@ -13,12 +13,24 @@ export default function LenisAutoScroll() {
       if (!target) return;
 
       const href = target.getAttribute("href");
-      // If the link is an anchor link (starts with #)
-      if (href?.startsWith("#")) {
+      if (!href) return;
+
+      const hashIndex = href.indexOf("#");
+      if (hashIndex === -1) return;
+
+      const hash = href.slice(hashIndex);
+      if (hash.length <= 1) return;
+
+      const targetUrl = new URL(href, window.location.href);
+      const isSamePageLink =
+        targetUrl.origin === window.location.origin &&
+        targetUrl.pathname === window.location.pathname;
+
+      if (isSamePageLink) {
         e.preventDefault();
-        lenis.scrollTo(href, {
+        lenis.scrollTo(hash, {
           offset: -100,
-          duration: 1.5, // Custom duration
+          duration: 1.5,
         });
       }
     };

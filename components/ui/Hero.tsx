@@ -1,3 +1,4 @@
+import Lenis from "lenis";
 import Link from "next/link";
 
 export default function Hero() {
@@ -15,8 +16,8 @@ export default function Hero() {
       <div className="relative top-30 container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center p-8 md:p-12 bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
           <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 leading-[1.1] mb-6 tracking-tight">
-            Empowering Farmers with <br />
-            <span className="text-green-600">Smart Technology</span>
+            Building the Future of <br />
+            <span className="text-green-600">Farming in Ghana</span>
           </h1>
 
           <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -29,14 +30,14 @@ export default function Hero() {
               href="/signup"
               className="group relative inline-flex items-center justify-center bg-green-600 text-white px-10 py-4 rounded-full text-base font-semibold transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:bg-green-700 shadow-md"
             >
-              Create Your Virtual Farm
+              Get Started
             </Link>
 
             <Link
-              href="/marketplace"
+              href="#features"
               className="text-slate-600 font-medium text-sm hover:text-green-600 transition-colors"
             >
-              Explore Marketplace →
+              Learn More→
             </Link>
           </div>
         </div>
