@@ -26,10 +26,7 @@ export default function CTA() {
 
           {/* Interaction Group */}
           <div className="flex flex-col sm:flex-row items-center gap-5">
-            <Link
-              href="#"
-              className="px-10 py-4 bg-green-600 text-white rounded-full text-base font-bold shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-300 hover:bg-green-700 hover:scale-[1.02] active:scale-95 flex items-center gap-2"
-            >
+            <span className="px-10 py-4 bg-green-600 text-white rounded-full text-base font-bold shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-300 hover:bg-green-700 hover:scale-[1.02] active:scale-95 flex items-center gap-2">
               Want to see our platform metrics?
               <svg
                 className="w-4 h-4"
@@ -44,10 +41,10 @@ export default function CTA() {
                   d="M14 5l7 7m0 0l-7 7m7-7H3"
                 ></path>
               </svg>
-            </Link>
+            </span>
 
             <Link
-              href="/docs"
+              href="/metrics"
               className="px-8 py-4 bg-white/70 backdrop-blur-md border border-white/20 text-slate-900 rounded-full text-base font-semibold shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-300 hover:bg-white hover:scale-[1.02]"
             >
               Click Here
