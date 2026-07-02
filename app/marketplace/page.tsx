@@ -5,7 +5,8 @@ import MarketplaceClient from "./MarketplaceClient";
 
 export const metadata = {
   title: "Marketplace | AgriBoost – Fresh Produce from Ghana's Farmers",
-  description: "Browse 100+ fresh crops, grains, fruits, vegetables and spices listed directly by verified farmers across Ghana.",
+  description:
+    "Browse 100+ fresh crops, grains, fruits, vegetables and spices listed directly by verified farmers across Ghana.",
 };
 
 export default function MarketplacePage() {
@@ -29,7 +30,8 @@ export default function MarketplacePage() {
           AgriBoost Marketplace
         </h1>
         <p className="text-lg text-gray-200 mt-4 max-w-2xl mx-auto">
-          Buy fresh produce directly from verified farmers across Ghana — grains, vegetables, fruits, spices &amp; more.
+          Buy fresh produce directly from verified farmers across Ghana: grains,
+          vegetables, fruits, spices &amp; more.
         </p>
       </section>
 
