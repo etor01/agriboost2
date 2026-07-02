@@ -11,7 +11,7 @@ export default function CTA() {
         <div className="relative flex flex-col items-center">
           {/* Subtle Glass Tag */}
           <span className="inline-block px-4 py-1.5 mb-6 text-xs font-semibold tracking-widest uppercase text-green-700 bg-green-50/50 backdrop-blur-md border border-white/20 rounded-full shadow-sm">
-            Join the movement
+            Status: Beta
           </span>
 
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 mb-8 tracking-tight text-center max-w-4xl leading-[1.1]">
@@ -27,10 +27,10 @@ export default function CTA() {
           {/* Interaction Group */}
           <div className="flex flex-col sm:flex-row items-center gap-5">
             <Link
-              href="/signup"
+              href="#"
               className="px-10 py-4 bg-green-600 text-white rounded-full text-base font-bold shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-300 hover:bg-green-700 hover:scale-[1.02] active:scale-95 flex items-center gap-2"
             >
-              Get Started for Free
+              Want to see our platform metrics?
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -50,7 +50,7 @@ export default function CTA() {
               href="/docs"
               className="px-8 py-4 bg-white/70 backdrop-blur-md border border-white/20 text-slate-900 rounded-full text-base font-semibold shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-300 hover:bg-white hover:scale-[1.02]"
             >
-              Learn More
+              Click Here
             </Link>
           </div>
         </div>
