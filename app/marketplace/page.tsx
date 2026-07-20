@@ -1,4 +1,5 @@
 // app/marketplace/page.tsx
+import { Leaf } from "lucide-react";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 import MarketplaceClient from "./MarketplaceClient";
@@ -23,8 +24,9 @@ export default function MarketplacePage() {
 
       {/* Hero Banner */}
       <section className="pt-28 pb-10 px-4 text-center">
-        <span className="inline-block bg-emerald-500/20 text-emerald-200 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border border-emerald-400/30 mb-4">
-          🌾 Farm-to-Market Platform
+        <span className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-200 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border border-emerald-400/30 mb-4">
+          <Leaf className="h-3.5 w-3.5" />
+          Farm-to-Market Platform
         </span>
         <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow-lg">
           AgriBoost Marketplace
