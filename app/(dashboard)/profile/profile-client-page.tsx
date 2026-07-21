@@ -1,6 +1,7 @@
 // app/(dashboard)/profile/profile-client-page.tsx
 "use client";
 
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -313,12 +314,9 @@ export default function ProfileClientPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <p className="text-sm text-emerald-600 font-semibold">Account</p>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-0.5">
-          My Profile
-        </h1>
+    <div className="max-w-5xl mx-auto space-y-6 ">
+      <div className="bg-green-100 p-2 rounded-2xl m-2">
+        <p className="text-sm text-emerald-600 font-semibold">Profile</p>
       </div>
 
       {error ? (
@@ -328,7 +326,7 @@ export default function ProfileClientPage() {
       ) : null}
 
       <GlassCard className="overflow-hidden">
-        <div className="">
+        <div className=" pt-14">
           <div
             className="absolute inset-0 opacity-20"
             style={{
@@ -340,9 +338,12 @@ export default function ProfileClientPage() {
         <div className="px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
             <div className="relative">
-              <img
+              <Image
                 src={profile.avatar_url ?? "/icons/logo.png"}
                 alt={profile.full_name}
+                width={24}
+                height={24}
+                unoptimized
                 className="h-24 w-24 rounded-2xl object-cover ring-4 ring-white shadow-lg"
               />
               <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-white flex items-center gap-1">
