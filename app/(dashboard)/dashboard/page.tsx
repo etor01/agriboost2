@@ -223,11 +223,11 @@ export default async function DashboardPage() {
 
   const safeProfile = profile ?? {
     id: user.id,
-    full_name: user.user_metadata?.full_name ?? user.email ?? "Farmer",
+    firstname: user.user_metadata?.firstname ?? user.email ?? "Farmer",
     avatar_url: user.user_metadata?.avatar_url ?? null,
   };
 
-  const firstName = (safeProfile.full_name as string).split(" ")[0];
+  const firstName = safeProfile.firstname as string;
 
   const currentWeather = weatherData?.current;
   const daily = weatherData?.daily;
@@ -259,7 +259,7 @@ export default async function DashboardPage() {
             , {firstName}! 👋
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Here's what's happening on your farm today.
+            {"Here's what's happening on your farm today."}
           </p>
         </div>
         <div className="flex items-center gap-3">
