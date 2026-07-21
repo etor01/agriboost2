@@ -19,9 +19,11 @@ import { createClient } from "@/lib/supabase/client";
 
 type ProfileState = {
   id: string;
+  first_name: string;
+  last_name: string;
   full_name: string;
   email: string;
-  phone_number: string;
+  phone: string;
   region: string;
   bio: string;
   verification_status: string;
@@ -51,9 +53,11 @@ type ListingState = {
 
 const FALLBACK_PROFILE: ProfileState = {
   id: "",
+  first_name: "Farmer",
+  last_name: "",
   full_name: "Farmer",
   email: "",
-  phone_number: "",
+  phone: "",
   region: "Not set",
   bio: "No bio added yet.",
   verification_status: "pending",
@@ -95,8 +99,9 @@ export default function ProfileClientPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileState>(FALLBACK_PROFILE);
-  const [fullName, setFullName] = useState(FALLBACK_PROFILE.full_name);
-  const [phone, setPhone] = useState(FALLBACK_PROFILE.phone_number);
+  const [firstName, setFirstName] = useState(FALLBACK_PROFILE.first_name);
+  const [lastName, setLastName] = useState(FALLBACK_PROFILE.last_name);
+  const [phone, setPhone] = useState(FALLBACK_PROFILE.phone);
   const [bio, setBio] = useState(FALLBACK_PROFILE.bio);
   const [region, setRegion] = useState(FALLBACK_PROFILE.region);
   const [supabaseClient] = useState(() => createClient());
@@ -147,17 +152,34 @@ export default function ProfileClientPage() {
         Record<string, unknown>
       >;
 
-      const mappedProfile: ProfileState = {
-        id: user.id,
-        full_name:
-          (profileRow?.full_name as string | undefined) ??
+      const firstNameValue =
+        (profileRow?.firstname as string | undefined) ??
+        (profileRow?.first_name as string | undefined) ??
+        (user.user_metadata?.first_name as string | undefined) ??
+        (user.user_metadata?.firstname as string | undefined) ??
+        "";
+      const lastNameValue =
+        (profileRow?.lastname as string | undefined) ??
+        (profileRow?.last_name as string | undefined) ??
+        (user.user_metadata?.last_name as string | undefined) ??
+        (user.user_metadata?.lastname as string | undefined) ??
+        "";
+      const fullNameValue =
+        [firstNameValue, lastNameValue].filter(Boolean).join(" ") ||
+        ((profileRow?.full_name as string | undefined) ??
           (user.user_metadata?.full_name as string | undefined) ??
           user.email ??
-          FALLBACK_PROFILE.full_name,
+          FALLBACK_PROFILE.full_name);
+
+      const mappedProfile: ProfileState = {
+        id: user.id,
+        first_name: firstNameValue,
+        last_name: lastNameValue,
+        full_name: fullNameValue,
         email: user.email ?? "",
-        phone_number:
-          (profileRow?.phone_number as string | undefined) ??
-          (user.user_metadata?.phone_number as string | undefined) ??
+        phone:
+          (profileRow?.phone as string | undefined) ??
+          (user.user_metadata?.phone as string | undefined) ??
           "",
         region:
           (profileRow?.region as string | undefined) ??
@@ -190,8 +212,9 @@ export default function ProfileClientPage() {
       };
 
       setProfile(mappedProfile);
-      setFullName(mappedProfile.full_name);
-      setPhone(mappedProfile.phone_number);
+      setFirstName(mappedProfile.first_name);
+      setLastName(mappedProfile.last_name);
+      setPhone(mappedProfile.phone);
       setBio(mappedProfile.bio);
       setRegion(mappedProfile.region);
       setFarms(
@@ -238,13 +261,20 @@ export default function ProfileClientPage() {
       return;
     }
 
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const fullNameValue = [trimmedFirstName, trimmedLastName]
+      .filter(Boolean)
+      .join(" ");
+
     const { error } = await supabaseClient.from("profiles").upsert({
       id: user.id,
-      full_name: fullName,
-      phone_number: phone,
+      firstname: trimmedFirstName,
+      lastname: trimmedLastName,
+      phone: phone,
       region,
       bio,
-      updated_at: new Date().toISOString(),
+      role: "farmer",
     });
 
     if (error) {
@@ -252,8 +282,10 @@ export default function ProfileClientPage() {
     } else {
       setProfile((prev) => ({
         ...prev,
-        full_name: fullName,
-        phone_number: phone,
+        first_name: trimmedFirstName,
+        last_name: trimmedLastName,
+        full_name: fullNameValue,
+        phone: phone,
         region,
         bio,
       }));
@@ -271,10 +303,10 @@ export default function ProfileClientPage() {
   ];
 
   const verificationLabel = profile.verification_status
-    ?.toLowerCase()
-    .includes("verified")
     ? "Verified"
     : "Pending review";
+  const displayName =
+    [firstName, lastName].filter(Boolean).join(" ") || profile.full_name;
   const totalListingsValue = listings.reduce(
     (sum, listing) => sum + Number(listing.price.replace(/[^0-9.-]+/g, "")),
     0,
@@ -296,7 +328,7 @@ export default function ProfileClientPage() {
       ) : null}
 
       <GlassCard className="overflow-hidden">
-        <div>
+        <div className="">
           <div
             className="absolute inset-0 opacity-20"
             style={{
@@ -319,7 +351,7 @@ export default function ProfileClientPage() {
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-extrabold text-gray-900">
-                {fullName}
+                {displayName}
               </h2>
               <p className="text-gray-500 text-sm">{profile.email}</p>
               <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-1">
@@ -386,12 +418,23 @@ export default function ProfileClientPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Full Name
+                    First Name
                   </label>
                   <input
                     type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
                   />
                 </div>
