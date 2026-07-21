@@ -85,7 +85,7 @@ export default function AiCenterPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <div>
+        <div className="bg-green-200 p-3 rounded-2xl">
           <h1 className="text-3xl font-bold text-gray-800">
             AI Disease Detection Center
           </h1>

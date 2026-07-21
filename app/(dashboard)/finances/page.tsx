@@ -1,23 +1,83 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { recordSuccessfulTransaction } from './actions';
-import { createClient } from '@/lib/supabase/client';
+import React, { useState, useEffect, useRef } from "react";
+import { recordSuccessfulTransaction } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 
 // --- ICONS ---
-const StarIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
-const ZapIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>;
-const ToolIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>;
+const StarIcon = (props) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+  </svg>
+);
+const ZapIcon = (props) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+  </svg>
+);
+const ToolIcon = (props) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+  </svg>
+);
 
 const dummyTransactions = [
-  { id: 'TXN7241', service_name: 'Market Ad', amount: '50.00', status: 'Completed', created_at: '2025-07-28' },
-  { id: 'TXN7239', service_name: 'Equipment Fund Repayment', amount: '500.00', status: 'Completed', created_at: '2025-07-15' },
+  {
+    id: "TXN7241",
+    service_name: "Market Ad",
+    amount: "50.00",
+    status: "Completed",
+    created_at: "2025-07-28",
+  },
+  {
+    id: "TXN7239",
+    service_name: "Equipment Fund Repayment",
+    amount: "500.00",
+    status: "Completed",
+    created_at: "2025-07-15",
+  },
 ];
 
-const getStatusClass = (status) => status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+const getStatusClass = (status) =>
+  status === "Completed"
+    ? "bg-green-100 text-green-800"
+    : "bg-gray-100 text-gray-800";
 
 export default function FinancesPage() {
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState("");
   const [loadingUser, setLoadingUser] = useState(true);
   const [paystackReady, setPaystackReady] = useState(false);
   const initializePaymentRef = useRef(null);
@@ -25,19 +85,21 @@ export default function FinancesPage() {
   useEffect(() => {
     const fetchUserAndPaystack = async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (user) {
         setUserEmail(user.email);
 
-        const { usePaystackPayment } = await import('react-paystack');
+        const { usePaystackPayment } = await import("react-paystack");
 
         const config = {
-          reference: (new Date()).getTime().toString(),
+          reference: new Date().getTime().toString(),
           email: user.email,
           amount: 12000,
-          currency: 'GHS',
-          publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? '',
+          currency: "GHS",
+          publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "",
         };
 
         initializePaymentRef.current = usePaystackPayment(config);
@@ -52,20 +114,26 @@ export default function FinancesPage() {
 
   const onPaymentSuccess = (reference) => {
     recordSuccessfulTransaction({
-      service_name: '5-Star Farmer Subscription',
-      amount: 120.00,
+      service_name: "5-Star Farmer Subscription",
+      amount: 120.0,
       payment_gateway_ref: reference.reference,
-    }).then(result => {
-      if (result?.success) alert('Payment successful and recorded!');
-      else alert('Payment was successful but failed to record. Please contact support. Ref: ' + reference.reference);
+    }).then((result) => {
+      if (result?.success) alert("Payment successful and recorded!");
+      else
+        alert(
+          "Payment was successful but failed to record. Please contact support. Ref: " +
+            reference.reference,
+        );
     });
   };
 
-  const onPaymentClose = () => console.log('Payment widget closed.');
+  const onPaymentClose = () => console.log("Payment widget closed.");
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800">Finances & Services</h1>
+      <h1 className="text-3xl font-bold text-gray-800 p-2 bg-green-200 rounded-2xl">
+        Finances & Services
+      </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Subscription Card */}
@@ -74,16 +142,23 @@ export default function FinancesPage() {
             <StarIcon className="h-6 w-6 mr-2" />
             <h2 className="text-xl font-bold">5-Star Farmer</h2>
           </div>
-          <p className="text-gray-600 flex-grow">Unlock premium tools, an ad-free experience, and advanced AI features.</p>
+          <p className="text-gray-600 flex-grow">
+            Unlock premium tools, an ad-free experience, and advanced AI
+            features.
+          </p>
           <div className="mt-4">
             <p className="text-2xl font-bold text-gray-900">
-              GH₵120 <span className="text-base font-medium text-gray-500">/ year</span>
+              GH₵120{" "}
+              <span className="text-base font-medium text-gray-500">
+                / year
+              </span>
             </p>
             <button
               className="w-full mt-3 px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
                 if (loadingUser) return alert("Still loading user...");
-                if (!paystackReady || !initializePaymentRef.current) return alert("Payment system not ready yet.");
+                if (!paystackReady || !initializePaymentRef.current)
+                  return alert("Payment system not ready yet.");
                 initializePaymentRef.current(onPaymentSuccess, onPaymentClose);
               }}
               disabled={!paystackReady}
@@ -108,12 +183,16 @@ export default function FinancesPage() {
 
       {/* Transactions */}
       <div className="bg-white p-6 rounded-xl shadow-sm">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Transaction History</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">
+          Transaction History
+        </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b">
-                <th className="p-3 font-semibold text-gray-600">Transaction ID</th>
+                <th className="p-3 font-semibold text-gray-600">
+                  Transaction ID
+                </th>
                 <th className="p-3 font-semibold text-gray-600">Service</th>
                 <th className="p-3 font-semibold text-gray-600">Amount</th>
                 <th className="p-3 font-semibold text-gray-600">Date</th>
@@ -122,13 +201,26 @@ export default function FinancesPage() {
             </thead>
             <tbody>
               {dummyTransactions.map((txn) => (
-                <tr key={txn.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="p-3 font-mono text-sm text-gray-500">{txn.id}</td>
-                  <td className="p-3 font-medium text-gray-800">{txn.service_name}</td>
-                  <td className="p-3 font-medium text-gray-800">GH₵{txn.amount}</td>
-                  <td className="p-3 text-gray-600">{new Date(txn.created_at).toLocaleDateString()}</td>
+                <tr
+                  key={txn.id}
+                  className="border-b border-gray-100 hover:bg-gray-50"
+                >
+                  <td className="p-3 font-mono text-sm text-gray-500">
+                    {txn.id}
+                  </td>
+                  <td className="p-3 font-medium text-gray-800">
+                    {txn.service_name}
+                  </td>
+                  <td className="p-3 font-medium text-gray-800">
+                    GH₵{txn.amount}
+                  </td>
+                  <td className="p-3 text-gray-600">
+                    {new Date(txn.created_at).toLocaleDateString()}
+                  </td>
                   <td className="p-3">
-                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(txn.status)}`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(txn.status)}`}
+                    >
                       {txn.status}
                     </span>
                   </td>

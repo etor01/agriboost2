@@ -240,7 +240,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+        <div className="bg-green-200 p-2 rounded-b-2xl">
           <p className="text-sm text-emerald-600 font-semibold">
             {today.toLocaleDateString("en-GH", {
               weekday: "long",
