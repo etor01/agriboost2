@@ -380,15 +380,15 @@ export default function ProfileClientPage() {
         </div>
       </GlassCard>
 
-      <GlassCard className="overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-gray-100 px-4 pt-4 gap-1">
+      <GlassCard className="overflow-hidden scrollbar-none">
+        <div className="flex overflow-x-auto scrollbar-none border-b border-gray-100 px-4 pt-4 gap-1">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl whitespace-nowrap transition-all border-b-2 -mb-px ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-t-xl whitespace-nowrap transition-all border-b-2 -mb-px ${
                   activeTab === tab.id
                     ? "border-emerald-500 text-emerald-700 bg-emerald-50"
                     : "border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50"

@@ -270,7 +270,7 @@ export default async function DashboardPage() {
             <ShoppingBag className="h-4 w-4" /> Marketplace
           </Link>
           <Link
-            href="/profile"
+            href="/marketplace/new"
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold text-sm rounded-xl shadow-md shadow-emerald-200 hover:from-emerald-600 hover:to-green-600 transition-all"
           >
             <Plus className="h-4 w-4" /> New Listing
@@ -284,28 +284,28 @@ export default async function DashboardPage() {
           label="Total Farms"
           value={String(farms.length || 0)}
           sub="Registered farms"
-          trend="+1 this month"
+          trend="+0 this month"
         />
         <KpiCard
           icon={Leaf}
           label="Active Crops"
-          value="12"
+          value={String(farms.length || 0)}
           sub="Across all farms"
-          trend="+3 this season"
+          trend="+0 this season"
         />
         <KpiCard
           icon={Wallet}
           label="Revenue (MTD)"
-          value="GH₵ 4,820"
+          value="GH₵ 0,000"
           sub="Month to date"
-          trend="+18%"
+          trend="+0%"
         />
         <KpiCard
           icon={Package}
           label="Active Listings"
-          value="7"
+          value={String(farms.length || 0)}
           sub="On marketplace"
-          trend="+2 this week"
+          trend="+0 this week"
         />
       </div>
 
