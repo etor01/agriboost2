@@ -72,21 +72,31 @@ export default function NewListingPage() {
             .getPublicUrl(filePath);
 
         const { error: insertError } = await supabase
-            .from('market_listings')
+            .from('listings')
             .insert({
-                user_id: user.id,
-                title,
+                profile_id: user.id,
+                name: title,
                 description,
-                price: parseFloat(price),
-                unit,
-                quantity_available: parseInt(quantity),
-                location,
+                price_per_unit: parseFloat(price),
+                unit_type: unit,
+                quantity: parseInt(quantity),
                 image_urls: [publicUrl],
+                status: 'active',
+                is_featured: false,
+                discount: 0,
+                delivery_available: true
             });
 
         if (insertError) {
             setError('Error creating listing: ' + insertError.message);
         } else {
+            // Log to activities table!
+            await supabase.from('activities').insert({
+                profile_id: user.id,
+                activity_type: 'listing_created',
+                title: 'New Marketplace Listing',
+                description: `Listed ${title} (Qty: ${quantity} ${unit}) on the marketplace`
+            });
             alert('Listing created successfully!');
             router.push('/marketplace');
         }

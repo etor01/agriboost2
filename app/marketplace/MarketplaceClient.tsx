@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import {
   BadgeCheck,
   Check,
@@ -22,10 +22,7 @@ import {
   type Listing,
 } from "@/lib/data/marketplaceData";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+const supabase = createClient();
 
 type SupabaseListingRow = {
   id: string;
@@ -355,6 +352,7 @@ export default function MarketplaceClient() {
           `
           id,
           name,
+          description,
           quantity,
           unit_type,
           price_per_unit,

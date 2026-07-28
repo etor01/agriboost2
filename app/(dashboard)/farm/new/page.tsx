@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Sprout, Tractor } from "lucide-react";
+import { addFarm } from "./actions";
 
 function GlassCard({
   children,
@@ -80,15 +81,36 @@ export default function AddFarmPage() {
   const [established, setEstablished] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !location || !acres) return;
-    // MVP: simulate save — in production this would call Supabase
-    setSubmitted(true);
-    setTimeout(() => {
-      router.push("/profile");
-    }, 1800);
+    setIsSubmitting(true);
+    setError("");
+
+    const result = await addFarm({
+      name,
+      location,
+      region,
+      size_in_acres: parseFloat(acres),
+      primary_crop: crop,
+      soil_type: soil,
+      irrigation_type: irrigation,
+      established_date: established,
+      notes,
+    });
+
+    if (result.success) {
+      setSubmitted(true);
+      setTimeout(() => {
+        router.push("/profile");
+      }, 1800);
+    } else {
+      setError(result.message || "An error occurred while creating the farm.");
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -275,6 +297,12 @@ export default function AddFarmPage() {
           </div>
 
           {/* Actions */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-semibold rounded-xl">
+              {error}
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <Link
               href="/dashboard"
@@ -284,9 +312,10 @@ export default function AddFarmPage() {
             </Link>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-md shadow-emerald-200 hover:from-emerald-600 hover:to-green-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-md shadow-emerald-200 hover:from-emerald-600 hover:to-green-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Sprout className="h-4 w-4" /> Add Farm
+              <Sprout className="h-4 w-4" /> {isSubmitting ? "Adding..." : "Add Farm"}
             </button>
           </div>
         </form>

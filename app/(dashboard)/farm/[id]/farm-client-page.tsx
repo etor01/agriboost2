@@ -1,12 +1,4 @@
 // app/(dashboard)/farm/[id]/farm-client-page.tsx
-// NOTE: All Supabase/DB interactions replaced with dummy interactive frontend for MVP demo
-
-// --- ORIGINAL SUPABASE LOGIC COMMENTED OUT ---
-// import { createClient } from '@/lib/supabase/client';
-// const supabase = createClient();
-// async function addCrop(cropData) { await supabase.from('crops').insert(...) }
-// async function updateTask(taskId) { await supabase.from('tasks').update(...) }
-
 "use client";
 
 import { useState } from "react";
@@ -28,139 +20,7 @@ import {
   AlertTriangle,
   ClipboardList,
 } from "lucide-react";
-
-// ── Dummy Farm Data ────────────────────────────────────────────────
-const DUMMY_FARMS: Record<
-  string,
-  {
-    name: string;
-    location: string;
-    size_in_acres: number;
-    crop: string;
-    status: string;
-    soil: string;
-    irrigation: string;
-    established: string;
-  }
-> = {
-  "farm-1": {
-    name: "Asante North Farm",
-    location: "Ejisu, Ashanti",
-    size_in_acres: 12,
-    crop: "Maize & Cassava",
-    status: "Active",
-    soil: "Loamy",
-    irrigation: "Rain-fed",
-    established: "March 2022",
-  },
-  "farm-2": {
-    name: "Volta Valley Plot",
-    location: "Ho, Volta Region",
-    size_in_acres: 5,
-    crop: "Tomatoes & Pepper",
-    status: "Active",
-    soil: "Sandy Loam",
-    irrigation: "Drip Irrigation",
-    established: "June 2023",
-  },
-  "farm-3": {
-    name: "Brong Highlands",
-    location: "Sunyani, Brong-Ahafo",
-    size_in_acres: 8,
-    crop: "Yam & Cocoyam",
-    status: "Dormant",
-    soil: "Clay Loam",
-    irrigation: "Rain-fed",
-    established: "January 2021",
-  },
-};
-
-const DEFAULT_FARM = {
-  name: "Demo Farm",
-  location: "Ghana",
-  size_in_acres: 5,
-  crop: "Mixed Crops",
-  status: "Active",
-  soil: "Loamy",
-  irrigation: "Rain-fed",
-  established: "2024",
-};
-
-const INITIAL_CROPS = [
-  {
-    id: "c1",
-    name: "Maize (Obuobi)",
-    planted: "2025-03-01",
-    harvest: "2025-07-01",
-    area: 4,
-    health: "Good",
-    stage: "Flowering",
-  },
-  {
-    id: "c2",
-    name: "Cassava",
-    planted: "2025-01-15",
-    harvest: "2026-01-15",
-    area: 5,
-    health: "Excellent",
-    stage: "Vegetative",
-  },
-  {
-    id: "c3",
-    name: "Garden Eggs",
-    planted: "2025-04-10",
-    harvest: "2025-07-30",
-    area: 3,
-    health: "Fair",
-    stage: "Fruiting",
-  },
-];
-
-const INITIAL_TASKS = [
-  {
-    id: "t1",
-    label: "Apply NPK Fertilizer – Maize",
-    due: "Jun 25",
-    done: false,
-    priority: "high",
-  },
-  {
-    id: "t2",
-    label: "Weed control – Cassava block",
-    due: "Jun 28",
-    done: false,
-    priority: "medium",
-  },
-  {
-    id: "t3",
-    label: "Soil moisture check",
-    due: "Jun 22",
-    done: true,
-    priority: "low",
-  },
-  {
-    id: "t4",
-    label: "Spray fungicide – Garden Eggs",
-    due: "Jun 30",
-    done: false,
-    priority: "high",
-  },
-];
-
-const ACTIVITY = [
-  { icon: Droplets, text: "Cassava watered (Block B)", time: "2 hrs ago" },
-  {
-    icon: ShieldCheck,
-    text: "Soil pH test completed — 6.2",
-    time: "1 day ago",
-  },
-  { icon: Sparkles, text: "AI scan: Maize health Good", time: "2 days ago" },
-  {
-    icon: AlertTriangle,
-    text: "Pesticide applied — Garden Eggs",
-    time: "3 days ago",
-  },
-];
+import { addCrop, toggleTask, deleteCrop } from "./actions";
 
 // ── Glass Card ────────────────────────────────────────────────────
 function GlassCard({
@@ -186,39 +46,100 @@ const HEALTH_COLORS: Record<string, string> = {
   Poor: "bg-red-100 text-red-600",
 };
 
-// ── Main Client Page ───────────────────────────────────────────────
-export default function FarmDetailClient({ farmId }: { farmId: string }) {
-  const farm = DUMMY_FARMS[farmId] ?? DEFAULT_FARM;
+interface FarmDetailClientProps {
+  user: any;
+  initialFarm: any;
+  initialCrops: any[];
+  initialTasks: any[];
+  initialActivities: any[];
+}
 
-  const [crops, setCrops] = useState(INITIAL_CROPS);
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+export default function FarmDetailClient({
+  user,
+  initialFarm,
+  initialCrops,
+  initialTasks,
+  initialActivities,
+}: FarmDetailClientProps) {
+  const [crops, setCrops] = useState(initialCrops);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [activities, setActivities] = useState(initialActivities);
+
   const [showAddCrop, setShowAddCrop] = useState(false);
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [newTask, setNewTask] = useState("");
+  const [isAddingCrop, setIsAddingCrop] = useState(false);
 
-  const toggleTask = (id: string) => {
+  const handleToggleTask = async (taskId: string, currentCompleted: boolean, desc: string) => {
+    // Optimistically toggle status
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+      prev.map((t) => (t.id === taskId ? { ...t, completed: !currentCompleted } : t))
     );
+
+    const res = await toggleTask(initialFarm.id, taskId, !currentCompleted, desc);
+    if (!res.success) {
+      alert("Failed to toggle task: " + res.message);
+      // Revert if error
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, completed: currentCompleted } : t))
+      );
+    } else {
+      // Re-fetch activities or add custom activity locally to sync UI
+      setActivities((prev) => [
+        {
+          id: `act-${Date.now()}`,
+          activity_type: "task_completed",
+          title: "Task Completed",
+          description: `Completed task: ${desc}`,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
   };
 
-  const handleAddTask = () => {
-    if (!newTask.trim()) return;
-    setTasks((prev) => [
-      ...prev,
-      {
-        id: `t${Date.now()}`,
-        label: newTask,
-        due: "TBD",
-        done: false,
-        priority: "medium",
-      },
-    ]);
-    setNewTask("");
-    setShowAddTask(false);
+  const handleAddCropSubmit = async (cropType: string, plantingDate: string, harvestDate: string | null, areaVal: number, stage: string) => {
+    setIsAddingCrop(true);
+    const res = await addCrop(initialFarm.id, {
+      crop_type: cropType,
+      planting_date: plantingDate,
+      estimated_harvest_date: harvestDate,
+      area: areaVal,
+      current_growth_stage: stage,
+    });
+
+    if (res.success && res.crop) {
+      setCrops((prev) => [...prev, res.crop]);
+      setShowAddCrop(false);
+      // Force reload page to fetch newly generated auto-tasks
+      window.location.reload();
+    } else {
+      alert("Error adding crop: " + res.message);
+    }
+    setIsAddingCrop(false);
   };
 
-  const completedTasks = tasks.filter((t) => t.done).length;
+  const handleDeleteCropClick = async (cropId: string, cropType: string) => {
+    if (!confirm(`Are you sure you want to remove the crop record for ${cropType}? All linked tasks will be deleted.`)) return;
+
+    const res = await deleteCrop(initialFarm.id, cropId, cropType);
+    if (res.success) {
+      setCrops((prev) => prev.filter((c) => c.id !== cropId));
+      setTasks((prev) => prev.filter((t) => t.crop_id !== cropId));
+      setActivities((prev) => [
+        {
+          id: `act-${Date.now()}`,
+          activity_type: "crop_deleted",
+          title: "Crop Removed",
+          description: `Removed crop ${cropType} from farm`,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    } else {
+      alert("Error deleting crop: " + res.message);
+    }
+  };
+
+  const completedTasksCount = tasks.filter((t) => t.completed).length;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -232,16 +153,16 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
             <ArrowLeft className="h-4 w-4" /> Back to Profile
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            {farm.name}
+            {initialFarm.name}
           </h1>
           <p className="text-gray-500 text-sm mt-1 flex items-center gap-1">
-            <MapPin className="h-4 w-4" /> {farm.location}
+            <MapPin className="h-4 w-4" /> {initialFarm.location}
           </p>
         </div>
         <span
-          className={`self-start px-3 py-1.5 rounded-full text-sm font-bold ${farm.status === "Active" ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-gray-100 text-gray-500 border border-gray-200"}`}
+          className="self-start px-3 py-1.5 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"
         >
-          ● {farm.status}
+          ● Active
         </span>
       </div>
 
@@ -251,11 +172,11 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
           {
             icon: Tractor,
             label: "Farm Size",
-            value: `${farm.size_in_acres} acres`,
+            value: `${initialFarm.size_in_acres || 0} acres`,
           },
-          { icon: Leaf, label: "Primary Crop", value: farm.crop },
-          { icon: ShieldCheck, label: "Soil Type", value: farm.soil },
-          { icon: Droplets, label: "Irrigation", value: farm.irrigation },
+          { icon: Leaf, label: "Primary Crop", value: initialFarm.primary_crop || "None" },
+          { icon: ShieldCheck, label: "Soil Type", value: initialFarm.soil_type || "Unknown" },
+          { icon: Droplets, label: "Irrigation", value: initialFarm.irrigation_type || "Rain-fed" },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
@@ -281,8 +202,7 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
         <GlassCard className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-              <Sprout className="h-4 w-4 text-emerald-600" /> Crop Records (
-              {crops.length})
+              <Sprout className="h-4 w-4 text-emerald-600" /> Crop Records ({crops.length})
             </h2>
             <button
               onClick={() => setShowAddCrop(true)}
@@ -291,37 +211,42 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
               <Plus className="h-3.5 w-3.5" /> Add Crop
             </button>
           </div>
-          <div className="space-y-3">
-            {crops.map((crop) => (
-              <div
-                key={crop.id}
-                className="p-3 rounded-xl bg-white/80 border border-gray-100 hover:border-emerald-200 transition-all"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">
-                      {crop.name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Stage:{" "}
-                      <span className="font-semibold text-gray-700">
-                        {crop.stage}
-                      </span>{" "}
-                      · {crop.area} acres
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Planted: {crop.planted} · Harvest: {crop.harvest}
-                    </p>
+          {crops.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <Sprout className="h-8 w-8 mx-auto mb-2 text-emerald-500 animate-pulse" />
+              <p className="text-sm font-semibold">No crops recorded</p>
+              <p className="text-xs">Add a crop to start auto-generating care tasks.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {crops.map((crop) => (
+                <div
+                  key={crop.id}
+                  className="p-3 rounded-xl bg-white/80 border border-gray-100 hover:border-emerald-200 transition-all flex flex-col justify-between"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">
+                        {crop.crop_type}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                        Stage: <span className="text-emerald-600">{crop.current_growth_stage || "Seedling"}</span> {crop.area ? `· ${crop.area} acres` : ""}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        Planted: {crop.planting_date} {crop.estimated_harvest_date ? `· Harvest: ${crop.estimated_harvest_date}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteCropClick(crop.id, crop.crop_type)}
+                      className="text-xs text-red-400 hover:text-red-600 font-semibold"
+                    >
+                      Delete
+                    </button>
                   </div>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${HEALTH_COLORS[crop.health] || "bg-gray-100 text-gray-500"}`}
-                  >
-                    {crop.health}
-                  </span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </GlassCard>
 
         {/* Tasks */}
@@ -330,112 +255,100 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
             <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-emerald-600" /> Tasks
             </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">
-                {completedTasks}/{tasks.length} done
-              </span>
-              <button
-                onClick={() => setShowAddTask((v) => !v)}
-                className="px-3 py-1.5 text-xs font-bold bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" /> Task
-              </button>
-            </div>
+            <span className="text-xs text-gray-500">
+              {completedTasksCount}/{tasks.length} done
+            </span>
           </div>
 
-          {/* Progress bar */}
           <div className="h-1.5 rounded-full bg-gray-100 mb-4 overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-500"
               style={{
-                width: `${tasks.length ? (completedTasks / tasks.length) * 100 : 0}%`,
+                width: `${tasks.length ? (completedTasksCount / tasks.length) * 100 : 0}%`,
               }}
             />
           </div>
 
-          {showAddTask && (
-            <div className="flex gap-2 mb-3">
-              <input
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
-                placeholder="New task..."
-                className="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm text-gray-800"
-                autoFocus
-              />
-              <button
-                onClick={handleAddTask}
-                className="px-3 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-colors"
-              >
-                Add
-              </button>
+          {tasks.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <CheckCircle2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold">No tasks scheduled</p>
+              <p className="text-xs">Tasks are automatically generated once crops are added.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => handleToggleTask(task.id, task.completed, task.description)}
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${task.completed ? "opacity-50 bg-gray-50" : "bg-white/80 hover:bg-white"}`}
+                >
+                  <div
+                    className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${task.completed ? "bg-emerald-500 border-emerald-500" : "border-gray-300 hover:border-emerald-400"}`}
+                  >
+                    {task.completed && <span className="text-white text-xs font-bold">✓</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`text-sm font-medium truncate ${task.completed ? "line-through text-gray-400" : "text-gray-800"}`}
+                    >
+                      {task.description}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Due: {task.due_date ? new Date(task.due_date).toLocaleDateString("en-GH", { day: 'numeric', month: 'short' }) : "TBD"}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 uppercase ${
+                      task.priority === "high"
+                        ? "bg-red-100 text-red-600"
+                        : task.priority === "medium"
+                          ? "bg-amber-100 text-amber-600"
+                          : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {task.priority || "medium"}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
-
-          <div className="space-y-2">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                onClick={() => toggleTask(task.id)}
-                className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${task.done ? "opacity-50 bg-gray-50" : "bg-white/80 hover:bg-white"}`}
-              >
-                <div
-                  className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${task.done ? "bg-emerald-500 border-emerald-500" : "border-gray-300 hover:border-emerald-400"}`}
-                >
-                  {task.done && (
-                    <span className="text-white text-xs font-bold">✓</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-medium truncate ${task.done ? "line-through text-gray-400" : "text-gray-800"}`}
-                  >
-                    {task.label}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Due: {task.due}
-                  </p>
-                </div>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    task.priority === "high"
-                      ? "bg-red-100 text-red-600"
-                      : task.priority === "medium"
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {task.priority}
-                </span>
-              </div>
-            ))}
-          </div>
         </GlassCard>
       </div>
 
       {/* Activity + AI Insight Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Activity */}
+        {/* Activity Logs */}
         <GlassCard className="p-5">
           <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Waves className="h-4 w-4 text-emerald-600" /> Farm Activity
+            <Waves className="h-4 w-4 text-emerald-600" /> Farm Activity Logs
           </h2>
-          <div className="space-y-3">
-            {ACTIVITY.map((a, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 p-3 rounded-xl bg-white/60 hover:bg-white transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                  <a.icon className="h-4 w-4 text-emerald-600" />
+          {activities.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <p className="text-sm font-semibold">No recent activity</p>
+              <p className="text-xs">Your logs will be updated here as you make changes.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {activities.map((a, i) => (
+                <div
+                  key={a.id || i}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-white/60 hover:bg-white transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <Sprout className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{a.title}</p>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{a.description}</p>
+                    <span className="text-[10px] text-gray-400 mt-1 block">
+                      {new Date(a.created_at).toLocaleDateString("en-GH", { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{a.text}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </GlassCard>
 
         {/* AI Insight Panel */}
@@ -450,34 +363,24 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
               </p>
               <div className="flex items-center gap-3">
                 <p className="text-3xl font-extrabold text-emerald-700">
-                  82<span className="text-base font-medium">/100</span>
+                  85<span className="text-base font-medium">/100</span>
                 </p>
                 <div className="flex-1">
                   <div className="h-2 rounded-full bg-emerald-100 overflow-hidden">
-                    <div className="h-full w-[82%] rounded-full bg-gradient-to-r from-emerald-400 to-green-500" />
+                    <div className="h-full w-[85%] rounded-full bg-gradient-to-r from-emerald-400 to-green-500" />
                   </div>
                   <p className="text-xs text-emerald-600 mt-1">
-                    Good — Monitor Garden Eggs
+                    Good — All registered crops verify healthy!
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
-              <p className="text-xs font-bold text-amber-700 mb-1 flex items-center gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" /> Alert: Pest Risk
-              </p>
-              <p className="text-sm text-amber-800">
-                Moderate risk of aphid infestation on your Garden Eggs. Consider
-                neem oil spray within 3 days.
-              </p>
             </div>
             <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
               <p className="text-xs font-bold text-blue-700 mb-1 flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5" /> Recommendation
               </p>
               <p className="text-sm text-blue-800">
-                Apply top-dressing fertilizer to Maize field. Current growth
-                stage (flowering) is optimal timing.
+                Auto-care plans generated successfully. Monitor tasks list and complete weeding on time for maximum harvests.
               </p>
             </div>
             <Link
@@ -494,10 +397,8 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
       {showAddCrop && (
         <AddCropModal
           onClose={() => setShowAddCrop(false)}
-          onAdd={(crop) => {
-            setCrops((prev) => [...prev, crop]);
-            setShowAddCrop(false);
-          }}
+          onAdd={handleAddCropSubmit}
+          isSaving={isAddingCrop}
         />
       )}
     </div>
@@ -505,14 +406,14 @@ export default function FarmDetailClient({ farmId }: { farmId: string }) {
 }
 
 // ── Add Crop Modal ─────────────────────────────────────────────────
-function AddCropModal({
-  onClose,
-  onAdd,
-}: {
+interface AddCropModalProps {
   onClose: () => void;
-  onAdd: (crop: (typeof INITIAL_CROPS)[0]) => void;
-}) {
-  const [name, setName] = useState("");
+  onAdd: (cropType: string, plantingDate: string, harvestDate: string | null, area: number, stage: string) => void;
+  isSaving: boolean;
+}
+
+function AddCropModal({ onClose, onAdd, isSaving }: AddCropModalProps) {
+  const [cropType, setCropType] = useState("Maize");
   const [planted, setPlanted] = useState("");
   const [harvest, setHarvest] = useState("");
   const [area, setArea] = useState("");
@@ -520,16 +421,8 @@ function AddCropModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !planted || !area) return;
-    onAdd({
-      id: `c${Date.now()}`,
-      name,
-      planted,
-      harvest: harvest || "TBD",
-      area: parseFloat(area),
-      health: "Good",
-      stage,
-    });
+    if (!cropType || !planted || !area) return;
+    onAdd(cropType, planted, harvest || null, parseFloat(area), stage);
   };
 
   return (
@@ -538,7 +431,7 @@ function AddCropModal({
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-md bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-6 z-10">
+      <div className="relative w-full max-w-md bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-6 z-10 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
             <Sprout className="h-5 w-5 text-emerald-600" /> Add Crop Record
@@ -546,6 +439,7 @@ function AddCropModal({
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500"
+            disabled={isSaving}
           >
             <X className="h-4 w-4" />
           </button>
@@ -553,16 +447,17 @@ function AddCropModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-              Crop Name *
+              Crop Type *
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              placeholder="e.g. Maize (Obuobi)"
+            <select
+              value={cropType}
+              onChange={(e) => setCropType(e.target.value)}
               className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
-            />
+            >
+              {["Maize", "Cassava", "Yam", "Cocoyam", "Tomatoes", "Pepper", "Groundnuts", "Soybeans", "Rice", "Plantain", "Vegetables (Mixed)", "Other"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -629,14 +524,16 @@ function AddCropModal({
               type="button"
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+              disabled={isSaving}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-md hover:from-emerald-600 hover:to-green-600 transition-all active:scale-95"
+              disabled={isSaving}
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-md hover:from-emerald-600 hover:to-green-600 transition-all active:scale-95 flex items-center justify-center"
             >
-              Add Crop
+              {isSaving ? "Saving..." : "Add Crop"}
             </button>
           </div>
         </form>

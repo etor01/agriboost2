@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, use } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -21,10 +21,7 @@ import { type Listing } from "@/lib/data/marketplaceData";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+const supabase = createClient();
 
 type SupabaseListingRow = {
   id: string;
