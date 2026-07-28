@@ -7,7 +7,8 @@ import Image from "next/image";
 
 export default function SignUpPage() {
   // State to manage form inputs
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,7 +38,8 @@ export default function SignUpPage() {
       options: {
         // This 'data' object is passed to the trigger function we created in SQL.
         data: {
-          full_name: fullName,
+          firstname: firstName.trim(),
+          lastname: lastName.trim(),
         },
         // Supabase sends a verification email by default.
         // The user must click the link in the email to be fully registered.
@@ -91,25 +93,48 @@ export default function SignUpPage() {
         ) : (
           /* Form */
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Full Name */}
-            <div>
-              <label
-                htmlFor="fullName"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                required
-                disabled={isLoading}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g., Ama Serwaa"
-                className="w-full px-4 py-3 rounded-xl bg-white/60 border border-white/20 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600/30 focus:border-green-600 transition-all"
-              />
+            {/* Name row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  First Name
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  required
+                  disabled={isLoading}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="e.g., Ama"
+                  className="w-full px-4 py-3 rounded-xl bg-white/60 border border-white/20 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600/30 focus:border-green-600 transition-all"
+                />
+              </div>
+              <div className="flex-1">
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  Last Name
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  required
+                  disabled={isLoading}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="e.g., Serwaa"
+                  className="w-full px-4 py-3 rounded-xl bg-white/60 border border-white/20 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600/30 focus:border-green-600 transition-all"
+                />
+              </div>
             </div>
 
             {/* Email */}
