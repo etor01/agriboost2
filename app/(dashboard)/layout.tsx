@@ -1,7 +1,7 @@
 // app/(dashboard)/layout.tsx
 "use client";
 
-import React, { useState, ReactNode } from "react";
+import React, { useState, useEffect, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -55,10 +55,58 @@ function Sidebar({
   const router = useRouter();
   const supabase = createClient();
 
+  // Dynamic profile state
+  const [profile, setProfile] = useState<{
+    firstname: string | null;
+    lastname: string | null;
+    subscription_tier: string | null;
+  } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProfile() {
+      setProfileLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) {
+        setProfileLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('firstname, lastname, subscription_tier')
+        .eq('id', user.id)
+        .single();
+      if (!cancelled) {
+        setProfile(data ?? null);
+        setProfileLoading(false);
+      }
+    }
+    loadProfile();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/");
   };
+
+  const displayName = profileLoading
+    ? null
+    : profile?.firstname
+      ? `${profile.firstname}${profile.lastname ? ` ${profile.lastname}` : ''}`
+      : 'Farmer';
+
+  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : 'F';
+  const tierLabel =
+    !profileLoading && profile?.subscription_tier
+      ? profile.subscription_tier.charAt(0).toUpperCase() +
+        profile.subscription_tier.slice(1) +
+        ' Plan'
+      : 'Free Plan';
 
   return (
     <>
@@ -167,13 +215,22 @@ function Sidebar({
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
-                F
+                {avatarLetter}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 truncate">
-                  Farmer
-                </p>
-                <p className="text-xs text-gray-400 truncate">Free Plan</p>
+                {profileLoading ? (
+                  <>
+                    <div className="h-3.5 w-24 bg-gray-200 rounded animate-pulse mb-1.5" />
+                    <div className="h-2.5 w-16 bg-gray-100 rounded animate-pulse" />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-gray-800 truncate">
+                      {displayName}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{tierLabel}</p>
+                  </>
+                )}
               </div>
               <button
                 onClick={handleSignOut}
