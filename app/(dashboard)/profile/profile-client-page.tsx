@@ -17,6 +17,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { addFarm } from "../farm/new/actions";
 
 type ProfileState = {
   id: string;
@@ -90,164 +91,76 @@ function formatCurrency(value: number) {
   return `GH₵ ${value.toFixed(2)}`;
 }
 
-export default function ProfileClientPage() {
+interface ProfileClientPageProps {
+  user: any;
+  profile: any;
+  initialFarms: any[];
+  initialListings: any[];
+}
+
+export default function ProfileClientPage({
+  user,
+  profile: dbProfile,
+  initialFarms,
+  initialListings,
+}: ProfileClientPageProps) {
   const [activeTab, setActiveTab] = useState("personal");
-  const [farms, setFarms] = useState<FarmState[]>([]);
-  const [listings, setListings] = useState<ListingState[]>([]);
+  const [supabaseClient] = useState(() => createClient());
+
+  const [profile, setProfile] = useState<ProfileState>(() => {
+    const firstNameValue = dbProfile?.firstname ?? "";
+    const lastNameValue = dbProfile?.lastname ?? "";
+    const fullNameValue = [firstNameValue, lastNameValue].filter(Boolean).join(" ") || user.email || FALLBACK_PROFILE.full_name;
+    return {
+      id: user.id,
+      first_name: firstNameValue,
+      last_name: lastNameValue,
+      full_name: fullNameValue,
+      email: user.email ?? "",
+      phone: dbProfile?.phone ?? "",
+      region: dbProfile?.region ?? FALLBACK_PROFILE.region,
+      bio: dbProfile?.bio ?? FALLBACK_PROFILE.bio,
+      verification_status: dbProfile?.verification_status ?? FALLBACK_PROFILE.verification_status,
+      avatar_url: dbProfile?.avatar_url ?? null,
+      member_since: new Date(user.created_at).toLocaleDateString("en-GH", { month: "long", year: "numeric" }),
+      total_sales: formatCurrency(initialListings.reduce((sum, item) => sum + Number(item.price_per_unit ?? 0), 0)),
+      rating: 4.8,
+      reviews: initialListings.length * 2,
+    };
+  });
+
+  const [farms, setFarms] = useState<FarmState[]>(() =>
+    initialFarms.map((farm) => ({
+      id: String(farm.id ?? ""),
+      name: String(farm.name ?? "Unnamed farm"),
+      location: String(farm.location ?? "Location not set"),
+      size_in_acres: Number(farm.size_in_acres ?? 0),
+      crop: String(farm.primary_crop ?? "Mixed Crops"),
+      status: "Active",
+    }))
+  );
+
+  const [listings, setListings] = useState<ListingState[]>(() =>
+    initialListings.map((listing) => ({
+      id: String(listing.id ?? ""),
+      title: String(listing.name ?? "Listing"),
+      price: formatCurrency(Number(listing.price_per_unit ?? 0)),
+      qty: Number(listing.quantity ?? 0),
+      status: String(listing.status ?? "active"),
+    }))
+  );
+
+  const [firstName, setFirstName] = useState(profile.first_name);
+  const [lastName, setLastName] = useState(profile.last_name);
+  const [phone, setPhone] = useState(profile.phone);
+  const [bio, setBio] = useState(profile.bio);
+  const [region, setRegion] = useState(profile.region);
+
   const [showAddFarm, setShowAddFarm] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [profile, setProfile] = useState<ProfileState>(FALLBACK_PROFILE);
-  const [firstName, setFirstName] = useState(FALLBACK_PROFILE.first_name);
-  const [lastName, setLastName] = useState(FALLBACK_PROFILE.last_name);
-  const [phone, setPhone] = useState(FALLBACK_PROFILE.phone);
-  const [bio, setBio] = useState(FALLBACK_PROFILE.bio);
-  const [region, setRegion] = useState(FALLBACK_PROFILE.region);
-  const [supabaseClient] = useState(() => createClient());
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async () => {
-      setIsLoading(true);
-      setError("");
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabaseClient.auth.getUser();
-
-      if (!isMounted) return;
-
-      if (userError || !user) {
-        setError("Please sign in to view your profile.");
-        setIsLoading(false);
-        return;
-      }
-
-      const [profileRes, farmsRes, listingsRes] = await Promise.all([
-        supabaseClient
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabaseClient
-          .from("farms")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabaseClient
-          .from("market_listings")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      if (!isMounted) return;
-
-      const profileRow = profileRes.data as Record<string, unknown> | null;
-      const farmRows = (farmsRes.data ?? []) as Array<Record<string, unknown>>;
-      const listingRows = (listingsRes.data ?? []) as Array<
-        Record<string, unknown>
-      >;
-
-      const firstNameValue =
-        (profileRow?.firstname as string | undefined) ??
-        (profileRow?.first_name as string | undefined) ??
-        (user.user_metadata?.first_name as string | undefined) ??
-        (user.user_metadata?.firstname as string | undefined) ??
-        "";
-      const lastNameValue =
-        (profileRow?.lastname as string | undefined) ??
-        (profileRow?.last_name as string | undefined) ??
-        (user.user_metadata?.last_name as string | undefined) ??
-        (user.user_metadata?.lastname as string | undefined) ??
-        "";
-      const fullNameValue =
-        [firstNameValue, lastNameValue].filter(Boolean).join(" ") ||
-        ((profileRow?.full_name as string | undefined) ??
-          (user.user_metadata?.full_name as string | undefined) ??
-          user.email ??
-          FALLBACK_PROFILE.full_name);
-
-      const mappedProfile: ProfileState = {
-        id: user.id,
-        first_name: firstNameValue,
-        last_name: lastNameValue,
-        full_name: fullNameValue,
-        email: user.email ?? "",
-        phone:
-          (profileRow?.phone as string | undefined) ??
-          (user.user_metadata?.phone as string | undefined) ??
-          "",
-        region:
-          (profileRow?.region as string | undefined) ??
-          (user.user_metadata?.region as string | undefined) ??
-          FALLBACK_PROFILE.region,
-        bio:
-          (profileRow?.bio as string | undefined) ??
-          (user.user_metadata?.bio as string | undefined) ??
-          FALLBACK_PROFILE.bio,
-        verification_status:
-          (profileRow?.verification_status as string | undefined) ??
-          (profileRow?.verified_status as string | undefined) ??
-          (user.user_metadata?.verified_status as string | undefined) ??
-          FALLBACK_PROFILE.verification_status,
-        avatar_url:
-          (profileRow?.avatar_url as string | undefined) ??
-          (user.user_metadata?.avatar_url as string | undefined) ??
-          null,
-        member_since: user.created_at
-          ? new Date(user.created_at).toLocaleDateString("en-GH", {
-              month: "long",
-              year: "numeric",
-            })
-          : FALLBACK_PROFILE.member_since,
-        total_sales: formatCurrency(
-          listingRows.reduce((sum, item) => sum + Number(item.price ?? 0), 0),
-        ),
-        rating: 4.8,
-        reviews: listingRows.length * 2,
-      };
-
-      setProfile(mappedProfile);
-      setFirstName(mappedProfile.first_name);
-      setLastName(mappedProfile.last_name);
-      setPhone(mappedProfile.phone);
-      setBio(mappedProfile.bio);
-      setRegion(mappedProfile.region);
-      setFarms(
-        farmRows.map((farm) => ({
-          id: String(farm.id ?? ""),
-          name: String(farm.name ?? "Unnamed farm"),
-          location: String(farm.location ?? "Location not set"),
-          size_in_acres: Number(farm.size_in_acres ?? 0),
-          crop: String(farm.crop ?? farm.crop_type ?? "Mixed Crops"),
-          status: String(
-            farm.status ?? (farm.is_active ? "Active" : "Inactive"),
-          ),
-        })),
-      );
-      setListings(
-        listingRows.map((listing) => ({
-          id: String(listing.id ?? ""),
-          title: String(listing.title ?? listing.name ?? "Listing"),
-          price: formatCurrency(Number(listing.price ?? 0)),
-          qty: Number(listing.quantity_available ?? 0),
-          status: String(listing.status ?? "active"),
-        })),
-      );
-      setIsLoading(false);
-    };
-
-    loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [supabaseClient]);
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -699,10 +612,33 @@ export default function ProfileClientPage() {
       {showAddFarm && (
         <AddFarmModal
           onClose={() => setShowAddFarm(false)}
-          onAdd={(farm) => {
-            setFarms((prev) => [...prev, farm]);
-            setShowAddFarm(false);
-            setActiveTab("farms");
+          onAdd={async (farmData) => {
+            const res = await addFarm({
+              name: farmData.name,
+              location: farmData.location,
+              region: "Ashanti Region",
+              size_in_acres: farmData.size_in_acres ?? 0.0,
+              primary_crop: farmData.crop,
+              soil_type: "Loamy",
+              irrigation_type: "Rain-fed",
+              established_date: "2026",
+              notes: ""
+            });
+            if (res.success && res.farmId) {
+              setFarms((prev) => [...prev, {
+                id: res.farmId,
+                name: farmData.name,
+                location: farmData.location,
+                size_in_acres: farmData.size_in_acres,
+                crop: farmData.crop,
+                status: "Active"
+              }]);
+              setShowAddFarm(false);
+              setActiveTab("farms");
+              window.location.reload();
+            } else {
+              alert("Failed to add farm: " + res.message);
+            }
           }}
         />
       )}

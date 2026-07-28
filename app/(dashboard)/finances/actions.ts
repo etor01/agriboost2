@@ -10,7 +10,7 @@ export async function recordSuccessfulTransaction(transactionData: {
     amount: number;
     payment_gateway_ref: string;
 }) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -20,17 +20,25 @@ export async function recordSuccessfulTransaction(transactionData: {
     const { error } = await supabase
         .from('transactions')
         .insert({
-            user_id: user.id,
+            profile_id: user.id,
             service_name: transactionData.service_name,
             amount: transactionData.amount,
             status: 'completed',
-            payment_gateway_ref: transactionData.payment_gateway_ref,
+            paystack_reference: transactionData.payment_gateway_ref,
         });
 
     if (error) {
         console.error('Error recording transaction:', error);
         return { success: false, message: error.message };
     }
+
+    // Log to activities table!
+    await supabase.from('activities').insert({
+        profile_id: user.id,
+        activity_type: 'payment_received',
+        title: 'Payment Completed',
+        description: `Successfully processed GH₵ ${transactionData.amount.toFixed(2)} for ${transactionData.service_name}`
+    });
 
     // Revalidate the finances page to show the new transaction
     revalidatePath('/finances');

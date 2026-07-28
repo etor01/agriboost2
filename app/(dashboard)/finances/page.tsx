@@ -77,10 +77,11 @@ const getStatusClass = (status) =>
     : "bg-gray-100 text-gray-800";
 
 export default function FinancesPage() {
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState("");
   const [loadingUser, setLoadingUser] = useState(true);
   const [paystackReady, setPaystackReady] = useState(false);
-  const initializePaymentRef = useRef(null);
+  const initializePaymentRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchUserAndPaystack = async () => {
@@ -91,6 +92,14 @@ export default function FinancesPage() {
 
       if (user) {
         setUserEmail(user.email);
+
+        // Fetch transactions from database
+        const { data: txList } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("profile_id", user.id)
+          .order("created_at", { ascending: false });
+        if (txList) setTransactions(txList);
 
         const { usePaystackPayment } = await import("react-paystack");
 
@@ -200,32 +209,39 @@ export default function FinancesPage() {
               </tr>
             </thead>
             <tbody>
-              {dummyTransactions.map((txn) => (
+              {transactions.map((txn) => (
                 <tr
                   key={txn.id}
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
                   <td className="p-3 font-mono text-sm text-gray-500">
-                    {txn.id}
+                    {txn.id.slice(0, 8)}...
                   </td>
                   <td className="p-3 font-medium text-gray-800">
                     {txn.service_name}
                   </td>
                   <td className="p-3 font-medium text-gray-800">
-                    GH₵{txn.amount}
+                    GH₵{Number(txn.amount).toFixed(2)}
                   </td>
                   <td className="p-3 text-gray-600">
                     {new Date(txn.created_at).toLocaleDateString()}
                   </td>
                   <td className="p-3">
                     <span
-                      className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(txn.status)}`}
+                      className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full capitalize ${txn.status === "completed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
                     >
                       {txn.status}
                     </span>
                   </td>
                 </tr>
               ))}
+              {transactions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-gray-400 text-sm">
+                    No transactions recorded yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

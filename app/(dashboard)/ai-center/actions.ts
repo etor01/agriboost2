@@ -23,7 +23,7 @@ const getRecommendations = (diseaseName: string) => {
 };
 
 export async function analyzeCropImage(formData: FormData) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -75,17 +75,26 @@ export async function analyzeCropImage(formData: FormData) {
         };
 
         const { data: savedAnalysis, error: dbError } = await supabase
-            .from('disease_analyses')
+            .from('crop_diagnostics')
             .insert({
-                user_id: user.id,
+                profile_id: user.id,
                 crop_id: null, // You can add a dropdown in the UI to select a crop
                 image_url: publicUrl,
-                ...analysisData
+                ai_result: analysisData,
+                status: 'completed'
             })
             .select()
             .single();
 
         if (dbError) throw new Error(`Database error: ${dbError.message}`);
+
+        // Log to activities table!
+        await supabase.from('activities').insert({
+            profile_id: user.id,
+            activity_type: 'scan_performed',
+            title: 'AI Crop Scan',
+            description: `Scanned crop health: Detected ${analysisData.disease_name} (Confidence: ${(analysisData.confidence_score * 100).toFixed(0)}%)`
+        });
 
         return { success: true, analysis: savedAnalysis };
 
