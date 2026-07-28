@@ -4,13 +4,37 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function updateVerificationStatus(userId: string, newStatus: 'verified' | 'not_verified') {
-  const supabase = createClient();
+export async function updateVerificationStatus(
+  userId: string,
+  newStatus: 'verified' | 'pending' | 'rejected',
+) {
+  const supabase = await createClient();
 
-  // A real app should check if the current user is an admin before proceeding.
-  // Our middleware handles route access, but actions should also be secure.
+  // ── Admin guard ────────────────────────────────────────────────────────────
+  // Middleware protects the route, but server actions are directly callable via
+  // POST, so we perform an explicit server-side admin check here as a second
+  // layer of defence.
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
+  if (authError || !user) {
+    return { success: false, message: 'Unauthorized: you must be signed in.' };
+  }
+
+  const { data: adminRow } = await supabase
+    .from('admins')
+    .select('admin_level')
+    .eq('profile_id', user.id)
+    .single();
+
+  if (!adminRow) {
+    return { success: false, message: 'Forbidden: admin access required.' };
+  }
+  // ── End admin guard ────────────────────────────────────────────────────────
+
+  const { error } = await supabase
     .from('profiles')
     .update({ verification_status: newStatus })
     .eq('id', userId);
@@ -23,6 +47,6 @@ export async function updateVerificationStatus(userId: string, newStatus: 'verif
   // Revalidate paths to ensure the UI updates with the new status across the app
   revalidatePath(`/admin/farmers`);
   revalidatePath(`/admin/farmers/${userId}`);
-  
+
   return { success: true, message: `Farmer status updated to ${newStatus}.` };
 }
