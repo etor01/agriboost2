@@ -1,20 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   BadgeCheck,
-  Check,
   MapPin,
-  Search,
   ShoppingCart,
-  SlidersHorizontal,
-  Sparkles,
   Sprout,
-  Star,
-  Truck,
 } from "lucide-react";
 import {
   ALL_CATEGORIES,
@@ -22,7 +14,16 @@ import {
   type Listing,
 } from "@/lib/data/marketplaceData";
 
+// ── Component imports ───────────────────────────────────────────────
+import CartDrawer from "@/components/marketplace/CartDrawer";
+import CategoryBar from "@/components/marketplace/CategoryBar";
+import FilterBar from "@/components/marketplace/FilterBar";
+import ProductCard from "@/components/marketplace/ProductCard";
+
 const supabase = createClient();
+
+// ── Types ───────────────────────────────────────────────────────────
+type CartItem = { listing: Listing; qty: number };
 
 type SupabaseListingRow = {
   id: string;
@@ -51,285 +52,43 @@ type SupabaseListingRow = {
   } | null;
 };
 
-// ── Icons ──────────────────────────────────────────────────────────
-const SearchIcon = (p: React.SVGProps<SVGSVGElement>) => <Search {...p} />;
-const MapPinIcon = (p: React.SVGProps<SVGSVGElement>) => <MapPin {...p} />;
-const StarIcon = (p: React.SVGProps<SVGSVGElement>) => (
-  <Star {...p} fill="currentColor" stroke="none" />
-);
-const CartIcon = (p: React.SVGProps<SVGSVGElement>) => <ShoppingCart {...p} />;
-const TruckIcon = (p: React.SVGProps<SVGSVGElement>) => <Truck {...p} />;
-const FilterIcon = (p: React.SVGProps<SVGSVGElement>) => (
-  <SlidersHorizontal {...p} />
-);
-const CheckIcon = (p: React.SVGProps<SVGSVGElement>) => <Check {...p} />;
+const PER_PAGE = 24;
 
-// ── Cart Types ─────────────────────────────────────────────────────
-type CartItem = { listing: Listing; qty: number };
-
-// ── Star Rating ────────────────────────────────────────────────────
-const StarRating = ({ rating }: { rating: number }) => (
-  <div className="flex items-center gap-0.5">
-    {[1, 2, 3, 4, 5].map((s) => (
-      <StarIcon
-        key={s}
-        className={`h-3 w-3 ${s <= Math.round(rating) ? "text-amber-400" : "text-gray-300"}`}
-      />
-    ))}
-  </div>
-);
-
-// ── Cart Drawer ────────────────────────────────────────────────────
-const CartDrawer = ({
-  cart,
-  onClose,
-  onRemove,
-  onQtyChange,
-}: {
-  cart: CartItem[];
-  onClose: () => void;
-  onRemove: (id: string) => void;
-  onQtyChange: (id: string, qty: number) => void;
-}) => {
-  const total = cart.reduce((s, i) => s + i.listing.price * i.qty, 0);
+// ── Loading Skeleton ────────────────────────────────────────────────
+function SkeletonCard() {
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="w-full max-w-md bg-white shadow-2xl flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">
-            Your Cart ({cart.length})
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-900 text-2xl font-light"
-          >
-            &times;
-          </button>
-        </div>
-        {cart.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
-            <CartIcon className="h-16 w-16 opacity-30" />
-            <p className="text-lg font-medium">Your cart is empty</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {cart.map((item) => (
-                <div
-                  key={item.listing.id}
-                  className="flex gap-3 p-3 rounded-xl border border-gray-100 hover:border-emerald-200 transition-colors"
-                >
-                  <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image
-                      src={item.listing.image_urls[0]}
-                      alt={item.listing.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-gray-800 truncate">
-                      {item.listing.title}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {item.listing.location}
-                    </p>
-                    <p className="text-emerald-600 font-bold text-sm mt-1">
-                      GH₵{item.listing.price.toFixed(2)} / {item.listing.unit}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() =>
-                          onQtyChange(
-                            item.listing.id,
-                            Math.max(1, item.qty - 1),
-                          )
-                        }
-                        className="h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="text-sm font-semibold w-6 text-center">
-                        {item.qty}
-                      </span>
-                      <button
-                        onClick={() =>
-                          onQtyChange(item.listing.id, item.qty + 1)
-                        }
-                        className="h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm font-bold"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => onRemove(item.listing.id)}
-                        className="ml-auto text-xs text-red-400 hover:text-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="p-6 border-t space-y-3">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Subtotal</span>
-                <span>GH₵{total.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Delivery</span>
-                <span className="text-emerald-600">Calculated at checkout</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900 border-t pt-3">
-                <span>Total</span>
-                <span>GH₵{total.toFixed(2)}</span>
-              </div>
-              <button className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]">
-                Proceed to Checkout
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors text-sm"
-              >
-                Continue Shopping
-              </button>
-            </div>
-          </>
-        )}
+    <div className="rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
+      <div className="h-48 bg-gray-200" />
+      <div className="p-4 space-y-3">
+        <div className="h-2.5 bg-gray-200 rounded w-1/3" />
+        <div className="h-3.5 bg-gray-200 rounded w-4/5" />
+        <div className="h-3.5 bg-gray-200 rounded w-2/3" />
+        <div className="h-8 bg-gray-200 rounded-xl mt-4" />
       </div>
     </div>
   );
-};
+}
 
-// ── Product Card ───────────────────────────────────────────────────
-const ProductCard = ({
-  listing,
-  onAddToCart,
-  inCart,
-}: {
-  listing: Listing;
-  onAddToCart: (l: Listing) => void;
-  inCart: boolean;
-}) => {
-  const discountedPrice = listing.discount
-    ? listing.price * (1 - listing.discount / 100)
-    : null;
-
+// ── Empty State ─────────────────────────────────────────────────────
+function EmptyState({ onClear }: { onClear: () => void }) {
   return (
-    <div className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-gray-100">
-      {/* Image */}
-      <Link
-        href={`/marketplace/${encodeURIComponent(listing.id)}`}
-        className="block relative h-44 overflow-hidden bg-gray-100"
+    <div className="text-center py-24 bg-white/70 rounded-2xl border-2 border-dashed border-gray-200">
+      <Sprout className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
+      <h3 className="text-lg font-semibold text-gray-700">No products found</h3>
+      <p className="text-sm text-gray-400 mt-1">
+        Try adjusting your search or filters.
+      </p>
+      <button
+        onClick={onClear}
+        className="mt-4 px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
       >
-        <Image
-          src={listing.image_urls[0]}
-          alt={listing.title}
-          fill
-          className="object-cover group-hover:scale-110 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        {/* Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
-          {listing.is_featured && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
-              <Sparkles className="h-3 w-3" />
-              Featured
-            </span>
-          )}
-          {listing.discount && (
-            <span className="text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
-              {listing.discount}% OFF
-            </span>
-          )}
-        </div>
-        <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-xs font-bold text-white bg-emerald-600/90 backdrop-blur-sm px-2.5 py-1 rounded-full">
-          <BadgeCheck className="h-3.5 w-3.5" />
-          In Stock
-        </span>
-        {listing.delivery_available && (
-          <span className="absolute bottom-2.5 left-2.5 text-xs font-semibold bg-white/90 text-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <TruckIcon className="h-3 w-3" /> Delivery
-          </span>
-        )}
-      </Link>
-
-      {/* Content */}
-      <div className="flex flex-col flex-grow p-4">
-        <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">
-          {listing.category}
-        </span>
-        <Link href={`/marketplace/${encodeURIComponent(listing.id)}`}>
-          <h3 className="text-sm font-bold text-gray-800 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug">
-            {listing.title}
-          </h3>
-        </Link>
-
-        <div className="flex items-center gap-2 mt-1.5">
-          <StarRating rating={listing.rating} />
-          <span className="text-xs text-gray-400">({listing.reviews})</span>
-        </div>
-
-        <div className="flex items-center mt-1.5 text-xs text-gray-500">
-          <MapPinIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-          <span className="truncate">{listing.location}</span>
-        </div>
-
-        <div className="flex-grow" />
-
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="flex items-end justify-between mb-3">
-            <div>
-              {discountedPrice ? (
-                <>
-                  <p className="text-xs text-gray-400 line-through">
-                    GH₵{listing.price.toFixed(2)}
-                  </p>
-                  <p className="text-lg font-extrabold text-gray-900 leading-none">
-                    GH₵{discountedPrice.toFixed(2)}
-                  </p>
-                </>
-              ) : (
-                <p className="text-lg font-extrabold text-gray-900 leading-none">
-                  GH₵{listing.price.toFixed(2)}
-                </p>
-              )}
-              <span className="text-xs text-gray-400">per {listing.unit}</span>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Qty</p>
-              <p className="text-sm font-bold text-emerald-600">
-                {listing.quantity_available}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onAddToCart(listing)}
-            className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
-              inCart
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
-                : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md hover:shadow-lg"
-            }`}
-          >
-            {inCart ? (
-              <>
-                <CheckIcon className="h-4 w-4" /> Added to Cart
-              </>
-            ) : (
-              <>
-                <CartIcon className="h-4 w-4" /> Add to Cart
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+        Clear filters
+      </button>
     </div>
   );
-};
+}
 
-// ── Main Component ─────────────────────────────────────────────────
+// ── Main Component ──────────────────────────────────────────────────
 export default function MarketplaceClient() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -340,8 +99,8 @@ export default function MarketplaceClient() {
   const [page, setPage] = useState(1);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const PER_PAGE = 24;
 
+  // ── Data fetch ────────────────────────────────────────────────────
   useEffect(() => {
     async function fetchListings() {
       setLoading(true);
@@ -413,6 +172,7 @@ export default function MarketplaceClient() {
     fetchListings();
   }, []);
 
+  // ── Cart helpers ──────────────────────────────────────────────────
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartIds = new Set(cart.map((i) => i.listing.id));
 
@@ -429,11 +189,13 @@ export default function MarketplaceClient() {
 
   const removeFromCart = (id: string) =>
     setCart((prev) => prev.filter((i) => i.listing.id !== id));
+
   const changeQty = (id: string, qty: number) =>
     setCart((prev) =>
       prev.map((i) => (i.listing.id === id ? { ...i, qty } : i)),
     );
 
+  // ── Filter + sort ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let items = listings.filter((l) => {
       const q = search.toLowerCase();
@@ -447,12 +209,9 @@ export default function MarketplaceClient() {
       return matchSearch && matchCat && matchRegion;
     });
 
-    if (sort === "price_asc")
-      items = [...items].sort((a, b) => a.price - b.price);
-    else if (sort === "price_desc")
-      items = [...items].sort((a, b) => b.price - a.price);
-    else if (sort === "rating")
-      items = [...items].sort((a, b) => b.rating - a.rating);
+    if (sort === "price_asc") items = [...items].sort((a, b) => a.price - b.price);
+    else if (sort === "price_desc") items = [...items].sort((a, b) => b.price - a.price);
+    else if (sort === "rating") items = [...items].sort((a, b) => b.rating - a.rating);
     else if (sort === "featured")
       items = [...items].sort(
         (a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0),
@@ -467,16 +226,18 @@ export default function MarketplaceClient() {
 
   const paginated = filtered.slice(0, page * PER_PAGE);
   const hasMore = paginated.length < filtered.length;
+  const hasActiveFilters =
+    !!search || category !== "All" || region !== "All Regions";
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-        <div className="text-emerald-600 font-bold text-xl animate-pulse">
-          Loading Marketplace Data...
-        </div>
-      </div>
-    );
-  }
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("All");
+    setRegion("All Regions");
+    setPage(1);
+  };
+
+  // ── Derived stats ─────────────────────────────────────────────────
+  const verifiedCount = listings.filter((l) => l.is_verified).length;
 
   return (
     <>
@@ -490,181 +251,113 @@ export default function MarketplaceClient() {
         />
       )}
 
-      {/* Sticky Cart Button */}
+      {/* Sticky Cart FAB */}
       {cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2.5 font-semibold"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2.5 font-semibold text-sm"
         >
-          <CartIcon className="h-5 w-5" />
-          <span>Cart</span>
+          <ShoppingCart className="h-4.5 w-4.5" />
+          Cart
           <span className="bg-white text-emerald-700 text-xs font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
             {cartCount}
           </span>
         </button>
       )}
 
-      {/* Stats Bar */}
-      <div className="bg-white/70 backdrop-blur-sm border-b border-white/50 py-3 px-4">
+      {/* ── Stats Bar ─────────────────────────────────────────────── */}
+      <div className="bg-white/70 backdrop-blur-sm border-b border-white/50 py-2.5 px-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2 text-gray-600">
-              <Sprout className="h-4 w-4 text-emerald-600" />
-              <strong className="text-gray-900">{listings.length}</strong>{" "}
-              products listed
+          <div className="flex items-center gap-5">
+            <span className="flex items-center gap-1.5 text-gray-500">
+              <Sprout className="h-3.5 w-3.5 text-emerald-500" />
+              <strong className="text-gray-800">{listings.length}</strong>
+              &nbsp;listings
             </span>
-            <span className="flex items-center gap-2 text-gray-600">
-              <MapPin className="h-4 w-4 text-emerald-600" />
-              <strong className="text-gray-900">10</strong> regions covered
+            <span className="flex items-center gap-1.5 text-gray-500">
+              <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+              <strong className="text-gray-800">10</strong>&nbsp;regions
             </span>
-            <span className="flex items-center gap-2 text-gray-600">
-              <BadgeCheck className="h-4 w-4 text-emerald-600" />
-              <strong className="text-gray-900">
-                {listings.filter((l) => l.is_verified).length}
-              </strong>{" "}
-              verified farmers
+            <span className="flex items-center gap-1.5 text-gray-500">
+              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
+              <strong className="text-gray-800">{verifiedCount}</strong>
+              &nbsp;verified farmers
             </span>
           </div>
+
           <button
             onClick={() => setCartOpen(true)}
-            className="flex items-center gap-2 text-emerald-700 font-semibold hover:text-emerald-800"
+            className="flex items-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 transition-colors text-sm"
           >
-            <CartIcon className="h-4 w-4" />
+            <ShoppingCart className="h-4 w-4" />
             Cart ({cartCount})
           </button>
         </div>
       </div>
 
-      {/* Category Pills */}
-      <div className="bg-white/60 backdrop-blur-sm border-b border-white/40 overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex gap-2 min-w-max">
-          {ALL_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => {
-                setCategory(cat);
-                setPage(1);
-              }}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                category === cat
-                  ? "bg-emerald-600 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-emerald-400 hover:text-emerald-600"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ── Category Bar ──────────────────────────────────────────── */}
+      <CategoryBar
+        categories={ALL_CATEGORIES}
+        active={category}
+        onChange={(cat) => {
+          setCategory(cat);
+          setPage(1);
+        }}
+      />
 
-      {/* Search & Filter Bar */}
+      {/* ── Main Content ──────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 py-5">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-white/60 flex flex-col md:flex-row gap-3">
-          <div className="relative flex-grow">
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search maize, yams, tomatoes, spices..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-800 placeholder-gray-400 text-sm"
-            />
-          </div>
-          <div className="flex gap-3">
-            <select
-              value={region}
-              onChange={(e) => {
-                setRegion(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-700 text-sm"
-            >
-              {REGIONS_FILTER.map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-            <select
-              value={sort}
-              onChange={(e) => {
-                setSort(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-700 text-sm"
-            >
-              <option value="featured">Featured First</option>
-              <option value="newest">Newest Harvest</option>
-              <option value="price_asc">Price: Low → High</option>
-              <option value="price_desc">Price: High → Low</option>
-              <option value="rating">Highest Rated</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Result count */}
-        <div className="flex items-center gap-2 mt-3 mb-5 text-sm text-gray-600">
-          <FilterIcon className="h-4 w-4" />
-          <span>
-            Showing{" "}
-            <strong className="text-gray-900">{paginated.length}</strong> of{" "}
-            <strong className="text-gray-900">{filtered.length}</strong>{" "}
-            products
-          </span>
-          {(search || category !== "All" || region !== "All Regions") && (
-            <button
-              onClick={() => {
-                setSearch("");
-                setCategory("All");
-                setRegion("All Regions");
-                setPage(1);
-              }}
-              className="ml-2 text-xs text-red-400 hover:text-red-600 underline"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        {/* Filter bar */}
+        <FilterBar
+          search={search}
+          region={region}
+          sort={sort}
+          regions={REGIONS_FILTER}
+          filteredCount={filtered.length}
+          totalCount={listings.length}
+          hasActiveFilters={hasActiveFilters}
+          onSearchChange={(v) => { setSearch(v); setPage(1); }}
+          onRegionChange={(v) => { setRegion(v); setPage(1); }}
+          onSortChange={(v) => { setSort(v); setPage(1); }}
+          onClearFilters={clearFilters}
+        />
 
         {/* Grid */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-24 bg-white/70 rounded-2xl border-2 border-dashed border-gray-200">
-            <div className="mb-3 flex justify-center">
-              <Sprout className="h-12 w-12 text-emerald-500" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-800">
-              No products found
-            </h3>
-            <p className="text-gray-500 mt-1">
-              Try adjusting your search or filters.
-            </p>
-          </div>
-        ) : (
-          <>
+        <div className="mt-5">
+          {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {paginated.map((listing) => (
-                <ProductCard
-                  key={listing.id}
-                  listing={listing}
-                  onAddToCart={addToCart}
-                  inCart={cartIds.has(listing.id)}
-                />
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} />
               ))}
             </div>
-            {hasMore && (
-              <div className="text-center mt-10">
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm"
-                >
-                  Load More Products ({filtered.length - paginated.length}{" "}
-                  remaining)
-                </button>
+          ) : filtered.length === 0 ? (
+            <EmptyState onClear={clearFilters} />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {paginated.map((listing) => (
+                  <ProductCard
+                    key={listing.id}
+                    listing={listing}
+                    onAddToCart={addToCart}
+                    inCart={cartIds.has(listing.id)}
+                  />
+                ))}
               </div>
-            )}
-          </>
-        )}
+
+              {hasMore && (
+                <div className="text-center mt-10">
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm"
+                  >
+                    Load more · {filtered.length - paginated.length} remaining
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </>
   );
