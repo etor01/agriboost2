@@ -38,12 +38,12 @@ type SupabaseListingRow = {
   discount?: number | string | null;
   delivery_available?: boolean | null;
   description?: string | null;
-  farmer_name?: string | null;
-  farmer_avatar?: string | null;
-  min_order?: number | string | null;
-  profiles?: {
-    location?: string | null;
-    verified_status?: boolean | null;
+  // profile_id FK → farmers → profiles (nested join)
+  farmers?: {
+    profiles?: {
+      location?: string | null;
+      verified_status?: boolean | null;
+    } | null;
   } | null;
   crops?: {
     crop_type?: string | null;
@@ -363,7 +363,9 @@ export default function MarketplaceClient() {
           is_featured,
           discount,
           delivery_available,
-          profiles ( location, verified_status ),
+          farmers!listings_profile_id_fkey (
+            profiles ( location, verified_status )
+          ),
           crops ( crop_type, estimated_harvest_date )
         `,
         )
@@ -381,8 +383,9 @@ export default function MarketplaceClient() {
             price: Number(item.price_per_unit),
             unit: item.unit_type || "unit",
             quantity_available: Number(item.quantity),
-            location: item.profiles?.location || "Unknown Location",
-            is_verified: item.profiles?.verified_status || false,
+            // profiles is nested: listings → farmers → profiles
+            location: item.farmers?.profiles?.location || "Unknown Location",
+            is_verified: item.farmers?.profiles?.verified_status || false,
             harvest_date:
               item.crops?.estimated_harvest_date || new Date().toISOString(),
             image_urls: item.image_urls || [
@@ -395,10 +398,9 @@ export default function MarketplaceClient() {
             delivery_available: item.delivery_available ?? false,
             description:
               item.description || "Fresh produce from a verified local farmer.",
-            farmer_name: item.farmer_name || "Local Farmer",
-            farmer_avatar:
-              item.farmer_avatar || "https://i.pravatar.cc/150?img=1",
-            min_order: Number(item.min_order) || 1,
+            farmer_name: "Local Farmer",
+            farmer_avatar: "https://i.pravatar.cc/150?img=1",
+            min_order: 1,
           }),
         );
 
