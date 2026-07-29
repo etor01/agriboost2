@@ -4,22 +4,23 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import { Tractor, ShoppingBag, Check } from "lucide-react";
+
+type Role = "farmer" | "buyer";
 
 export default function SignUpPage() {
-  // State to manage form inputs
+  const [role, setRole] = useState<Role>("farmer");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // State for loading and feedback
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Handler for form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
@@ -32,30 +33,49 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // This 'data' object is passed to the trigger function we created in SQL.
+        // Passed to the handle_new_user trigger which populates profiles
         data: {
           firstname: firstName.trim(),
           lastname: lastName.trim(),
+          role,  // 'farmer' | 'buyer'
         },
-        // Supabase sends a verification email by default.
-        // The user must click the link in the email to be fully registered.
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
     } else {
       setSuccessMessage(
-        "Success! Please check your email to verify your account.",
+        "Success! Please check your email to verify your account."
       );
     }
 
     setIsLoading(false);
   };
+
+  const roleOptions: Array<{
+    value: Role;
+    label: string;
+    subtitle: string;
+    Icon: React.ElementType;
+  }> = [
+    {
+      value: "farmer",
+      label: "I'm a Farmer",
+      subtitle: "List & sell your produce",
+      Icon: Tractor,
+    },
+    {
+      value: "buyer",
+      label: "I'm a Buyer",
+      subtitle: "Browse & order fresh produce",
+      Icon: ShoppingBag,
+    },
+  ];
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -78,7 +98,7 @@ export default function SignUpPage() {
             Create Your Account
           </h1>
           <p className="text-sm text-slate-500 mt-2">
-            Join AgriBoost and revolutionize your farming.
+            Join AgriBoost — growing together.
           </p>
         </div>
 
@@ -91,9 +111,61 @@ export default function SignUpPage() {
             <p className="text-sm text-green-700 mt-1">{successMessage}</p>
           </div>
         ) : (
-          /* Form */
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name row */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* ── Role Selection ─────────────────────────────────── */}
+            <div>
+              <p className="text-sm font-medium text-slate-700 mb-2">
+                I am registering as a…
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {roleOptions.map(({ value, label, subtitle, Icon }) => {
+                  const isSelected = role === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      id={`role-${value}`}
+                      onClick={() => setRole(value)}
+                      className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-center transition-all hover:scale-[1.02] active:scale-95 ${
+                        isSelected
+                          ? "border-green-500 bg-green-50/80 shadow-md shadow-green-100"
+                          : "border-white/30 bg-white/40 hover:border-gray-200"
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                          <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                        </span>
+                      )}
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          isSelected
+                            ? "bg-green-500 text-white shadow-lg shadow-green-200"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p
+                          className={`text-sm font-bold ${
+                            isSelected ? "text-green-700" : "text-slate-700"
+                          }`}
+                        >
+                          {label}
+                        </p>
+                        <p className="text-[11px] text-slate-400 leading-tight">
+                          {subtitle}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Name ──────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <label
@@ -137,7 +209,7 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            {/* Email */}
+            {/* ── Email ─────────────────────────────────────────── */}
             <div>
               <label
                 htmlFor="email"
@@ -159,7 +231,7 @@ export default function SignUpPage() {
               />
             </div>
 
-            {/* Password */}
+            {/* ── Password ──────────────────────────────────────── */}
             <div>
               <label
                 htmlFor="password"
@@ -181,7 +253,7 @@ export default function SignUpPage() {
               />
             </div>
 
-            {/* Confirm Password */}
+            {/* ── Confirm Password ──────────────────────────────── */}
             <div>
               <label
                 htmlFor="confirmPassword"
@@ -203,26 +275,27 @@ export default function SignUpPage() {
               />
             </div>
 
-            {/* Error */}
+            {/* ── Error ─────────────────────────────────────────── */}
             {error && (
               <p className="text-sm text-red-600 bg-red-50/70 border border-red-200 rounded-xl px-4 py-3">
                 {error}
               </p>
             )}
 
-            {/* CTA */}
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-full bg-green-600 text-white text-sm font-medium tracking-tight transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "Creating Account..." : "Sign Up"}
-              </button>
-            </div>
+            {/* ── Submit ────────────────────────────────────────── */}
+            <button
+              id="signup-submit"
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 px-4 rounded-full bg-green-600 text-white text-sm font-medium tracking-tight transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isLoading
+                ? "Creating Account..."
+                : `Sign Up as ${role === "farmer" ? "Farmer 🌾" : "Buyer 🛒"}`}
+            </button>
 
-            {/* Footer */}
-            <p className="mt-8 text-center text-sm text-slate-500">
+            {/* ── Footer ────────────────────────────────────────── */}
+            <p className="mt-2 text-center text-sm text-slate-500">
               Already have an account?{" "}
               <Link
                 href="/login"
@@ -235,119 +308,5 @@ export default function SignUpPage() {
         )}
       </div>
     </div>
-
-    // <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl w-full">
-    //   {/* Header */}
-    //   <div className="text-center mb-8">
-    //     <Link href="/" className="inline-block mb-4" aria-label="Go to Homepage">
-    //       <Image alt="leaf icon" src="/icons/logo.png" width={60} height={60} />
-    //     </Link>
-    //     <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
-    //     <p className="text-gray-500 mt-2">Join AgriBoost and revolutionize your farming.</p>
-    //   </div>
-
-    //   {/* Form */}
-    //   {/* Show success message if registration was successful */}
-    //   {successMessage ? (
-    //     <div className="text-center p-4 bg-green-50 text-green-800 rounded-lg">
-    //       <h3 className="font-bold">Check your inbox!</h3>
-    //       <p>{successMessage}</p>
-    //     </div>
-    //   ) : (
-    //     <form onSubmit={handleSubmit} className="space-y-6">
-    //       <div>
-    //         <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-    //           Full Name
-    //         </label>
-    //         <input
-    //           id="fullName"
-    //           name="fullName"
-    //           type="text"
-    //           required
-    //           disabled={isLoading}
-    //           value={fullName}
-    //           onChange={(e) => setFullName(e.target.value)}
-    //           className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors"
-    //           placeholder="e.g., Ama Serwaa"
-    //         />
-    //       </div>
-
-    //       <div>
-    //         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-    //           Email address
-    //         </label>
-    //         <input
-    //           id="email"
-    //           name="email"
-    //           type="email"
-    //           autoComplete="email"
-    //           required
-    //           disabled={isLoading}
-    //           value={email}
-    //           onChange={(e) => setEmail(e.target.value)}
-    //           className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors"
-    //           placeholder="you@example.com"
-    //         />
-    //       </div>
-
-    //       <div>
-    //         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-    //           Password
-    //         </label>
-    //         <input
-    //           id="password"
-    //           name="password"
-    //           type="password"
-    //           autoComplete="new-password"
-    //           required
-    //           disabled={isLoading}
-    //           value={password}
-    //           onChange={(e) => setPassword(e.target.value)}
-    //           className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors"
-    //           placeholder="Minimum 6 characters"
-    //         />
-    //       </div>
-
-    //       <div>
-    //         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-    //           Confirm Password
-    //         </label>
-    //         <input
-    //           id="confirmPassword"
-    //           name="confirmPassword"
-    //           type="password"
-    //           autoComplete="new-password"
-    //           required
-    //           disabled={isLoading}
-    //           value={confirmPassword}
-    //           onChange={(e) => setConfirmPassword(e.target.value)}
-    //           className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors"
-    //           placeholder="••••••••"
-    //         />
-    //       </div>
-
-    //       {/* Error Message Display */}
-    //       {error && (
-    //           <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
-    //       )}
-
-    //       <div>
-    //         <button
-    //           type="submit"
-    //           disabled={isLoading}
-    //           className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:bg-green-400 disabled:cursor-not-allowed"
-    //         >
-    //           {isLoading ? 'Creating Account...' : 'Sign Up'}
-    //         </button>
-    //       </div>
-    //       <p className="mt-8 text-center text-sm text-gray-500">
-    //         Already have an account?{' '}
-    //         <a href="/login" className="font-medium text-green-600 hover:text-green-500">
-    //           Sign In
-    //         </a>
-    //       </p>
-    //     </form>
-    //   )}
-    // </div>
   );
 }

@@ -31,7 +31,7 @@ export default function Header() {
                 key={item}
                 href={
                   item === "Marketplace"
-                    ? "/marketplace"
+                    ? "/market"
                     : `#${item.toLowerCase()}`
                 }
                 className="relative text-sm font-medium text-slate-600 hover:text-green-600 transition-colors py-2 group"

@@ -45,7 +45,10 @@ export default function LoginPage() {
 
       if (profile?.role === "admin") {
         router.push("/admin/dashboard");
+      } else if (profile?.role === "buyer") {
+        router.push("/buyer/shop");
       } else {
+        // Default: farmers and any unrecognised roles go to the farm dashboard
         router.push("/dashboard");
       }
     }
@@ -72,7 +75,7 @@ export default function LoginPage() {
             Welcome Back
           </h1>
           <p className="text-sm text-slate-500 mt-2">
-            Sign in to manage your farm.
+            Sign in to your account.
           </p>
         </div>
 
