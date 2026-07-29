@@ -25,12 +25,20 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="#features"
+                <Link
+                  href="/#features"
                   className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
                 >
                   Features
-                </a>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/market"
+                  className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
+                >
+                  Marketplace
+                </Link>
               </li>
               <li>
                 <Link
@@ -54,32 +62,32 @@ export default function Footer() {
           {/* Company */}
           <div>
             <h4 className="text-lg font-semibold tracking-tight text-slate-900 mb-3">
-              Company
+              Project & Team
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/about"
                   className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
                 >
                   About Us
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/careers"
                   className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
                 >
-                  Careers
-                </a>
+                  Careers & Roles
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/contact"
                   className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
                 >
                   Contact
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -91,20 +99,20 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/privacy"
                   className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/terms"
                   className="text-slate-600 hover:text-green-600 transition-all hover:scale-[1.02]"
                 >
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -113,7 +121,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-white/20 mt-10 pt-6 text-center">
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} AgriBoost. All rights reserved.
+            &copy; {new Date().getFullYear()} AgriBoost — KNUST Final Year Project by Etornam & Doreen. All rights reserved.
           </p>
         </div>
       </div>

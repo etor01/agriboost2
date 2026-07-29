@@ -26,13 +26,17 @@ export default function Header() {
 
           {/* Navigation: Added "Indicator dots" on hover for a subtle touch */}
           <div className="hidden md:flex items-center space-x-10">
-            {["Features", "Marketplace", "Contact"].map((item) => (
+            {["Features", "Marketplace", "About Us", "Contact"].map((item) => (
               <Link
                 key={item}
                 href={
                   item === "Marketplace"
                     ? "/market"
-                    : `#${item.toLowerCase()}`
+                    : item === "About Us"
+                    ? "/about"
+                    : item === "Contact"
+                    ? "/contact"
+                    : "/#features"
                 }
                 className="relative text-sm font-medium text-slate-600 hover:text-green-600 transition-colors py-2 group"
               >
