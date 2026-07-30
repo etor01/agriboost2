@@ -123,7 +123,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-lg font-bold text-slate-900">Direct Marketplace</h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Connecting local produce buyers directly with Ghanaian farmers to eliminate unnecessary middlemen and reduce post-harvest waste.
+                Connecting local produce buyers directly with Ghanaian farmers to reduce sales hussle and post-harvest waste.
               </p>
             </div>
           </div>

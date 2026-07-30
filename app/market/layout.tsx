@@ -18,21 +18,21 @@ export default function MarketLayout({ children }: { children: ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shadow-md shadow-gray-300 group-hover:scale-105 transition-transform">
               <Image
                 src="/icons/logo.png"
                 alt="AgriBoost"
-                width={22}
-                height={22}
+                width={25}
+                height={25}
                 className="object-contain"
               />
             </div>
             <div>
               <span className="text-base font-bold text-gray-900 tracking-tight">
-                AgriBoost
+                Agri<span className="text-emerald-600">Boost</span>
               </span>
-              <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider leading-none">
-                Fresh Market
+              <p className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider leading-none">
+                Market
               </p>
             </div>
           </Link>
