@@ -105,7 +105,7 @@ export default function AddFarmPage() {
     if (result.success) {
       setSubmitted(true);
       setTimeout(() => {
-        router.push("/profile");
+        router.push("/dashboard");
       }, 1800);
     } else {
       setError(result.message || "An error occurred while creating the farm.");

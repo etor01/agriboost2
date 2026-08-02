@@ -110,11 +110,11 @@ export default function NewListingPage() {
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />
                 Back to Dashboard
             </Link>
-            
+
             <h1 className="text-3xl font-bold text-gray-800">Create a New Marketplace Listing</h1>
-            
+
             <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-md space-y-6">
-                
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
                     <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
