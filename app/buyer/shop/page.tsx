@@ -11,6 +11,7 @@ import {
 } from "@/lib/data/marketplaceData";
 
 import CartDrawer from "@/components/marketplace/CartDrawer";
+import CheckoutModal from "@/components/marketplace/CheckoutModal";
 import CategoryBar from "@/components/marketplace/CategoryBar";
 import FilterBar from "@/components/marketplace/FilterBar";
 import ProductCard from "@/components/marketplace/ProductCard";
@@ -90,6 +91,7 @@ export default function BuyerShopPage() {
   const [sort, setSort] = useState("featured");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,6 +281,19 @@ export default function BuyerShopPage() {
           onClose={() => setCartOpen(false)}
           onRemove={removeFromCart}
           onQtyChange={changeQty}
+          onCheckout={() => {
+            setCartOpen(false);
+            setCheckoutOpen(true);
+          }}
+        />
+      )}
+
+      {/* Checkout Modal */}
+      {checkoutOpen && (
+        <CheckoutModal
+          cart={cart}
+          onClose={() => setCheckoutOpen(false)}
+          onSuccess={() => setCart([])}
         />
       )}
 

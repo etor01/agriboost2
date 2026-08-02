@@ -14,6 +14,7 @@ import {
   Wallet,
   Sparkles,
   ShoppingBag,
+  Package,
   LogOut,
   Menu,
   X,
@@ -28,6 +29,7 @@ const navItems: Array<{
 }> = [
   { name: "Dashboard", href: "/dashboard", icon: Home, desc: "Overview" },
   { name: "My Profile", href: "/profile", icon: UserCircle2, desc: "Account" },
+  { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow OTPs" },
   { name: "Finances", href: "/finances", icon: Wallet, desc: "Earnings" },
   {
     name: "AI Center",

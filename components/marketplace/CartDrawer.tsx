@@ -11,6 +11,7 @@ interface CartDrawerProps {
   onClose: () => void;
   onRemove: (id: string) => void;
   onQtyChange: (id: string, qty: number) => void;
+  onCheckout?: () => void;
 }
 
 export default function CartDrawer({
@@ -18,6 +19,7 @@ export default function CartDrawer({
   onClose,
   onRemove,
   onQtyChange,
+  onCheckout,
 }: CartDrawerProps) {
   const total = cart.reduce((s, i) => s + i.listing.price * i.qty, 0);
 
@@ -168,7 +170,12 @@ export default function CartDrawer({
                 <span>GH₵{total.toFixed(2)}</span>
               </div>
 
-              <button className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl active:scale-[0.98] text-sm">
+              <button
+                onClick={() => {
+                  if (onCheckout) onCheckout();
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl active:scale-[0.98] text-sm"
+              >
                 Proceed to Checkout
               </button>
               <button
