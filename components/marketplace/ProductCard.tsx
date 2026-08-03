@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   Calendar,
   Check,
+  Heart,
   MapPin,
   Package,
   ShoppingCart,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { type Listing } from "@/lib/data/marketplaceData";
 import StarRating from "./StarRating";
+import { useWishlist } from "@/lib/wishlist";
 
 interface ProductCardProps {
   listing: Listing;
@@ -26,6 +28,8 @@ export default function ProductCard({
   onAddToCart,
   inCart,
 }: ProductCardProps) {
+  const { isSaved, toggleSave } = useWishlist();
+  const saved = isSaved(listing.id);
   const discountedPrice = listing.discount
     ? listing.price * (1 - listing.discount / 100)
     : null;
@@ -166,26 +170,43 @@ export default function ProductCard({
         )}
 
         {/* CTA */}
-        <button
-          onClick={() => onAddToCart(listing)}
-          className={`mt-auto w-full py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
-            inCart
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
-              : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md hover:shadow-lg"
-          }`}
-        >
-          {inCart ? (
-            <>
-              <Check className="h-4 w-4" />
-              Added to Cart
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" />
-              Add to Cart
-            </>
-          )}
-        </button>
+        <div className="mt-auto flex items-center gap-2">
+          <button
+            onClick={() => onAddToCart(listing)}
+            className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
+              inCart
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md hover:shadow-lg"
+            }`}
+          >
+            {inCart ? (
+              <>
+                <Check className="h-4 w-4" />
+                Added to Cart
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4" />
+                Add to Cart
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => toggleSave(listing)}
+            title={saved ? "Remove from wishlist" : "Add to wishlist"}
+            className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-all active:scale-95 ${
+              saved
+                ? "bg-rose-50 border-rose-300 text-rose-600 hover:bg-rose-100"
+                : "bg-white border-gray-200 text-gray-400 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50/50"
+            }`}
+          >
+            <Heart
+              className={`h-4.5 w-4.5 ${
+                saved ? "fill-rose-600 text-rose-600" : ""
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

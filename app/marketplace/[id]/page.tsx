@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   BadgeCheck,
+  Heart,
   Leaf,
   MapPin,
   ShieldCheck,
@@ -20,6 +21,7 @@ import {
 import { type Listing } from "@/lib/data/marketplaceData";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
+import { useWishlist } from "@/lib/wishlist";
 
 const supabase = createClient();
 
@@ -110,33 +112,58 @@ const StarRating = ({
 };
 
 // ── Related Card ───────────────────────────────────────────────────
-const RelatedCard = ({ listing }: { listing: Listing }) => (
-  <Link
-    href={`/marketplace/${encodeURIComponent(listing.id)}`}
-    className="group flex gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors border border-transparent hover:border-emerald-200"
-  >
-    <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
-      <Image
-        src={listing.image_urls[0]}
-        alt={listing.title}
-        fill
-        className="object-cover group-hover:scale-110 transition-transform duration-300"
-      />
+const RelatedCard = ({ listing }: { listing: Listing }) => {
+  const { isSaved, toggleSave } = useWishlist();
+  const saved = isSaved(listing.id);
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSave(listing);
+  };
+
+  return (
+    <div className="group relative flex items-center justify-between gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors border border-transparent hover:border-emerald-200">
+      <Link
+        href={`/marketplace/${encodeURIComponent(listing.id)}`}
+        className="flex items-center gap-3 min-w-0 flex-1"
+      >
+        <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+          <Image
+            src={listing.image_urls[0]}
+            alt={listing.title}
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-300"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-gray-800 group-hover:text-emerald-700 truncate transition-colors">
+            {listing.title}
+          </p>
+          <p className="text-xs text-gray-500 truncate">{listing.location}</p>
+          <p className="text-sm font-bold text-emerald-600 mt-0.5">
+            GH₵{listing.price.toFixed(2)}{" "}
+            <span className="text-xs font-normal text-gray-400">
+              /{listing.unit}
+            </span>
+          </p>
+        </div>
+      </Link>
+
+      <button
+        onClick={handleSave}
+        title={saved ? "Remove from wishlist" : "Add to wishlist"}
+        className={`flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center transition-all z-10 ${
+          saved
+            ? "bg-rose-100 text-rose-600 border border-rose-200 shadow-sm"
+            : "bg-gray-100/80 hover:bg-rose-50 text-gray-400 hover:text-rose-500 border border-gray-200/60"
+        }`}
+      >
+        <Heart className={`h-4 w-4 ${saved ? "fill-rose-600" : ""}`} />
+      </button>
     </div>
-    <div className="min-w-0">
-      <p className="text-sm font-semibold text-gray-800 group-hover:text-emerald-700 truncate transition-colors">
-        {listing.title}
-      </p>
-      <p className="text-xs text-gray-500 truncate">{listing.location}</p>
-      <p className="text-sm font-bold text-emerald-600 mt-0.5">
-        GH₵{listing.price.toFixed(2)}{" "}
-        <span className="text-xs font-normal text-gray-400">
-          /{listing.unit}
-        </span>
-      </p>
-    </div>
-  </Link>
-);
+  );
+};
 
 // ── Detail Page ────────────────────────────────────────────────────
 export default function ListingDetailPage({
@@ -151,6 +178,9 @@ export default function ListingDetailPage({
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+
+  const { isSaved, toggleSave } = useWishlist();
+  const saved = listing ? isSaved(listing.id) : false;
 
   useEffect(() => {
     let active = true;
@@ -352,6 +382,19 @@ export default function ListingDetailPage({
                   Featured
                 </span>
               )}
+
+              {/* Wishlist Heart Button on Image */}
+              <button
+                onClick={() => listing && toggleSave(listing)}
+                title={saved ? "Remove from wishlist" : "Add to wishlist"}
+                className={`absolute bottom-4 right-4 z-10 p-3 rounded-full backdrop-blur-md transition-all shadow-md hover:scale-105 ${
+                  saved
+                    ? "bg-rose-500 text-white shadow-rose-500/20"
+                    : "bg-white/90 text-gray-600 hover:text-rose-500 hover:bg-white"
+                }`}
+              >
+                <Heart className={`h-5 w-5 ${saved ? "fill-white" : ""}`} />
+              </button>
             </div>
 
             {/* Farmer Card */}
@@ -505,17 +548,35 @@ export default function ListingDetailPage({
 
               {/* CTAs */}
               <div className="mt-5 space-y-3">
-                <button
-                  onClick={handleAddToCart}
-                  className={`w-full py-3.5 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98] ${
-                    added
-                      ? "bg-emerald-100 text-emerald-700 border-2 border-emerald-400"
-                      : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
-                  }`}
-                >
-                  <CartIcon className="h-5 w-5" />
-                  {added ? "✓ Added to Cart!" : "Add to Cart"}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleAddToCart}
+                    className={`flex-1 py-3.5 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98] ${
+                      added
+                        ? "bg-emerald-100 text-emerald-700 border-2 border-emerald-400"
+                        : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
+                    }`}
+                  >
+                    <CartIcon className="h-5 w-5" />
+                    {added ? "✓ Added to Cart!" : "Add to Cart"}
+                  </button>
+                  <button
+                    onClick={() => listing && toggleSave(listing)}
+                    title={saved ? "Remove from wishlist" : "Add to wishlist"}
+                    className={`px-5 py-3.5 rounded-xl font-bold text-sm border-2 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] ${
+                      saved
+                        ? "bg-rose-50 border-rose-300 text-rose-600 hover:bg-rose-100"
+                        : "bg-white border-gray-200 text-gray-700 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50"
+                    }`}
+                  >
+                    <Heart
+                      className={`h-5 w-5 ${
+                        saved ? "fill-rose-600 text-rose-600" : ""
+                      }`}
+                    />
+                    <span>{saved ? "Saved" : "Save"}</span>
+                  </button>
+                </div>
                 <button className="w-full py-3.5 rounded-xl font-bold text-base bg-gray-900 text-white hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl active:scale-[0.98]">
                   Buy Now — GH₵{totalCost}
                 </button>
