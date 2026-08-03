@@ -10,7 +10,7 @@ import {
   MapPin,
   Package,
   ShoppingCart,
-  Sparkles,
+  Trash2,
   Truck,
 } from "lucide-react";
 import { type Listing } from "@/lib/data/marketplaceData";
@@ -20,12 +20,14 @@ import { useWishlist } from "@/lib/wishlist";
 interface ProductCardProps {
   listing: Listing;
   onAddToCart: (l: Listing) => void;
+  onRemoveFromCart?: (id: string) => void;
   inCart: boolean;
 }
 
 export default function ProductCard({
   listing,
   onAddToCart,
+  onRemoveFromCart,
   inCart,
 }: ProductCardProps) {
   const { isSaved, toggleSave } = useWishlist();
@@ -60,21 +62,6 @@ export default function ProductCard({
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-
-        {/* Top-left badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
-          {listing.is_featured && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full shadow-sm">
-              <Sparkles className="h-2.5 w-2.5" />
-              Featured
-            </span>
-          )}
-          {listing.discount && listing.discount > 0 ? (
-            <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full shadow-sm">
-              {listing.discount}% OFF
-            </span>
-          ) : null}
-        </div>
 
         {/* Top-right: verified badge */}
         {listing.is_verified && (
@@ -182,7 +169,7 @@ export default function ProductCard({
             {inCart ? (
               <>
                 <Check className="h-4 w-4" />
-                Added to Cart
+                In Cart
               </>
             ) : (
               <>
@@ -191,6 +178,15 @@ export default function ProductCard({
               </>
             )}
           </button>
+          {inCart && onRemoveFromCart && (
+            <button
+              onClick={() => onRemoveFromCart(listing.id)}
+              title="Remove from cart"
+              className="h-10 px-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 transition-all flex items-center justify-center gap-1 active:scale-95 text-xs font-semibold shadow-sm"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={() => toggleSave(listing)}
             title={saved ? "Remove from wishlist" : "Add to wishlist"}

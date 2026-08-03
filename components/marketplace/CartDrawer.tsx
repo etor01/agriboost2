@@ -11,6 +11,7 @@ interface CartDrawerProps {
   onClose: () => void;
   onRemove: (id: string) => void;
   onQtyChange: (id: string, qty: number) => void;
+  onClear?: () => void;
   onCheckout?: () => void;
 }
 
@@ -19,6 +20,7 @@ export default function CartDrawer({
   onClose,
   onRemove,
   onQtyChange,
+  onClear,
   onCheckout,
 }: CartDrawerProps) {
   const total = cart.reduce((s, i) => s + i.listing.price * i.qty, 0);
@@ -46,12 +48,24 @@ export default function CartDrawer({
               )}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {cart.length > 0 && onClear && (
+              <button
+                onClick={onClear}
+                title="Clear all items from cart"
+                className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Clear
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -140,9 +154,10 @@ export default function CartDrawer({
                         </span>
                         <button
                           onClick={() => onRemove(item.listing.id)}
-                          className="p-1 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          title="Remove from cart"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors flex items-center justify-center"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>

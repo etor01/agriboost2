@@ -197,6 +197,10 @@ export default function MarketplaceClient() {
       prev.map((i) => (i.listing.id === id ? { ...i, qty } : i)),
     );
 
+  const clearCart = () => {
+    setCart([]);
+  };
+
   // ── Filter + sort ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let items = listings.filter((l) => {
@@ -250,6 +254,7 @@ export default function MarketplaceClient() {
           onClose={() => setCartOpen(false)}
           onRemove={removeFromCart}
           onQtyChange={changeQty}
+          onClear={clearCart}
           onCheckout={() => {
             setCartOpen(false);
             setCheckoutOpen(true);
@@ -262,7 +267,7 @@ export default function MarketplaceClient() {
         <CheckoutModal
           cart={cart}
           onClose={() => setCheckoutOpen(false)}
-          onSuccess={() => setCart([])}
+          onSuccess={clearCart}
         />
       )}
 
@@ -355,6 +360,7 @@ export default function MarketplaceClient() {
                     key={listing.id}
                     listing={listing}
                     onAddToCart={addToCart}
+                    onRemoveFromCart={removeFromCart}
                     inCart={cartIds.has(listing.id)}
                   />
                 ))}

@@ -13,7 +13,6 @@ import {
   MapPin,
   ShieldCheck,
   ShoppingCart,
-  Sparkles,
   Star,
   Tractor,
   Truck,
@@ -371,17 +370,6 @@ export default function ListingDetailPage({
                 fill
                 className="object-cover"
               />
-              {listing.discount && (
-                <span className="absolute top-4 left-4 bg-red-500 text-white text-sm font-extrabold px-3 py-1 rounded-full shadow">
-                  {listing.discount}% OFF
-                </span>
-              )}
-              {listing.is_featured && (
-                <span className="absolute top-4 right-4 inline-flex items-center gap-1 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full shadow">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Featured
-                </span>
-              )}
 
               {/* Wishlist Heart Button on Image */}
               <button

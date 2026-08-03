@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import {
   X,
   ShieldCheck,
@@ -169,6 +169,9 @@ export default function CheckoutModal({
       }
 
       setCreatedOrders(res.orders);
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err: any) {
       setError(err?.message || "Checkout failed. Please try again.");
     } finally {
