@@ -25,11 +25,11 @@ const navItems: Array<{
   icon: LucideIcon;
   desc: string;
 }> = [
-  { name: "Shop", href: "/buyer/shop", icon: ShoppingBag, desc: "Browse produce" },
-  { name: "My Orders", href: "/buyer/orders", icon: ClipboardList, desc: "Order history" },
-  { name: "Wishlist", href: "/buyer/wishlist", icon: Heart, desc: "Saved items" },
-  { name: "Account", href: "/buyer/account", icon: UserCircle2, desc: "Profile & settings" },
-];
+    { name: "Shop", href: "/buyer/shop", icon: ShoppingBag, desc: "Browse produce" },
+    { name: "My Orders", href: "/buyer/orders", icon: ClipboardList, desc: "Order history" },
+    { name: "Wishlist", href: "/buyer/wishlist", icon: Heart, desc: "Saved items" },
+    { name: "Account", href: "/buyer/account", icon: UserCircle2, desc: "Profile & settings" },
+  ];
 
 // ── Sidebar Component ──────────────────────────────────────────────
 function BuyerSidebar({
@@ -75,7 +75,7 @@ function BuyerSidebar({
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSignOut = async () => {
@@ -86,8 +86,8 @@ function BuyerSidebar({
   const displayName = profileLoading
     ? null
     : profile?.firstname
-    ? `${profile.firstname}${profile.lastname ? ` ${profile.lastname}` : ""}`
-    : "Buyer";
+      ? `${profile.firstname}${profile.lastname ? ` ${profile.lastname}` : ""}`
+      : "Buyer";
 
   const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : "B";
 
@@ -95,9 +95,8 @@ function BuyerSidebar({
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden transition-all duration-300 ${
-          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden transition-all duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          }`}
         onClick={() => setIsOpen(false)}
       />
 
@@ -152,27 +151,24 @@ function BuyerSidebar({
                 >
                   <div
                     className={`group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer
-                    ${
-                      isActive
+                    ${isActive
                         ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-200"
                         : "text-gray-600 hover:bg-teal-50 hover:text-teal-700"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                        isActive
-                          ? "bg-white/20"
-                          : "bg-gray-100 group-hover:bg-teal-100"
-                      }`}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${isActive
+                        ? "bg-white/20"
+                        : "bg-gray-100 group-hover:bg-teal-100"
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{item.name}</p>
                       <p
-                        className={`text-[10px] truncate ${
-                          isActive ? "text-white/70" : "text-gray-400"
-                        }`}
+                        className={`text-[10px] truncate ${isActive ? "text-white/70" : "text-gray-400"
+                          }`}
                       >
                         {item.desc}
                       </p>
@@ -188,22 +184,6 @@ function BuyerSidebar({
 
           {/* Bottom section */}
           <div className="px-4 pb-6 space-y-3 border-t border-gray-100/80 pt-4">
-            {/* Upgrade nudge */}
-            <div className="rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 p-4 text-white shadow-lg shadow-teal-200">
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="h-4 w-4" />
-                <p className="text-xs font-bold">Browse More Produce</p>
-              </div>
-              <p className="text-[11px] text-white/80 mb-3">
-                Explore seasonal deals from 100+ verified farmers near you.
-              </p>
-              <Link
-                href="/buyer/shop"
-                className="block w-full py-1.5 text-center rounded-lg bg-white text-teal-700 text-xs font-bold hover:bg-teal-50 transition-colors"
-              >
-                Shop Now
-              </Link>
-            </div>
 
             {/* Profile strip */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
