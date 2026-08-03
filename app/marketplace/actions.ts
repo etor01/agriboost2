@@ -297,10 +297,12 @@ export async function getBuyerOrdersWithEscrow() {
         unit_type,
         image_urls,
         profile_id,
-        profiles (
-          firstname,
-          lastname,
-          location
+        farmers!listings_profile_id_fkey (
+          profiles (
+            firstname,
+            lastname,
+            location
+          )
         )
       ),
       transactions (

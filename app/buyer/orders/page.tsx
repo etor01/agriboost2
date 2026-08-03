@@ -1,7 +1,9 @@
 // app/(buyer)/orders/page.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Package,
   Clock,
@@ -12,9 +14,8 @@ import {
   Copy,
   Check,
   ShieldCheck,
-  AlertCircle,
-  ChevronRight,
-  ExternalLink,
+  ShoppingBag,
+  ArrowRight,
 } from "lucide-react";
 import {
   getBuyerOrdersWithEscrow,
@@ -38,73 +39,6 @@ interface DisplayOrder {
   escrowHeld: boolean;
   isRealOrder: boolean;
 }
-
-const MOCK_ORDERS: DisplayOrder[] = [
-  {
-    id: "ORD-001",
-    product: "Fresh Tomatoes",
-    farmer: "Kwame Asante Farms",
-    qty: 10,
-    unit: "kg",
-    price: 5.5,
-    total: 55,
-    status: "delivered",
-    date: "2026-07-22",
-    image:
-      "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=80&h=80&fit=crop",
-    deliveryOtp: "4829",
-    escrowHeld: false,
-    isRealOrder: false,
-  },
-  {
-    id: "ORD-002",
-    product: "Organic Plantains",
-    farmer: "Ama Serwaa Harvest Co.",
-    qty: 5,
-    unit: "bunch",
-    price: 8.0,
-    total: 40,
-    status: "confirmed",
-    date: "2026-07-27",
-    image:
-      "https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=80&h=80&fit=crop",
-    deliveryOtp: "7104",
-    escrowHeld: true,
-    isRealOrder: false,
-  },
-  {
-    id: "ORD-003",
-    product: "Garden Eggs",
-    farmer: "Mensah Family Farm",
-    qty: 3,
-    unit: "kg",
-    price: 4.0,
-    total: 12,
-    status: "processing",
-    date: "2026-07-28",
-    image:
-      "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=80&h=80&fit=crop",
-    deliveryOtp: "9312",
-    escrowHeld: true,
-    isRealOrder: false,
-  },
-  {
-    id: "ORD-004",
-    product: "Sweet Peppers",
-    farmer: "Volta Valley Agro",
-    qty: 2,
-    unit: "kg",
-    price: 6.5,
-    total: 13,
-    status: "cancelled",
-    date: "2026-07-15",
-    image:
-      "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=80&h=80&fit=crop",
-    deliveryOtp: "2198",
-    escrowHeld: false,
-    isRealOrder: false,
-  },
-];
 
 const STATUS_CONFIG: Record<
   OrderStatus,
@@ -149,44 +83,44 @@ export default function BuyerOrdersPage() {
     setLoading(true);
     try {
       const liveOrders = await getBuyerOrdersWithEscrow();
-      if (liveOrders && liveOrders.length > 0) {
-        const mapped: DisplayOrder[] = liveOrders.map((o: any) => {
-          const listing = o.listings || {};
-          const farmerProfile = listing.profiles || {};
-          const farmerName =
-            [farmerProfile.firstname, farmerProfile.lastname]
-              .filter(Boolean)
-              .join(" ") || "Verified Farmer";
+      const mapped: DisplayOrder[] = (liveOrders || []).map((o: any) => {
+        const listing = o.listings || {};
+        const farmerProfile =
+          listing.profiles || listing.farmers?.profiles || {};
+        const farmerName =
+          [farmerProfile.firstname, farmerProfile.lastname]
+            .filter(Boolean)
+            .join(" ") || "Verified Farmer";
 
-          const tx = (o.transactions && o.transactions[0]) || {};
-          const isHeld =
-            tx.escrow_held !== undefined ? tx.escrow_held : o.status !== "delivered";
+        const tx =
+          (Array.isArray(o.transactions)
+            ? o.transactions[0]
+            : o.transactions) || {};
+        const isHeld =
+          tx.escrow_held !== undefined ? tx.escrow_held : o.status !== "delivered";
 
-          return {
-            id: o.id,
-            product: listing.name || "Farm Produce",
-            farmer: farmerName,
-            qty: o.quantity || 1,
-            unit: listing.unit_type || "unit",
-            price: Number(o.unit_price) || 0,
-            total: Number(o.total_amount) || 0,
-            status: (o.status as OrderStatus) || "processing",
-            date: o.created_at || new Date().toISOString(),
-            image:
-              (listing.image_urls && listing.image_urls[0]) ||
-              "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=80&h=80&fit=crop",
-            deliveryOtp: o.delivery_otp || "4829",
-            escrowHeld: isHeld,
-            isRealOrder: true,
-          };
-        });
-        setOrders(mapped);
-      } else {
-        setOrders(MOCK_ORDERS);
-      }
+        return {
+          id: o.id,
+          product: listing.name || "Farm Produce",
+          farmer: farmerName,
+          qty: o.quantity || 1,
+          unit: listing.unit_type || "unit",
+          price: Number(o.unit_price) || 0,
+          total: Number(o.total_amount) || 0,
+          status: (o.status as OrderStatus) || "processing",
+          date: o.created_at || new Date().toISOString(),
+          image:
+            (listing.image_urls && listing.image_urls[0]) ||
+            "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=80&h=80&fit=crop",
+          deliveryOtp: o.delivery_otp || "----",
+          escrowHeld: isHeld,
+          isRealOrder: true,
+        };
+      });
+      setOrders(mapped);
     } catch (e) {
       console.error("Failed to load orders:", e);
-      setOrders(MOCK_ORDERS);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -206,21 +140,10 @@ export default function BuyerOrdersPage() {
     if (!confirmingOrder) return;
     setReleasing(true);
     try {
-      if (confirmingOrder.isRealOrder) {
-        const res = await confirmDeliveryAndReleaseEscrow(confirmingOrder.id);
-        if (!res.success) {
-          alert("Error releasing escrow: " + res.error);
-          return;
-        }
-      } else {
-        // Local state update for demo order
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.id === confirmingOrder.id
-              ? { ...o, status: "delivered", escrowHeld: false }
-              : o
-          )
-        );
+      const res = await confirmDeliveryAndReleaseEscrow(confirmingOrder.id);
+      if (!res.success) {
+        alert("Error releasing escrow: " + res.error);
+        return;
       }
       setConfirmingOrder(null);
       fetchOrders();
@@ -313,7 +236,40 @@ export default function BuyerOrdersPage() {
         })}
       </div>
 
-      {/* Orders Table */}
+      {/* Orders Table or States */}
+      {loading ? (
+        <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-3xl p-16 text-center shadow-sm space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-100/80 flex items-center justify-center mx-auto text-emerald-600 animate-pulse">
+            <Package className="h-7 w-7" />
+          </div>
+          <p className="text-sm font-semibold text-gray-600">
+            Loading your escrow-protected orders...
+          </p>
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-3xl p-14 text-center shadow-sm space-y-5">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto text-emerald-600 shadow-inner">
+            <ShoppingBag className="h-8 w-8" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-extrabold text-gray-900">
+              No Produce Orders Yet
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+              When you order fresh produce from verified farmers on AgriBoost, your funds are safely locked in escrow until delivery is confirmed.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/buyer/shop"
+              className="inline-flex items-center gap-2 px-7 py-3.5 bg-emerald-600 text-white text-sm font-bold rounded-2xl hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg"
+            >
+              Browse Marketplace
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      ) : (
       <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-100/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -521,6 +477,7 @@ export default function BuyerOrdersPage() {
           })}
         </div>
       </div>
+      )}
 
       {/* Confirmation Modal */}
       {confirmingOrder && (
