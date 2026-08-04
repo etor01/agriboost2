@@ -31,6 +31,8 @@ export interface Profile {
   ai_scans_remaining: number;
   subscription_end_date: string | null;
   trial_start_date: string;
+  wallet_balance: number;         // AgriBoost wallet — loadable via Paystack
+  available_balance: number;      // Farmer's released escrow / available for withdrawal
   created_at: string;
   updated_at: string;
 }
@@ -131,6 +133,13 @@ export interface Transaction {
   release_date: string | null;
   farmer_payout_date: string | null;
   status: 'pending' | 'completed' | 'refunded' | string;
+  // Wallet & fee breakdown fields
+  transaction_type: 'wallet_topup' | 'purchase' | 'escrow_hold' | 'escrow_release' | 'farmer_withdrawal' | 'platform_fee' | string | null;
+  delivery_fee: number;          // delivery fee portion (goes to platform)
+  platform_fee: number;          // 5% of (subtotal + delivery) — goes to platform
+  sales_amount: number;          // amount that goes to farmer after fees
+  platform_fee_collected: boolean;
+  farmer_balance_credited: boolean;
   created_at: string;
   updated_at: string;
 }

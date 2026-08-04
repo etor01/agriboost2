@@ -16,7 +16,9 @@ import {
   Menu,
   X,
   Sparkles,
+  Wallet,
 } from "lucide-react";
+import BuyerWalletWidget from "@/components/wallet/BuyerWalletWidget";
 
 // ── Buyer Nav Items ────────────────────────────────────────────────
 const navItems: Array<{
@@ -27,6 +29,7 @@ const navItems: Array<{
 }> = [
     { name: "Shop", href: "/buyer/shop", icon: ShoppingBag, desc: "Browse produce" },
     { name: "My Orders", href: "/buyer/orders", icon: ClipboardList, desc: "Order history" },
+    { name: "Wallet", href: "/buyer/wallet", icon: Wallet, desc: "Balance & top-up" },
     { name: "Wishlist", href: "/buyer/wishlist", icon: Heart, desc: "Saved items" },
     { name: "Account", href: "/buyer/account", icon: UserCircle2, desc: "Profile & settings" },
   ];
@@ -182,6 +185,9 @@ function BuyerSidebar({
             })}
           </nav>
 
+          {/* Wallet Widget */}
+          <BuyerWalletWidget />
+
           {/* Bottom section */}
           <div className="px-4 pb-6 space-y-3 border-t border-gray-100/80 pt-4">
 
@@ -250,7 +256,10 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
             <Image src="/icons/logo.png" alt="AgriBoost" width={30} height={30} />
             <span className="text-lg font-bold text-gray-900">AgriBoost</span>
           </div>
-          <div className="w-10" />
+          {/* Wallet quick-access on mobile */}
+          <div className="w-auto">
+            <BuyerWalletWidget compact />
+          </div>
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8 min-h-screen">{children}</main>

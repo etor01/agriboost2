@@ -8,7 +8,6 @@ import {
   Truck,
   MapPin,
   Phone,
-  CreditCard,
   CheckCircle2,
   Lock,
   Copy,
@@ -16,6 +15,10 @@ import {
   Sparkles,
   Store,
   Zap,
+  Wallet,
+  AlertCircle,
+  RefreshCw,
+  Plus,
 } from "lucide-react";
 import { type Listing } from "@/lib/data/marketplaceData";
 import { createOrderWithEscrow } from "@/app/marketplace/actions";
@@ -30,6 +33,8 @@ interface CheckoutModalProps {
 }
 
 type DeliveryOption = "farm_pickup" | "standard_delivery" | "express_delivery";
+
+const PLATFORM_FEE_RATE = 0.05; // must match actions.ts
 
 const DELIVERY_OPTIONS: Array<{
   id: DeliveryOption;
@@ -77,6 +82,8 @@ export default function CheckoutModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedOtp, setCopiedOtp] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
 
   // Success celebration state
   const [createdOrders, setCreatedOrders] = useState<
@@ -87,10 +94,17 @@ export default function CheckoutModal({
       otp: string;
     }> | null
   >(null);
+  const [checkoutSummary, setCheckoutSummary] = useState<{
+    grandTotal: number;
+    platformFee: number;
+    deliveryFee: number;
+    farmerEarns: number;
+  } | null>(null);
 
-  // Pre-fill user profile info if logged in
+  // Pre-fill user profile info + fetch wallet balance
   useEffect(() => {
     const fetchUser = async () => {
+      setWalletLoading(true);
       const supabase = createClient();
       const {
         data: { user },
@@ -99,15 +113,17 @@ export default function CheckoutModal({
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("phone, location")
+          .select("phone, location, wallet_balance")
           .eq("id", user.id)
           .single();
 
         if (profile) {
           if (profile.phone) setPhone(profile.phone);
           if (profile.location) setAddress(profile.location);
+          setWalletBalance(Number(profile.wallet_balance ?? 0));
         }
       }
+      setWalletLoading(false);
     };
     fetchUser();
   }, []);
@@ -118,7 +134,13 @@ export default function CheckoutModal({
 
   const subtotal = cart.reduce((s, i) => s + i.listing.price * i.qty, 0);
   const deliveryFee = selectedDelivery.fee;
-  const grandTotal = subtotal + deliveryFee;
+  const platformFee = Number(
+    ((subtotal + deliveryFee) * PLATFORM_FEE_RATE).toFixed(2)
+  );
+  const grandTotal = Number((subtotal + deliveryFee + platformFee).toFixed(2));
+  const farmerEarns = Number((subtotal - platformFee).toFixed(2));
+
+  const hasEnoughBalance = walletBalance !== null && walletBalance >= grandTotal;
 
   const handleCopyOtp = (otp: string) => {
     navigator.clipboard.writeText(otp);
@@ -126,13 +148,25 @@ export default function CheckoutModal({
     setTimeout(() => setCopiedOtp(null), 2500);
   };
 
-  const executeCheckout = async (paymentMethod: "paystack" | "demo") => {
+  const executeCheckout = async () => {
     if (!address.trim() && deliveryOption !== "farm_pickup") {
       setError("Please enter a delivery address.");
       return;
     }
     if (!phone.trim()) {
       setError("Please enter a phone number so the courier can reach you.");
+      return;
+    }
+    if (walletBalance === null) {
+      setError("Could not load wallet balance. Please try again.");
+      return;
+    }
+    if (walletBalance < grandTotal) {
+      setError(
+        `Insufficient wallet balance. You need GH₵ ${grandTotal.toFixed(
+          2
+        )} but have GH₵ ${walletBalance.toFixed(2)}. Please top up your wallet first.`
+      );
       return;
     }
 
@@ -147,17 +181,17 @@ export default function CheckoutModal({
           price: item.listing.price,
           qty: item.qty,
           unit: item.listing.unit,
-          farmerProfileId: (item.listing as any).profile_id || (item.listing as any).farmer_id || "",
+          farmerProfileId:
+            (item.listing as any).profile_id ||
+            (item.listing as any).farmer_id ||
+            "",
         })),
         deliveryOption,
         deliveryFee,
         deliveryAddress:
           deliveryOption === "farm_pickup" ? "Farm Pickup" : address,
         phone,
-        paystackRef:
-          paymentMethod === "paystack"
-            ? `PAYSTACK-${Date.now()}`
-            : `DEMO-ESCROW-${Date.now()}`,
+        paystackRef: `WALLET-${Date.now()}`,
       };
 
       const res = await createOrderWithEscrow(payload);
@@ -169,6 +203,18 @@ export default function CheckoutModal({
       }
 
       setCreatedOrders(res.orders);
+      setCheckoutSummary({
+        grandTotal: res.grandTotal ?? grandTotal,
+        platformFee: res.platformFee ?? platformFee,
+        deliveryFee: res.deliveryFee ?? deliveryFee,
+        farmerEarns: res.farmerEarns ?? farmerEarns,
+      });
+      // Update local wallet balance display
+      if (walletBalance !== null) {
+        setWalletBalance(
+          Number((walletBalance - (res.grandTotal ?? grandTotal)).toFixed(2))
+        );
+      }
       if (onSuccess) {
         onSuccess();
       }
@@ -214,7 +260,7 @@ export default function CheckoutModal({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-7 space-y-6">
-          {/* STEP 2: CELEBRATION SCREEN */}
+          {/* ── SUCCESS SCREEN ────────────────────────────────────────────────── */}
           {createdOrders ? (
             <div className="text-center py-6 space-y-6">
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-inner">
@@ -230,13 +276,49 @@ export default function CheckoutModal({
                   Order Placed Successfully!
                 </h3>
                 <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">
-                  Your payment of <strong>GH₵ {grandTotal.toFixed(2)}</strong> is
-                  now safely held in escrow. It will only be released to the
-                  farmer after you inspect your delivery.
+                  <strong>
+                    GH₵ {(checkoutSummary?.grandTotal ?? grandTotal).toFixed(2)}
+                  </strong>{" "}
+                  deducted from your wallet and securely held in escrow. It
+                  will only be released to the farmer after you inspect and
+                  confirm your delivery.
                 </p>
               </div>
 
-              {/* Delivery OTP Cards */}
+              {/* Fee breakdown pill */}
+              {checkoutSummary && (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-left space-y-2">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                    Payment Breakdown
+                  </p>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Products subtotal</span>
+                    <span className="font-semibold">GH₵ {subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Delivery fee</span>
+                    <span className="font-semibold">
+                      {checkoutSummary.deliveryFee === 0
+                        ? "FREE"
+                        : `GH₵ ${checkoutSummary.deliveryFee.toFixed(2)}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Platform fee (5%)</span>
+                    <span className="font-semibold text-red-600">
+                      GH₵ {checkoutSummary.platformFee.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-extrabold text-gray-900 pt-2 border-t border-gray-200">
+                    <span>Total Charged</span>
+                    <span className="text-emerald-700">
+                      GH₵ {checkoutSummary.grandTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* OTP Cards */}
               <div className="bg-gradient-to-br from-gray-900 to-emerald-950 text-white rounded-2xl p-6 text-left shadow-xl space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2">
@@ -286,8 +368,9 @@ export default function CheckoutModal({
                 </div>
 
                 <p className="text-xs text-emerald-200/80 leading-relaxed pt-1">
-                  💡 <strong>How it works:</strong> Provide this 4-digit code to
-                  the farmer or courier when your produce arrives in good condition.
+                  💡 <strong>How it works:</strong> Provide this 4-digit code
+                  to the farmer or courier when your produce arrives in good
+                  condition.
                 </p>
               </div>
 
@@ -312,7 +395,8 @@ export default function CheckoutModal({
             </div>
           ) : (
             <>
-              {/* STEP 1: FORM & SUMMARY */}
+              {/* ── CHECKOUT FORM ─────────────────────────────────────────────── */}
+
               {/* Escrow Banner */}
               <div className="bg-gradient-to-r from-emerald-600 to-green-600 text-white p-4 rounded-2xl shadow-md flex items-start gap-3.5">
                 <div className="p-2 bg-white/20 rounded-xl flex-shrink-0">
@@ -322,10 +406,65 @@ export default function CheckoutModal({
                   <p className="font-extrabold text-sm text-white mb-0.5">
                     AgriBoost 100% Escrow Guarantee
                   </p>
-                  Your money is held in a secure escrow account and is{" "}
-                  <strong>NEVER released to the farmer</strong> until you confirm
-                  receipt of your produce via your Delivery OTP.
+                  Your payment is held in secure escrow and is{" "}
+                  <strong>NEVER released to the farmer</strong> until you
+                  confirm receipt of your produce via your Delivery OTP.
                 </div>
+              </div>
+
+              {/* ── Wallet Balance Banner ─────────────────────────────────────── */}
+              <div
+                className={`flex items-center justify-between p-4 rounded-2xl border-2 ${
+                  walletLoading
+                    ? "border-gray-200 bg-gray-50"
+                    : hasEnoughBalance
+                    ? "border-emerald-300 bg-emerald-50"
+                    : "border-red-300 bg-red-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                      walletLoading
+                        ? "bg-gray-200"
+                        : hasEnoughBalance
+                        ? "bg-emerald-600"
+                        : "bg-red-500"
+                    } text-white`}
+                  >
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Your Wallet Balance
+                    </p>
+                    <p
+                      className={`text-xl font-extrabold ${
+                        walletLoading
+                          ? "text-gray-400"
+                          : hasEnoughBalance
+                          ? "text-emerald-700"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {walletLoading
+                        ? "Loading..."
+                        : `GH₵ ${(walletBalance ?? 0).toFixed(2)}`}
+                    </p>
+                  </div>
+                </div>
+
+                {!walletLoading && !hasEnoughBalance && (
+                  <a
+                    href="/buyer/wallet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Top Up
+                  </a>
+                )}
               </div>
 
               {/* Delivery Method */}
@@ -406,7 +545,7 @@ export default function CheckoutModal({
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                    Phone Number (for Courier SMS / OTP verification)
+                    Phone Number (for Courier / OTP verification)
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
@@ -421,10 +560,11 @@ export default function CheckoutModal({
                 </div>
               </div>
 
-              {/* Order Summary Table */}
+              {/* Order Summary */}
               <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200/80">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-                  3. Order Summary ({cart.length} item{cart.length !== 1 ? "s" : ""})
+                  3. Order Summary ({cart.length} item
+                  {cart.length !== 1 ? "s" : ""})
                 </h4>
                 <div className="space-y-2.5 max-h-36 overflow-y-auto pr-1">
                   {cart.map((item) => (
@@ -450,9 +590,7 @@ export default function CheckoutModal({
                 <div className="border-t border-gray-200 mt-3 pt-3 space-y-1.5 text-sm">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
-                    <span className="font-medium">
-                      GH₵ {subtotal.toFixed(2)}
-                    </span>
+                    <span className="font-medium">GH₵ {subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>{selectedDelivery.label}</span>
@@ -462,44 +600,82 @@ export default function CheckoutModal({
                         : `GH₵ ${deliveryFee.toFixed(2)}`}
                     </span>
                   </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span className="flex items-center gap-1">
+                      Platform fee
+                      <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+                        5%
+                      </span>
+                    </span>
+                    <span className="font-medium text-red-600">
+                      GH₵ {platformFee.toFixed(2)}
+                    </span>
+                  </div>
                   <div className="flex justify-between text-base font-extrabold text-gray-900 pt-1.5 border-t border-gray-200">
-                    <span>Total to Hold in Escrow</span>
+                    <span>Total (from wallet)</span>
                     <span className="text-emerald-700">
                       GH₵ {grandTotal.toFixed(2)}
                     </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-emerald-600 pt-0.5">
+                    <span>Farmer earns (after fees)</span>
+                    <span className="font-bold">GH₵ {farmerEarns.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
               {error && (
-                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
-                  ⚠️ {error}
+                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p>{error}</p>
+                    {error.includes("wallet") && (
+                      <a
+                        href="/buyer/wallet"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-bold text-red-700 mt-1 inline-block"
+                      >
+                        → Top up your wallet
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Payment Buttons */}
+              {/* Pay Button */}
               <div className="space-y-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => executeCheckout("demo")}
-                  disabled={loading}
+                  onClick={executeCheckout}
+                  disabled={loading || walletLoading || !hasEnoughBalance}
                   className="w-full py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-extrabold rounded-2xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-xl hover:shadow-2xl active:scale-[0.99] flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Lock className="h-4.5 w-4.5" />
-                  {loading
-                    ? "Locking Funds in Escrow..."
-                    : `Complete Escrow Checkout (GH₵ ${grandTotal.toFixed(2)})`}
+                  {loading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Locking Funds in Escrow...
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="h-4 w-4" />
+                      Pay GH₵ {grandTotal.toFixed(2)} from Wallet
+                    </>
+                  )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => executeCheckout("paystack")}
-                  disabled={loading}
-                  className="w-full py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Pay Live via Paystack Gateway
-                </button>
+                {!walletLoading && !hasEnoughBalance && (
+                  <a
+                    href="/buyer/wallet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Load Wallet to Pay (need GH₵{" "}
+                    {(grandTotal - (walletBalance ?? 0)).toFixed(2)} more)
+                  </a>
+                )}
               </div>
             </>
           )}

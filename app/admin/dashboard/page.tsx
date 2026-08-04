@@ -1,6 +1,6 @@
 // app/admin/dashboard/page.tsx
 import { createClient } from '@/lib/supabase/server';
-import { Users, MapPin, Leaf, DollarSign, ShoppingCart, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Users, MapPin, Leaf, DollarSign, ShoppingCart, Clock, TrendingUp, AlertTriangle, Wallet, Banknote } from 'lucide-react';
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -56,13 +56,26 @@ export default async function AdminDashboardPage() {
       .eq('verification_status', 'pending'),
     supabase.from('orders').select('*', { count: 'exact', head: true })
       .in('status', ['processing', 'in_transit']),
-    supabase.from('transactions').select('amount').eq('status', 'completed'),
+    supabase.from('transactions').select('amount, platform_fee, delivery_fee, sales_amount, transaction_type, status'),
     supabase.from('activities').select('title, description, activity_type, created_at')
       .order('created_at', { ascending: false })
       .limit(8),
   ]);
 
-  const totalRevenue = revenueData?.reduce((sum, t) => sum + (t.amount ?? 0), 0) ?? 0;
+  // Platform fee income = platform_fee + delivery_fee from released escrow
+  const platformRevenue = revenueData
+    ?.filter((t) => t.transaction_type === 'escrow_release' && t.status === 'completed')
+    .reduce((sum, t) => sum + Number(t.platform_fee ?? 0) + Number(t.delivery_fee ?? 0), 0) ?? 0;
+
+  // Total loaded via Paystack
+  const totalTopups = revenueData
+    ?.filter((t) => t.transaction_type === 'wallet_topup')
+    .reduce((sum, t) => sum + Number(t.amount ?? 0), 0) ?? 0;
+
+  // Total farmer sales released
+  const farmerPayouts = revenueData
+    ?.filter((t) => t.transaction_type === 'escrow_release' && t.status === 'completed')
+    .reduce((sum, t) => sum + Number(t.sales_amount ?? 0), 0) ?? 0;
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS', maximumFractionDigits: 0 }).format(v);
@@ -136,12 +149,32 @@ export default async function AdminDashboardPage() {
           sub="Processing or in transit"
         />
         <StatCard
-          title="Total Revenue"
-          value={formatCurrency(totalRevenue)}
+          title="Platform Revenue"
+          value={formatCurrency(platformRevenue)}
           icon={DollarSign}
           iconBg="bg-green-50"
           iconColor="text-green-600"
-          sub="All completed transactions"
+          sub="Fees + delivery collected"
+        />
+      </div>
+
+      {/* Finance Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatCard
+          title="Wallet Top-ups (Total)"
+          value={formatCurrency(totalTopups)}
+          icon={Wallet}
+          iconBg="bg-blue-50"
+          iconColor="text-blue-600"
+          sub="Loaded via Paystack by all users"
+        />
+        <StatCard
+          title="Farmer Payouts Released"
+          value={formatCurrency(farmerPayouts)}
+          icon={Banknote}
+          iconBg="bg-purple-50"
+          iconColor="text-purple-600"
+          sub="Escrow released to farmers (sales amount)"
         />
       </div>
 
