@@ -36,7 +36,11 @@ export async function updateVerificationStatus(
 
   const { error } = await supabase
     .from('profiles')
-    .update({ verification_status: newStatus })
+    .update({
+      verification_status: newStatus,
+      verified_status: newStatus === 'verified',
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', userId);
 
   if (error) {

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Search, CheckCircle, Clock, AlertCircle, UserPlus } from 'lucide-react';
+import { Search, CheckCircle, Clock, AlertCircle, UserPlus, FileText } from 'lucide-react';
 
 const getStatusUI = (status: string) => {
   switch (status) {
@@ -20,7 +20,7 @@ export default async function FarmerManagementPage() {
 
   const { data: farmers, error } = await supabase
     .from('profiles')
-    .select('id, firstname, lastname, phone, email, verification_status, subscription_tier, created_at')
+    .select('id, firstname, lastname, phone, email, verification_status, verification_doc_url, id_card_url, avatar_url, subscription_tier, created_at')
     .eq('role', 'farmer')
     .order('created_at', { ascending: false });
 
@@ -38,7 +38,7 @@ export default async function FarmerManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Farmer Management</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Review, verify, and manage all registered farmers.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Review, verify, and manage all registered farmers and their verification documents.</p>
         </div>
       </div>
 
@@ -77,6 +77,7 @@ export default async function FarmerManagementPage() {
                 <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Plan</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Verification</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Documents</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Joined</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
               </tr>
@@ -86,16 +87,25 @@ export default async function FarmerManagementPage() {
                 const statusUI = getStatusUI(farmer.verification_status ?? 'pending');
                 const StatusIcon = statusUI.icon;
                 const fullName = [farmer.firstname, farmer.lastname].filter(Boolean).join(' ') || 'Unnamed Farmer';
+                const idCardDoc = farmer.id_card_url || farmer.verification_doc_url;
+                const docsCount = [farmer.avatar_url, idCardDoc].filter(Boolean).length;
                 return (
                   <tr key={farmer.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-bold text-emerald-700">
-                            {(farmer.firstname?.[0] ?? '?').toUpperCase()}
-                          </span>
+                        <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 overflow-hidden border border-emerald-200">
+                          {farmer.avatar_url ? (
+                            <img src={farmer.avatar_url} alt={fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-emerald-700">
+                              {(farmer.firstname?.[0] ?? '?').toUpperCase()}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm font-medium text-gray-800">{fullName}</p>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{fullName}</p>
+                          <p className="text-[11px] text-gray-400">ID: {farmer.id.slice(0, 8)}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
@@ -114,6 +124,16 @@ export default async function FarmerManagementPage() {
                         {statusUI.label}
                       </span>
                     </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                        docsCount === 2 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        docsCount === 1 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-gray-100 text-gray-500 border-gray-200'
+                      }`}>
+                        <FileText className="w-3.5 h-3.5" />
+                        {docsCount} / 2 Docs
+                      </span>
+                    </td>
                     <td className="px-5 py-3.5 text-xs text-gray-400">
                       {new Date(farmer.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
@@ -122,7 +142,7 @@ export default async function FarmerManagementPage() {
                         href={`/admin/farmers/${farmer.id}`}
                         className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
                       >
-                        View Details →
+                        Review Docs →
                       </Link>
                     </td>
                   </tr>

@@ -15,6 +15,15 @@ import {
   Tractor,
   Trash2,
   UserCircle2,
+  Upload,
+  Loader2,
+  FileText,
+  User,
+  ShieldCheck,
+  CheckCircle,
+  ExternalLink,
+  Camera,
+  AlertCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { addFarm } from "../farm/new/actions";
@@ -30,6 +39,8 @@ type ProfileState = {
   bio: string;
   verification_status: string;
   avatar_url: string | null;
+  verification_doc_url?: string | null;
+  id_card_url?: string | null;
   member_since: string;
   total_sales: string;
   rating: number;
@@ -122,12 +133,148 @@ export default function ProfileClientPage({
       bio: dbProfile?.bio ?? FALLBACK_PROFILE.bio,
       verification_status: dbProfile?.verification_status ?? FALLBACK_PROFILE.verification_status,
       avatar_url: dbProfile?.avatar_url ?? null,
+      verification_doc_url: dbProfile?.verification_doc_url ?? dbProfile?.id_card_url ?? null,
+      id_card_url: dbProfile?.id_card_url ?? dbProfile?.verification_doc_url ?? null,
       member_since: new Date(user.created_at).toLocaleDateString("en-GH", { month: "long", year: "numeric" }),
       total_sales: formatCurrency(initialListings.reduce((sum, item) => sum + Number(item.price_per_unit ?? 0), 0)),
       rating: 4.8,
       reviews: initialListings.length * 2,
     };
   });
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingIdCard, setUploadingIdCard] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    setUploadError(null);
+    setUploadMessage(null);
+
+    try {
+      const fileExt = file.name.split(".").pop() || "jpg";
+      const fileName = `avatars/${profile.id}-${Date.now()}.${fileExt}`;
+
+      let { error } = await supabaseClient.storage
+        .from("avatars")
+        .upload(fileName, file, { upsert: true });
+
+      let bucketUsed = "avatars";
+      if (error) {
+        // Fallback to product_images bucket if avatars bucket is not yet created
+        const fallback = await supabaseClient.storage
+          .from("product_images")
+          .upload(fileName, file, { upsert: true });
+        if (!fallback.error) {
+          error = null;
+          bucketUsed = "product_images";
+        } else {
+          throw new Error(error.message || fallback.error.message);
+        }
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabaseClient.storage.from(bucketUsed).getPublicUrl(fileName);
+
+      const { error: updateError } = await supabaseClient
+        .from("profiles")
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+
+      if (updateError) throw updateError;
+
+      setProfile((prev) => ({ ...prev, avatar_url: publicUrl }));
+      setUploadMessage("Profile picture uploaded successfully!");
+    } catch (err: any) {
+      console.error("Avatar upload error:", err);
+      setUploadError(err.message || "Failed to upload profile picture.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleIdCardUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingIdCard(true);
+    setUploadError(null);
+    setUploadMessage(null);
+
+    try {
+      const fileExt = file.name.split(".").pop() || "jpg";
+      const fileName = `verification_docs/${profile.id}-${Date.now()}.${fileExt}`;
+
+      let { error } = await supabaseClient.storage
+        .from("verification_docs")
+        .upload(fileName, file, { upsert: true });
+
+      let bucketUsed = "verification_docs";
+      if (error) {
+        // Fallback to product_images bucket if verification_docs bucket is not yet created
+        const fallback = await supabaseClient.storage
+          .from("product_images")
+          .upload(fileName, file, { upsert: true });
+        if (!fallback.error) {
+          error = null;
+          bucketUsed = "product_images";
+        } else {
+          throw new Error(error.message || fallback.error.message);
+        }
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabaseClient.storage.from(bucketUsed).getPublicUrl(fileName);
+
+      let { error: updateError } = await supabaseClient
+        .from("profiles")
+        .update({
+          verification_doc_url: publicUrl,
+          id_card_url: publicUrl,
+          verification_status: "pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+
+      if (updateError && updateError.message?.includes("id_card_url")) {
+        const fallbackUpdate = await supabaseClient
+          .from("profiles")
+          .update({
+            verification_doc_url: publicUrl,
+            verification_status: "pending",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", profile.id);
+        updateError = fallbackUpdate.error;
+      }
+
+      if (updateError) throw updateError;
+
+      setProfile((prev) => ({
+        ...prev,
+        verification_doc_url: publicUrl,
+        id_card_url: publicUrl,
+        verification_status: "pending",
+      }));
+      setUploadMessage(
+        "ID Card document uploaded successfully! Your verification is now pending admin review."
+      );
+    } catch (err: any) {
+      console.error("ID card upload error:", err);
+      setUploadError(err.message || "Failed to upload ID Card document.");
+    } finally {
+      setUploadingIdCard(false);
+    }
+  };
 
   const [farms, setFarms] = useState<FarmState[]>(() =>
     initialFarms.map((farm) => ({
@@ -545,6 +692,188 @@ export default function ProfileClientPage({
                       We use this status to show trust signals across the
                       marketplace.
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verification Documents Upload Section */}
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                      Identity &amp; Verification Documents
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Upload your profile photo and ID card for admin verification.
+                    </p>
+                  </div>
+                </div>
+
+                {uploadMessage && (
+                  <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+                    <span>✓ {uploadMessage}</span>
+                    <button onClick={() => setUploadMessage(null)} className="text-emerald-600 hover:text-emerald-900 ml-2">×</button>
+                  </div>
+                )}
+                {uploadError && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-800 flex items-center justify-between">
+                    <span>⚠ {uploadError}</span>
+                    <button onClick={() => setUploadError(null)} className="text-red-600 hover:text-red-900 ml-2">×</button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Profile Picture Upload Card */}
+                  <div className="p-4 rounded-2xl bg-white/90 border border-gray-200/80 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+                          <User className="w-4 h-4 text-emerald-600" /> Profile Picture
+                        </span>
+                        {profile.avatar_url ? (
+                          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> Uploaded
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> Missing
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-gray-500 mb-3">
+                        Clear headshot of yourself for your seller profile badge.
+                      </p>
+
+                      {profile.avatar_url ? (
+                        <div className="relative aspect-square w-full max-w-[140px] mx-auto mb-3 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                          <img
+                            src={profile.avatar_url}
+                            alt="Profile Avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-square w-full max-w-[140px] mx-auto mb-3 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-4 text-center">
+                          <Camera className="w-7 h-7 text-gray-300 mb-1" />
+                          <span className="text-[11px] text-gray-400">No profile photo</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                      <input
+                        id="upload-avatar-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        disabled={uploadingAvatar}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="upload-avatar-input"
+                        className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                      >
+                        {uploadingAvatar ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            {profile.avatar_url ? "Change Photo" : "Upload Photo"}
+                          </>
+                        )}
+                      </label>
+
+                      {profile.avatar_url && (
+                        <a
+                          href={profile.avatar_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center text-[11px] font-semibold text-emerald-600 hover:underline"
+                        >
+                          View Current Photo ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ID Card Document Upload Card */}
+                  <div className="p-4 rounded-2xl bg-white/90 border border-gray-200/80 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-emerald-600" /> Government ID
+                        </span>
+                        {profile.verification_doc_url || profile.id_card_url ? (
+                          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> Uploaded
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> Missing
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-gray-500 mb-3">
+                        National ID, Voter ID, Passport, or Farmer ID card.
+                      </p>
+
+                      {profile.verification_doc_url || profile.id_card_url ? (
+                        <div className="relative aspect-square w-full max-w-[140px] mx-auto mb-3 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                          <img
+                            src={(profile.id_card_url || profile.verification_doc_url)!}
+                            alt="Government ID"
+                            className="w-full h-full object-contain bg-white"
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-square w-full max-w-[140px] mx-auto mb-3 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-4 text-center">
+                          <FileText className="w-7 h-7 text-gray-300 mb-1" />
+                          <span className="text-[11px] text-gray-400">No ID card</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                      <input
+                        id="upload-id-card-input"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleIdCardUpload}
+                        disabled={uploadingIdCard}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="upload-id-card-input"
+                        className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                      >
+                        {uploadingIdCard ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            {profile.verification_doc_url || profile.id_card_url ? "Change ID Card" : "Upload ID Card"}
+                          </>
+                        )}
+                      </label>
+
+                      {(profile.verification_doc_url || profile.id_card_url) && (
+                        <a
+                          href={(profile.id_card_url || profile.verification_doc_url)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center text-[11px] font-semibold text-emerald-600 hover:underline"
+                        >
+                          View Current Document ↗
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

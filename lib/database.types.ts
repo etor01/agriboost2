@@ -26,6 +26,7 @@ export interface Profile {
   verified_status: boolean;
   verification_status: 'pending' | 'verified' | 'rejected' | string;
   verification_doc_url: string | null;
+  id_card_url?: string | null;
   avatar_url: string | null;
   subscription_tier: 'free' | 'premium' | string;
   ai_scans_remaining: number;
