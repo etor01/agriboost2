@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // --- ICONS ---
-const UploadCloudIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><polyline points="16 16 12 12 8 16"></polyline></svg>;
-const ArrowLeftIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
+const UploadCloudIcon = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><polyline points="16 16 12 12 8 16"></polyline></svg>;
+const ArrowLeftIcon = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
 
 export default function NewListingPage() {
     const supabase = createClient();
@@ -21,14 +21,14 @@ export default function NewListingPage() {
     const [unit, setUnit] = useState('kg'); // Default unit
     const [quantity, setQuantity] = useState('');
     const [location, setLocation] = useState('');
-    const [imageFile, setImageFile] = useState(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState('');
 
     // UI State
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    const handleImageChange = (e) => {
+    const handleImageChange = (e: any) => {
         const file = e.target.files[0];
         if (file) {
             setImageFile(file);
@@ -37,7 +37,7 @@ export default function NewListingPage() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: any) => {
         e.preventDefault();
         setError('');
         if (!imageFile) {
@@ -98,7 +98,7 @@ export default function NewListingPage() {
                 description: `Listed ${title} (Qty: ${quantity} ${unit}) on the marketplace`
             });
             alert('Listing created successfully!');
-            router.push('/marketplace');
+            router.push('/my-listings');
         }
 
         setIsSubmitting(false);
@@ -106,9 +106,9 @@ export default function NewListingPage() {
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
-            <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900">
+            <Link href="/my-listings" className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900">
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back to My Listings
             </Link>
 
             <h1 className="text-3xl font-bold text-gray-800">Create a New Marketplace Listing</h1>

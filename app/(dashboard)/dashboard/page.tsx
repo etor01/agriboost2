@@ -369,7 +369,7 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <Link
-                href="/profile"
+                href="/farms"
                 className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
               >
                 + Register Crop
@@ -475,7 +475,7 @@ export default async function DashboardPage() {
               <Tractor className="h-4 w-4 text-emerald-600" /> My Farms
             </h2>
             <Link
-              href="/profile"
+              href="/farms"
               className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
             >
               Manage All <ArrowRight className="h-3 w-3" />
@@ -520,7 +520,7 @@ export default async function DashboardPage() {
                 )}
               {farms.length > 4 && (
                 <Link
-                  href="/profile"
+                  href="/farms"
                   className="block text-center text-xs text-emerald-600 font-semibold pt-1 hover:underline"
                 >
                   +{farms.length - 4} more farms

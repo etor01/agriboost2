@@ -103,5 +103,6 @@ export async function addFarm(farmData: {
 
   revalidatePath('/dashboard');
   revalidatePath('/profile');
+  revalidatePath('/farms');
   return { success: true, farmId: farm.id };
 }

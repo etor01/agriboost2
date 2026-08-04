@@ -18,6 +18,8 @@ import {
   LogOut,
   Menu,
   X,
+  Tractor,
+  Tag,
 } from "lucide-react";
 
 // ── Nav Items ──────────────────────────────────────────────────────
@@ -29,6 +31,8 @@ const navItems: Array<{
 }> = [
   { name: "Dashboard", href: "/dashboard", icon: Home, desc: "Overview" },
   { name: "My Profile", href: "/profile", icon: UserCircle2, desc: "Account" },
+  { name: "My Farms", href: "/farms", icon: Tractor, desc: "Manage Land" },
+  { name: "My Listings", href: "/my-listings", icon: Tag, desc: "Produce Ads" },
   { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow OTPs" },
   { name: "Finances", href: "/finances", icon: Wallet, desc: "Earnings" },
   {
@@ -159,7 +163,8 @@ function Sidebar({
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                (item.href !== "/dashboard" && pathname.startsWith(item.href)) ||
+                (item.href === "/farms" && pathname.startsWith("/farm"));
               const Icon = item.icon;
               return (
                 <Link

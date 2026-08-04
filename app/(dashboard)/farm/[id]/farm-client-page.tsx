@@ -147,10 +147,10 @@ export default function FarmDetailClient({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link
-            href="/profile"
+            href="/farms"
             className="text-sm text-emerald-600 font-semibold hover:text-emerald-700 flex items-center gap-1 mb-2"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Profile
+            <ArrowLeft className="h-4 w-4" /> Back to My Farms
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
             {initialFarm.name}
