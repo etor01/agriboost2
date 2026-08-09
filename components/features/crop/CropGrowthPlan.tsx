@@ -16,8 +16,12 @@ import {
   Calendar,
   CheckCircle2,
   Tractor,
+  Tractor,
   Info,
+  Clock,
 } from "lucide-react";
+import { toggleAiTask } from "@/app/(dashboard)/farm/[id]/actions";
+import { toast } from "@/components/ui/Toast";
 
 // ── Category config ────────────────────────────────────────────────────────────
 const CATEGORY_META: Record<
@@ -59,15 +63,22 @@ function computeCurrentWeek(plantingDate: string, totalWeeks: number): number {
 function TaskReminderTag({
   task,
   uid,
-  dismissed,
-  onDismiss,
+  farmId,
+  cropId,
+  weekNumber,
+  taskIndex,
+  isCompleted,
 }: {
   task: WeeklyTask;
   uid: string;
-  dismissed: boolean;
-  onDismiss: (uid: string) => void;
+  farmId: string;
+  cropId: string;
+  weekNumber: number;
+  taskIndex: number;
+  isCompleted: boolean;
 }) {
   const [showNotes, setShowNotes] = useState(false);
+  const [loading, setLoading] = useState(false);
   const meta = CATEGORY_META[task.category] ?? CATEGORY_META.observation;
   const Icon = meta.icon;
 
@@ -78,30 +89,60 @@ function TaskReminderTag({
       ? "bg-amber-400"
       : "bg-gray-300";
 
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (loading) return;
+    setLoading(true);
+    const res = await toggleAiTask(
+      farmId,
+      cropId,
+      weekNumber,
+      taskIndex,
+      uid,
+      !isCompleted,
+      task.task
+    );
+    if (!res.success) {
+      toast.error(res.message || "Failed to update task");
+    } else {
+      toast.success(
+        !isCompleted ? "Task marked complete" : "Task marked pending"
+      );
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="relative inline-block">
       <button
-        onClick={() => onDismiss(uid)}
+        onClick={handleToggle}
+        disabled={loading}
         className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-200
-          ${dismissed
-            ? "opacity-40 line-through bg-gray-100 text-gray-400 border-gray-200 cursor-default"
+          ${isCompleted
+            ? "opacity-40 line-through bg-gray-100 text-gray-400 border-gray-200"
             : `${meta.cls} hover:scale-105 hover:shadow-sm cursor-pointer active:scale-95`
           }`}
-        title={dismissed ? "Marked as seen" : "Click to mark as seen"}
+        title={isCompleted ? "Completed" : "Click to mark as complete"}
       >
-        {dismissed ? (
-          <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+        {loading ? (
+          <Clock className="h-3 w-3 flex-shrink-0 animate-spin" />
+        ) : isCompleted ? (
+          <CheckCircle2 className="h-3 w-3 flex-shrink-0 text-emerald-500" />
         ) : (
           <Icon className="h-3 w-3 flex-shrink-0" />
         )}
         <span className="truncate max-w-[140px]">{task.task}</span>
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${priorityDot}`} />
-        {task.notes && !dismissed && (
+        {task.notes && !isCompleted && (
           <span
-            onClick={(e) => { e.stopPropagation(); setShowNotes(v => !v); }}
-            className="ml-0.5 text-[10px] underline opacity-60 hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNotes(!showNotes);
+            }}
+            className="ml-1 p-0.5 rounded-full hover:bg-black/10 transition-colors"
+            title="View Ghana-specific notes"
           >
-            <Info className="h-2.5 w-2.5" />
+            <Info className="h-3 w-3 opacity-60 hover:opacity-100" />
           </span>
         )}
       </button>
@@ -123,23 +164,24 @@ function TaskReminderTag({
   );
 }
 
-// ── WeekRow ────────────────────────────────────────────────────────────────────
 function WeekRow({
   week,
   isCurrent,
   isPast,
   isOpen,
   onToggle,
-  dismissedSet,
-  onDismiss,
+  completionsSet,
+  farmId,
+  cropId,
 }: {
   week: GrowthWeek;
   isCurrent: boolean;
   isPast: boolean;
   isOpen: boolean;
   onToggle: () => void;
-  dismissedSet: Set<string>;
-  onDismiss: (uid: string) => void;
+  completionsSet: Set<string>;
+  farmId: string;
+  cropId: string;
 }) {
   const stageColor = getStageColor(week.growth_stage);
 
@@ -222,18 +264,21 @@ function WeekRow({
           {week.tasks.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">
-                This week's tasks — click to mark as seen
+                This week's tasks — click to mark as complete
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {week.tasks.map((task, i) => {
-                  const uid = `${week.week_number}-${i}`;
+                  const uid = `${week.week_number}_task_${i}`;
                   return (
                     <TaskReminderTag
                       key={uid}
                       task={task}
                       uid={uid}
-                      dismissed={dismissedSet.has(uid)}
-                      onDismiss={onDismiss}
+                      farmId={farmId}
+                      cropId={cropId}
+                      weekNumber={week.week_number}
+                      taskIndex={i}
+                      isCompleted={completionsSet.has(uid)}
                     />
                   );
                 })}
@@ -336,12 +381,14 @@ interface CropGrowthPlanProps {
     cropId: string,
     farmId: string
   ) => Promise<{ success: boolean; message?: string }>;
+  completions: any[];
 }
 
 export default function CropGrowthPlanSection({
   crops,
   farmId,
   onRegeneratePlan,
+  completions = [],
 }: CropGrowthPlanProps) {
   const cropsWithPlan = crops.filter(
     (c) => c.ai_growth_data && c.planting_date
@@ -350,9 +397,12 @@ export default function CropGrowthPlanSection({
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [openWeeks, setOpenWeeks] = useState<Set<number>>(new Set());
-  const [dismissedTasks, setDismissedTasks] = useState<Set<string>>(new Set());
   const [regeneratingFor, setRegeneratingFor] = useState<string | null>(null);
   const [regenError, setRegenError] = useState<string | null>(null);
+
+  const activeCropId = cropsWithPlan[selectedIdx]?.id;
+  const activeCompletions = completions.filter(c => c.crop_id === activeCropId && c.completed);
+  const activeCompletionsSet = new Set(activeCompletions.map(c => c.task_key));
 
   const handleRegenerateClick = async (cropId: string) => {
     setRegeneratingFor(cropId);
@@ -364,15 +414,6 @@ export default function CropGrowthPlanSection({
     } else {
       setRegenError(result.message ?? "Failed. Please try again.");
     }
-  };
-
-  const handleDismiss = (uid: string) => {
-    setDismissedTasks((prev) => {
-      const next = new Set(prev);
-      if (next.has(uid)) next.delete(uid);
-      else next.add(uid);
-      return next;
-    });
   };
 
   const toggleWeek = (weekNum: number) => {
@@ -391,7 +432,6 @@ export default function CropGrowthPlanSection({
     if (plan && cropsWithPlan[idx]?.planting_date) {
       const cw = computeCurrentWeek(cropsWithPlan[idx].planting_date!, plan.total_weeks);
       setOpenWeeks(new Set([cw]));
-      setDismissedTasks(new Set());
     }
   };
 
@@ -525,14 +565,17 @@ export default function CropGrowthPlanSection({
                   {thisWeek.tasks.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {thisWeek.tasks.map((task, i) => {
-                        const uid = `${thisWeek.week_number}-${i}`;
+                        const uid = `${thisWeek.week_number}_task_${i}`;
                         return (
                           <TaskReminderTag
                             key={uid}
                             task={task}
                             uid={uid}
-                            dismissed={dismissedTasks.has(uid)}
-                            onDismiss={handleDismiss}
+                            farmId={farmId}
+                            cropId={selectedCrop.id}
+                            weekNumber={thisWeek.week_number}
+                            taskIndex={i}
+                            isCompleted={activeCompletionsSet.has(uid)}
                           />
                         );
                       })}
@@ -565,8 +608,9 @@ export default function CropGrowthPlanSection({
                       isPast={isPast}
                       isOpen={openWeeks.has(week.week_number)}
                       onToggle={() => toggleWeek(week.week_number)}
-                      dismissedSet={dismissedTasks}
-                      onDismiss={handleDismiss}
+                      completionsSet={activeCompletionsSet}
+                      farmId={farmId}
+                      cropId={selectedCrop.id}
                     />
                   );
                 })}

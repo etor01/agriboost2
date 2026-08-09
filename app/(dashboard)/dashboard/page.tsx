@@ -428,14 +428,22 @@ export default async function DashboardPage() {
               <Calendar className="h-4 w-4 text-emerald-600" /> This Week on Your Farm
             </h2>
             {thisWeekTasks.length > 0 && (
-              <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+              <Link
+                href="/tasks"
+                className="text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors px-2.5 py-1 rounded-full flex items-center gap-1"
+              >
                 {thisWeekTasks.length} task{thisWeekTasks.length !== 1 ? "s" : ""}
-              </span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
             )}
             {thisWeekTasks.length === 0 && tasks.length > 0 && (
-              <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                {tasks.filter((t) => !t.completed).length} pending
-              </span>
+              <Link
+                href="/tasks"
+                className="text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors px-2.5 py-1 rounded-full flex items-center gap-1"
+              >
+                Manage All Tasks
+                <ArrowRight className="h-3 w-3" />
+              </Link>
             )}
           </div>
 

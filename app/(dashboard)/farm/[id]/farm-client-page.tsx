@@ -56,6 +56,7 @@ interface FarmDetailClientProps {
   initialCrops: any[];
   initialTasks: any[];
   initialActivities: any[];
+  initialCompletions: any[];
 }
 
 export default function FarmDetailClient({
@@ -64,11 +65,13 @@ export default function FarmDetailClient({
   initialCrops,
   initialTasks,
   initialActivities,
+  initialCompletions,
 }: FarmDetailClientProps) {
   const router = useRouter();
   const [crops, setCrops] = useState(initialCrops);
   const [tasks, setTasks] = useState(initialTasks);
   const [activities, setActivities] = useState(initialActivities);
+  const [completions, setCompletions] = useState(initialCompletions);
 
   const [showAddCrop, setShowAddCrop] = useState(false);
   const [isAddingCrop, setIsAddingCrop] = useState(false);
@@ -412,6 +415,7 @@ export default function FarmDetailClient({
           crops={crops}
           farmId={initialFarm.id}
           onRegeneratePlan={regenerateCropPlan}
+          completions={completions}
         />
       )}
 

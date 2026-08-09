@@ -22,6 +22,7 @@ import {
   X,
   Tractor,
   Tag,
+  ClipboardList,
 } from "lucide-react";
 
 // ── Nav Items ──────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ const navItems: Array<{
   { name: "Dashboard", href: "/dashboard", icon: Home, desc: "Overview" },
   { name: "My Profile", href: "/profile", icon: UserCircle2, desc: "Account" },
   { name: "My Farms", href: "/farms", icon: Tractor, desc: "Manage Land" },
+  { name: "Tasks", href: "/tasks", icon: ClipboardList, desc: "To-do List" },
   { name: "My Listings", href: "/my-listings", icon: Tag, desc: "Produce Ads" },
   { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow OTPs" },
   { name: "Finances", href: "/finances", icon: Wallet, desc: "Earnings" },

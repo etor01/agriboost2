@@ -30,6 +30,7 @@ export default async function FarmPage({ params }: { params: { id: string } }) {
   // Fetch tasks for these crops
   const cropIds = initialCrops.map(c => c.id);
   let initialTasks: any[] = [];
+  let initialCompletions: any[] = [];
   if (cropIds.length > 0) {
     const { data: tasksData } = await supabase
       .from('tasks')
@@ -37,6 +38,12 @@ export default async function FarmPage({ params }: { params: { id: string } }) {
       .in('crop_id', cropIds)
       .order('due_date', { ascending: true });
     initialTasks = tasksData ?? [];
+
+    const { data: completionsData } = await supabase
+      .from('crop_task_completions')
+      .select('*')
+      .in('crop_id', cropIds);
+    initialCompletions = completionsData ?? [];
   }
 
   // Fetch activities for the farmer
@@ -55,6 +62,7 @@ export default async function FarmPage({ params }: { params: { id: string } }) {
       initialCrops={initialCrops}
       initialTasks={initialTasks}
       initialActivities={initialActivities}
+      initialCompletions={initialCompletions}
     />
   );
 }

@@ -167,6 +167,19 @@ export interface Task {
   updated_at: string;
 }
 
+export interface CropTaskCompletion {
+  id: string;
+  crop_id: string;
+  week_number: number;
+  task_index: number;
+  task_key: string;
+  completed: boolean;
+  completed_at: string | null;
+  completed_by: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface CropDiagnostic {
   id: string;
   profile_id: string | null;

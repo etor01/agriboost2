@@ -331,3 +331,62 @@ export async function deleteCrop(farmId: string, cropId: string, cropType: strin
   revalidatePath('/dashboard');
   return { success: true };
 }
+
+// ── 5. AI Task Completions ───────────────────────────────────────────────────
+export async function getTaskCompletions(cropId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('crop_task_completions')
+    .select('*')
+    .eq('crop_id', cropId);
+  return data || [];
+}
+
+export async function toggleAiTask(
+  farmId: string,
+  cropId: string,
+  weekNumber: number,
+  taskIndex: number,
+  taskKey: string,
+  completed: boolean,
+  taskDescription: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: 'User not authenticated.' };
+
+  const { error } = await supabase
+    .from('crop_task_completions')
+    .upsert(
+      {
+        crop_id: cropId,
+        week_number: weekNumber,
+        task_index: taskIndex,
+        task_key: taskKey,
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+        completed_by: completed ? user.id : null,
+      },
+      { onConflict: 'crop_id, week_number, task_index' }
+    );
+
+  if (error) {
+    console.error('Error toggling AI task:', error);
+    return { success: false, message: error.message };
+  }
+
+  if (completed) {
+    await supabase.from('activities').insert({
+      profile_id: user.id,
+      activity_type: 'task_completed',
+      title: 'AI Task Completed',
+      description: `Completed: ${taskDescription}`,
+    });
+  }
+
+  revalidatePath(`/farm/${farmId}`);
+  revalidatePath('/dashboard');
+  revalidatePath('/tasks');
+  return { success: true };
+}
+
