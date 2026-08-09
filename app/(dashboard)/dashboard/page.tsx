@@ -1,34 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import type { Farm, Crop, Activity, TaskWithCrop } from "@/lib/database.types";
+import type { Farm, Crop, Activity, TaskWithCrop, CropGrowthPlan } from "@/lib/database.types";
 import Link from "next/link";
 import {
   type LucideIcon,
-  ArrowDownRight,
   ArrowRight,
-  ArrowUpRight,
   CheckCircle2,
   Circle,
-  CloudFog,
-  CloudLightning,
-  CloudRain,
-  CloudSun,
+  Droplets,
   Leaf,
   MapPin,
   Package,
   Plus,
   ShoppingBag,
-  Snowflake,
   Sparkles,
   Sprout,
-  SunMedium,
   Tractor,
   TrendingUp,
   Wallet,
+  Calendar,
+  ShieldCheck,
+  AlertTriangle,
+  Eye,
 } from "lucide-react";
 import WeatherWidget from "@/components/WeatherWidget";
+import FarmingTipWidget from "@/components/FarmingTipWidget";
 
-// ── Weather fetch (Default server-side fallback) ────────────────────
+// ── Weather fetch ─────────────────────────────────────────────────
 async function getWeatherData() {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=6.6885&longitude=-1.6244&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=5`;
@@ -40,36 +38,47 @@ async function getWeatherData() {
   }
 }
 
+// ── Compute which week of the AI plan "today" falls in ───────────
+function computeCurrentWeek(plantingDate: string, totalWeeks: number): number {
+  const planted = new Date(plantingDate).getTime();
+  const daysElapsed = Math.max(
+    0,
+    Math.floor((Date.now() - planted) / 86_400_000)
+  );
+  return Math.min(Math.floor(daysElapsed / 7) + 1, totalWeeks);
+}
+
+interface ThisWeekTask {
+  task: string;
+  category: string;
+  priority: string;
+  notes: string | null;
+  cropType: string;
+  weekNumber: number;
+  totalWeeks: number;
+}
+
+// ── Category label/color for dashboard pills ──────────────────────
+const TASK_CAT: Record<string, { cls: string; icon: LucideIcon }> = {
+  watering: { cls: "bg-blue-100 text-blue-700", icon: Droplets },
+  fertilizer: { cls: "bg-green-100 text-green-700", icon: Sprout },
+  weeding: { cls: "bg-lime-100 text-lime-700", icon: Leaf },
+  pest_control: { cls: "bg-orange-100 text-orange-700", icon: ShieldCheck },
+  disease_prevention: { cls: "bg-red-100 text-red-700", icon: AlertTriangle },
+  observation: { cls: "bg-purple-100 text-purple-700", icon: Eye },
+  harvest: { cls: "bg-amber-100 text-amber-700", icon: Leaf },
+};
+
 const QUICK_ACTIONS: Array<{
   label: string;
   icon: LucideIcon;
   href: string;
   color: string;
 }> = [
-  {
-    label: "Add New Farm",
-    icon: Tractor,
-    href: "/farm/new",
-    color: "from-emerald-500 to-green-500",
-  },
-  {
-    label: "Create Listing",
-    icon: Package,
-    href: "/marketplace/new",
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    label: "AI Crop Scan",
-    icon: Sparkles,
-    href: "/ai-center",
-    color: "from-purple-500 to-violet-500",
-  },
-  {
-    label: "View Finances",
-    icon: Wallet,
-    href: "/finances",
-    color: "from-amber-500 to-orange-500",
-  },
+  { label: "Add New Farm", icon: Tractor, href: "/farm/new", color: "from-emerald-500 to-green-500" },
+  { label: "Create Listing", icon: Package, href: "/marketplace/new", color: "from-blue-500 to-cyan-500" },
+  { label: "AI Crop Scan", icon: Sparkles, href: "/ai-center", color: "from-purple-500 to-violet-500" },
+  { label: "View Finances", icon: Wallet, href: "/finances", color: "from-amber-500 to-orange-500" },
 ];
 
 function GlassCard({
@@ -109,7 +118,11 @@ function KpiCard({
         </div>
         {trend && (
           <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${trend.startsWith("+") ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              trend.startsWith("+")
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-red-100 text-red-600"
+            }`}
           >
             {trend}
           </span>
@@ -126,20 +139,13 @@ function KpiCard({
 
 const getActivityMeta = (type: string) => {
   switch (type) {
-    case "crop_created":
-      return { icon: Sprout, color: "bg-green-100 text-green-600" };
-    case "farm_created":
-      return { icon: Tractor, color: "bg-emerald-100 text-emerald-600" };
-    case "listing_created":
-      return { icon: Package, color: "bg-blue-100 text-blue-600" };
-    case "scan_performed":
-      return { icon: Sparkles, color: "bg-purple-100 text-purple-600" };
-    case "task_completed":
-      return { icon: CheckCircle2, color: "bg-teal-100 text-teal-600" };
-    case "payment_received":
-      return { icon: Wallet, color: "bg-amber-100 text-amber-600" };
-    default:
-      return { icon: Sprout, color: "bg-gray-100 text-gray-600" };
+    case "crop_created": return { icon: Sprout, color: "bg-green-100 text-green-600" };
+    case "farm_created": return { icon: Tractor, color: "bg-emerald-100 text-emerald-600" };
+    case "listing_created": return { icon: Package, color: "bg-blue-100 text-blue-600" };
+    case "scan_performed": return { icon: Sparkles, color: "bg-purple-100 text-purple-600" };
+    case "task_completed": return { icon: CheckCircle2, color: "bg-teal-100 text-teal-600" };
+    case "payment_received": return { icon: Wallet, color: "bg-amber-100 text-amber-600" };
+    default: return { icon: Sprout, color: "bg-gray-100 text-gray-600" };
   }
 };
 
@@ -148,7 +154,6 @@ function formatRelativeTime(dateStr: string) {
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
-
   if (mins < 1) return "Just now";
   if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
@@ -157,12 +162,9 @@ function formatRelativeTime(dateStr: string) {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch profiles, farms, and weather
   const [profileRes, farmsRes, weatherData] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("farms").select("*").eq("profile_id", user.id),
@@ -172,45 +174,62 @@ export default async function DashboardPage() {
   const profile = profileRes.data;
   const farms = farmsRes.data ?? [];
 
-  // Fetch crops for user's farms
+  // Fetch crops (include ai_growth_data + planting_date via select *)
   const farmIds = farms.map((f: Farm) => f.id);
   let crops: Crop[] = [];
   if (farmIds.length > 0) {
     const { data: cropsData } = await supabase
       .from("crops")
       .select("*")
-      .in("farm_id", farmIds);
+      .in("farm_id", farmIds)
+      .eq("status", "active");
     crops = (cropsData as Crop[]) ?? [];
   }
 
-  // Fetch tasks for those crops
-  const cropIds = crops.map((c: Crop) => c.id);
-  let tasks: TaskWithCrop[] = [];
-  if (cropIds.length > 0) {
-    const { data: tasksData } = await supabase
-      .from("tasks")
-      .select(`
-        id,
-        description,
-        due_date,
-        completed,
-        priority,
-        crop_id,
-        crops ( crop_type )
-      `)
-      .in("crop_id", cropIds)
-      .order("due_date", { ascending: true });
-    tasks = tasksData ?? [];
+  // Derive "This Week on Your Farm" tasks from ai_growth_data
+  const thisWeekTasks: ThisWeekTask[] = [];
+  for (const crop of crops) {
+    if (!crop.ai_growth_data || !crop.planting_date) continue;
+    const plan = crop.ai_growth_data as unknown as CropGrowthPlan;
+    if (!plan.weeks || !plan.total_weeks) continue;
+    const currentWeekNum = computeCurrentWeek(crop.planting_date, plan.total_weeks);
+    const weekData = plan.weeks.find((w) => w.week_number === currentWeekNum);
+    if (weekData) {
+      for (const task of weekData.tasks) {
+        thisWeekTasks.push({
+          task: task.task,
+          category: task.category,
+          priority: task.priority,
+          notes: task.notes,
+          cropType: crop.crop_type,
+          weekNumber: currentWeekNum,
+          totalWeeks: plan.total_weeks,
+        });
+      }
+    }
   }
 
-  // Fetch active listings count
+  // Fallback: fetch regular tasks if no AI plan tasks
+  const cropIds = crops.map((c: Crop) => c.id);
+  let tasks: TaskWithCrop[] = [];
+  if (thisWeekTasks.length === 0 && cropIds.length > 0) {
+    const { data: tasksData } = await supabase
+      .from("tasks")
+      .select(`id, description, due_date, completed, priority, crop_id, crops ( crop_type )`)
+      .in("crop_id", cropIds)
+      .eq("completed", false)
+      .order("due_date", { ascending: true })
+      .limit(8);
+    tasks = (tasksData as any as TaskWithCrop[]) ?? [];
+  }
+
+  // Listings + revenue
   const { count: activeListingsCount } = await supabase
     .from("listings")
     .select("*", { count: "exact", head: true })
     .eq("profile_id", user.id)
     .eq("status", "active");
 
-  // Fetch completed transactions revenue
   const { data: txData } = await supabase
     .from("transactions")
     .select("amount")
@@ -218,7 +237,7 @@ export default async function DashboardPage() {
     .eq("status", "completed");
   const totalRevenue = txData?.reduce((sum, tx) => sum + Number(tx.amount), 0) ?? 0;
 
-  // Fetch recent activity logs
+  // Recent activities
   const { data: activitiesData } = await supabase
     .from("activities")
     .select("*")
@@ -230,14 +249,18 @@ export default async function DashboardPage() {
   const safeProfile = profile ?? {
     id: user.id,
     firstname: user.user_metadata?.firstname ?? user.email ?? "Farmer",
-    avatar_url: user.user_metadata?.avatar_url ?? null,
+    avatar_url: null,
   };
-
   const firstName = safeProfile.firstname as string;
   const today = new Date();
 
+  // Crop types and region for the farming tip widget
+  const cropTypes = [...new Set(crops.map((c: Crop) => c.crop_type))];
+  const primaryRegion = (farms[0] as any)?.region ?? (farms[0] as any)?.location ?? "Ghana";
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="bg-green-200 p-2 rounded-b-2xl">
           <p className="text-sm text-emerald-600 font-semibold">
@@ -253,8 +276,8 @@ export default async function DashboardPage() {
             {today.getHours() < 12
               ? "morning"
               : today.getHours() < 17
-                ? "afternoon"
-                : "evening"}
+              ? "afternoon"
+              : "evening"}
             , {firstName}! 👋
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -277,20 +300,21 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={Tractor}
           label="Total Farms"
           value={String(farms.length || 0)}
           sub="Registered farms"
-          trend={`+${farms.filter(f => new Date(f.created_at).getMonth() === today.getMonth()).length} this month`}
+          trend={`+${farms.filter((f) => new Date(f.created_at).getMonth() === today.getMonth()).length} this month`}
         />
         <KpiCard
           icon={Leaf}
           label="Active Crops"
           value={String(crops.length || 0)}
           sub="Across all farms"
-          trend={`+${crops.filter(c => c.status === "active").length} active`}
+          trend={`${crops.filter((c: Crop) => c.ai_growth_data).length} with AI plan`}
         />
         <KpiCard
           icon={Wallet}
@@ -308,8 +332,8 @@ export default async function DashboardPage() {
         />
       </div>
 
+      {/* Weather + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Dynamic Weather Widget */}
         <div className="lg:col-span-2">
           <WeatherWidget initialWeatherData={weatherData} />
         </div>
@@ -336,36 +360,89 @@ export default async function DashboardPage() {
             })}
           </div>
 
-          <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-100">
-            <p className="text-xs font-bold text-amber-800 mb-0.5 flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5" /> Farming Tip
-            </p>
-            <p className="text-[11px] text-amber-700">
-              Maize performs best at 25–30°C. Make sure to log irrigation tasks during hot dry spells to maximize yield potential!
-            </p>
-          </div>
+          {/* AI Farming Tip — loads after page render */}
+          <FarmingTipWidget crops={cropTypes} region={primaryRegion} />
         </GlassCard>
       </div>
 
+      {/* This Week + Activity + My Farms */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Real Tasks List */}
+
+        {/* ── This Week on Your Farm ── */}
         <GlassCard className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-              <Circle className="h-4 w-4 text-emerald-600" /> Upcoming Tasks
+              <Calendar className="h-4 w-4 text-emerald-600" /> This Week on Your Farm
             </h2>
-            <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-              {tasks.filter((t) => !t.completed).length} pending
-            </span>
+            {thisWeekTasks.length > 0 && (
+              <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                {thisWeekTasks.length} task{thisWeekTasks.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            {thisWeekTasks.length === 0 && tasks.length > 0 && (
+              <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                {tasks.filter((t) => !t.completed).length} pending
+              </span>
+            )}
           </div>
 
-          {crops.length === 0 ? (
+          {/* AI-plan based this-week tasks */}
+          {thisWeekTasks.length > 0 ? (
+            <div className="space-y-3">
+              {/* Group by crop */}
+              {Array.from(new Set(thisWeekTasks.map((t) => t.cropType))).map(
+                (ct) => {
+                  const cropTasks = thisWeekTasks.filter(
+                    (t) => t.cropType === ct
+                  );
+                  const first = cropTasks[0];
+                  return (
+                    <div key={ct}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                          {ct}
+                        </p>
+                        <span className="text-[10px] text-gray-400 font-medium">
+                          Week {first.weekNumber} of {first.totalWeeks}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cropTasks.map((t, i) => {
+                          const meta = TASK_CAT[t.category] ?? TASK_CAT.observation;
+                          const Icon = meta.icon;
+                          return (
+                            <span
+                              key={i}
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border ${meta.cls} border-current/20`}
+                              title={t.notes ?? undefined}
+                            >
+                              <Icon className="h-2.5 w-2.5 flex-shrink-0" />
+                              {t.task}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+              <Link
+                href="/farms"
+                className="block text-center text-xs text-emerald-600 font-semibold pt-2 hover:underline"
+              >
+                View full timeline →
+              </Link>
+            </div>
+          ) : crops.length === 0 ? (
+            /* No crops at all */
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
               <Sprout className="h-10 w-10 text-emerald-500 animate-bounce" />
               <div>
-                <p className="text-sm font-semibold text-gray-700">No crops registered yet</p>
+                <p className="text-sm font-semibold text-gray-700">
+                  No crops registered yet
+                </p>
                 <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
-                  Add your first crop to automatically generate tasks!
+                  Add a crop to get a week-by-week AI care schedule.
                 </p>
               </div>
               <Link
@@ -376,36 +453,43 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : tasks.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm font-semibold">All tasks completed!</p>
-              <p className="text-xs">No pending tasks for active crops.</p>
+            /* Crops exist but no tasks */
+            <div className="text-center py-12 text-gray-400 space-y-2">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
+              <p className="text-sm font-semibold">All tasks done!</p>
+              <p className="text-xs text-gray-400">
+                No pending tasks. Visit your farm to generate an AI care plan.
+              </p>
             </div>
           ) : (
+            /* Fallback: regular tasks table */
             <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+              <p className="text-[10px] text-gray-400 italic mb-2">
+                AI plan tasks shown here once a crop plan is generated.
+              </p>
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`flex items-start gap-3 p-3 rounded-xl transition-colors ${task.completed ? "opacity-50 bg-gray-50" : "bg-white/60 hover:bg-white"}`}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-white/60 hover:bg-white transition-colors"
                 >
-                  <div
-                    className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${task.completed ? "bg-emerald-500 border-emerald-500" : "border-gray-300"}`}
-                  >
-                    {task.completed ? (
-                      <CheckCircle2 className="h-3 w-3 text-white" />
-                    ) : null}
-                  </div>
+                  <Circle className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-300" />
                   <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-sm font-medium truncate ${task.completed ? "line-through text-gray-400" : "text-gray-800"}`}
-                    >
+                    <p className="text-sm font-medium text-gray-800 truncate">
                       {task.description}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
-                      <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase">
-                        {task.crops?.crop_type || "General"}
+                      <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase">
+                        {(task as any).crops?.crop_type || "General"}
                       </span>
-                      <span>Due: {task.due_date ? new Date(task.due_date).toLocaleDateString("en-GH", { day: 'numeric', month: 'short' }) : "TBD"}</span>
+                      <span>
+                        Due:{" "}
+                        {task.due_date
+                          ? new Date(task.due_date).toLocaleDateString("en-GH", {
+                              day: "numeric",
+                              month: "short",
+                            })
+                          : "TBD"}
+                      </span>
                     </p>
                   </div>
                   <span
@@ -413,8 +497,8 @@ export default async function DashboardPage() {
                       task.priority === "high"
                         ? "bg-red-100 text-red-600"
                         : task.priority === "medium"
-                          ? "bg-amber-100 text-amber-600"
-                          : "bg-gray-100 text-gray-500"
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-gray-100 text-gray-500"
                     }`}
                   >
                     {task.priority || "medium"}
@@ -425,7 +509,7 @@ export default async function DashboardPage() {
           )}
         </GlassCard>
 
-        {/* Real Recent Activities List */}
+        {/* Recent Activity */}
         <GlassCard className="p-5">
           <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-purple-600" /> Recent Activity
@@ -469,6 +553,7 @@ export default async function DashboardPage() {
           )}
         </GlassCard>
 
+        {/* My Farms (market snapshot removed) */}
         <GlassCard className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
@@ -484,40 +569,38 @@ export default async function DashboardPage() {
 
           {farms.length > 0 ? (
             <div className="space-y-2">
-              {farms
-                .slice(0, 4)
-                .map(
-                  (farm: {
-                    id: string;
-                    name: string;
-                    location: string;
-                    size_in_acres: number;
-                  }) => (
-                    <Link key={farm.id} href={`/farm/${farm.id}`}>
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/60 hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-emerald-100">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center flex-shrink-0">
-                          <Sprout className="h-5 w-5 text-emerald-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate">
-                            {farm.name}
-                          </p>
-                          <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
-                            <MapPin className="h-3 w-3" /> {farm.location}
-                          </p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-xs font-bold text-gray-700">
-                            {farm.size_in_acres} ac
-                          </p>
-                          <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                            Active
-                          </span>
-                        </div>
+              {farms.slice(0, 4).map(
+                (farm: {
+                  id: string;
+                  name: string;
+                  location: string;
+                  size_in_acres: number;
+                }) => (
+                  <Link key={farm.id} href={`/farm/${farm.id}`}>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/60 hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-emerald-100">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center flex-shrink-0">
+                        <Sprout className="h-5 w-5 text-emerald-600" />
                       </div>
-                    </Link>
-                  ),
-                )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {farm.name}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" /> {farm.location}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs font-bold text-gray-700">
+                          {farm.size_in_acres} ac
+                        </p>
+                        <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              )}
               {farms.length > 4 && (
                 <Link
                   href="/farms"
@@ -546,36 +629,6 @@ export default async function DashboardPage() {
               </Link>
             </div>
           )}
-
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Market Snapshot
-            </p>
-            <div className="space-y-1.5">
-              {[
-                { crop: "White Maize", price: "GH₵ 180/bag", trend: "up" },
-                { crop: "Tomatoes", price: "GH₵ 85/crate", trend: "down" },
-                { crop: "Yam (Pona)", price: "GH₵ 25/tuber", trend: "up" },
-              ].map((m) => (
-                <div
-                  key={m.crop}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <span className="text-gray-600 font-medium">{m.crop}</span>
-                  <span
-                    className={`font-bold flex items-center gap-1 ${m.trend === "up" ? "text-emerald-600" : "text-red-500"}`}
-                  >
-                    {m.trend === "up" ? (
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    ) : (
-                      <ArrowDownRight className="h-3.5 w-3.5" />
-                    )}{" "}
-                    {m.price}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
         </GlassCard>
       </div>
     </div>

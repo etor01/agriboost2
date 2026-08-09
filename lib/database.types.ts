@@ -222,3 +222,51 @@ export type TaskUpdate = Partial<Omit<Task, 'id' | 'created_at'>>;
 export type TaskWithCrop = Task & {
   crops: Pick<Crop, 'crop_type'> | null;
 };
+
+// ── AI Crop Growth Plan (stored in crops.ai_growth_data) ──────────────────────
+
+export interface WeeklyTask {
+  task: string;
+  category:
+    | 'watering'
+    | 'fertilizer'
+    | 'weeding'
+    | 'pest_control'
+    | 'disease_prevention'
+    | 'observation'
+    | 'harvest';
+  priority: 'low' | 'medium' | 'high';
+  notes: string | null; // Ghanaian context tip (product name, market, etc.)
+}
+
+export interface GrowthWeek {
+  week_number: number;
+  week_start_date: string;     // ISO date
+  week_end_date: string;       // ISO date
+  growth_stage: string;        // e.g. "Vegetative", "Flowering"
+  stage_description: string;   // What the plant is doing biologically this week
+  tasks: WeeklyTask[];
+  risks: string[];
+  watering_frequency: string;  // e.g. "Every 2 days"
+  expected_appearance: string; // Visual cue for the farmer
+}
+
+export interface CropGrowthPlan {
+  crop_name: string;
+  variety_suggestion: string | null;
+  region: string;
+  planting_date: string;
+  expected_harvest_date: string;
+  total_growing_days: number;
+  total_weeks: number;
+  growth_stages: Array<{
+    stage: string;
+    start_week: number;
+    end_week: number;
+  }>;
+  weeks: GrowthWeek[];
+  harvest_indicators: string[];
+  post_harvest_tips: string[];
+  estimated_yield_per_acre: string;
+  risks_summary: string[];
+}
