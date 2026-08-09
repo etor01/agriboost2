@@ -7,19 +7,19 @@ export default function Header() {
     // Changed to a floating fixed header for a more "app-like" modern feel
     <header className="fixed top-4 inset-x-0 z-50 flex justify-center px-4">
       <nav className="w-full max-w-7xl bg-white/70 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-2xl">
-        <div className="px-6 py-3 flex justify-between items-center">
+        <div className="px-4 py-2 sm:px-6 sm:py-3 flex justify-between items-center">
           {/* Logo Section: Using a tighter tracking for a premium feel */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="p-1.5 bg-green-50 rounded-lg group-hover:scale-105 transition-transform duration-300">
+          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group">
+            <div className="p-1 sm:p-1.5 bg-green-50 rounded-lg group-hover:scale-105 transition-transform duration-300">
               <Image
                 alt="AgriBoost logo"
                 src={logo}
                 width={32}
                 height={32}
-                className="object-contain"
+                className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
               />
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
               Agri<span className="text-green-600">Boost</span>
             </span>
           </Link>
@@ -47,16 +47,16 @@ export default function Header() {
           </div>
 
           {/* Actions: Soft "Google-style" colors and rounded-full buttons */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-full transition-all"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-full transition-all"
             >
               Sign In
             </Link>
             <Link
               href="/signup"
-              className="bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold rounded-full shadow-lg hover:bg-green-600 hover:shadow-green-200/50 transition-all active:scale-95"
+              className="bg-slate-900 text-white px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full shadow-lg hover:bg-green-600 hover:shadow-green-200/50 transition-all active:scale-95"
             >
               Get Started
             </Link>
