@@ -26,33 +26,33 @@ import {
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
-// ── Nav Items ──────────────────────────────────────────────────────
+// ── Nav Items 
 const navItems: Array<{
   name: string;
   href: string;
   icon: LucideIcon;
   desc: string;
 }> = [
-  { name: "Dashboard", href: "/dashboard", icon: Home, desc: "Overview" },
-  { name: "My Profile", href: "/profile", icon: UserCircle2, desc: "Account" },
-  { name: "My Farms", href: "/farms", icon: Tractor, desc: "Manage Land" },
-  { name: "Tasks", href: "/tasks", icon: ClipboardList, desc: "To-do List" },
-  { name: "My Listings", href: "/my-listings", icon: Tag, desc: "Produce Ads" },
-  { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow OTPs" },
-  { name: "Finances", href: "/finances", icon: Wallet, desc: "Earnings" },
-  {
-    name: "AI Center",
-    href: "/ai-center",
-    icon: Sparkles,
-    desc: "Smart Tools",
-  },
-  {
-    name: "Marketplace",
-    href: "/marketplace",
-    icon: ShoppingBag,
-    desc: "Sell Produce",
-  },
-];
+    { name: "Dashboard", href: "/dashboard", icon: Home, desc: "Overview" },
+    { name: "My Profile", href: "/profile", icon: UserCircle2, desc: "Account" },
+    { name: "My Farms", href: "/farms", icon: Tractor, desc: "Manage Land" },
+    { name: "Tasks", href: "/tasks", icon: ClipboardList, desc: "To-do List" },
+    { name: "My Listings", href: "/my-listings", icon: Tag, desc: "Produce Ads" },
+    { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow OTPs" },
+    { name: "Finances", href: "/finances", icon: Wallet, desc: "Earnings" },
+    {
+      name: "AI Center",
+      href: "/ai-center",
+      icon: Sparkles,
+      desc: "Smart Tools",
+    },
+    {
+      name: "Marketplace",
+      href: "/marketplace",
+      icon: ShoppingBag,
+      desc: "Sell Produce",
+    },
+  ];
 
 // ── Sidebar ────────────────────────────────────────────────────────
 function Sidebar({
@@ -91,16 +91,15 @@ function Sidebar({
   const tierLabel =
     !profileLoading && profile?.subscription_tier
       ? profile.subscription_tier.charAt(0).toUpperCase() +
-        profile.subscription_tier.slice(1) +
-        ' Plan'
+      profile.subscription_tier.slice(1) +
+      ' Plan'
       : 'Free Plan';
 
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden transition-all duration-300 ${
-          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden transition-all duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          }`}
         onClick={() => setIsOpen(false)}
       />
 
@@ -155,18 +154,16 @@ function Sidebar({
                 >
                   <div
                     className={`group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer
-                    ${
-                      isActive
+                    ${isActive
                         ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-md shadow-emerald-200"
                         : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                        isActive
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${isActive
                           ? "bg-white/20"
                           : "bg-gray-100 group-hover:bg-emerald-100"
-                      }`}
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                     </span>
@@ -189,29 +186,29 @@ function Sidebar({
 
           <div className="px-4 pb-6 space-y-3 border-t border-gray-100/80 pt-4">
             {!profileLoading && profile?.subscription_tier === 'premium' ? (
-            // Premium member badge
-            <div className="rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 p-4 text-white shadow-lg shadow-amber-200 flex items-center gap-3">
-              <BadgeCheck className="h-6 w-6 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-bold">Premium Member</p>
-                <p className="text-[10px] text-white/80 mt-0.5">All features unlocked ✓</p>
+              // Premium member badge
+              <div className="rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 p-4 text-white shadow-lg shadow-amber-200 flex items-center gap-3">
+                <BadgeCheck className="h-6 w-6 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-bold">Premium Member</p>
+                  <p className="text-[10px] text-white/80 mt-0.5">All features unlocked ✓</p>
+                </div>
               </div>
-            </div>
-          ) : (
-            // Upgrade prompt for free users
-            <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 p-4 text-white shadow-lg shadow-emerald-200">
-              <div className="flex items-center gap-2 mb-1">
-                <Crown className="h-4 w-4" />
-                <p className="text-xs font-bold">Upgrade to Pro</p>
+            ) : (
+              // Upgrade prompt for free users
+              <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 p-4 text-white shadow-lg shadow-emerald-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <Crown className="h-4 w-4" />
+                  <p className="text-xs font-bold">Upgrade to Pro</p>
+                </div>
+                <p className="text-[11px] text-white/80 mb-3">
+                  Unlock AI crop analysis &amp; premium market insights
+                </p>
+                <Link href="/upgrade" className="block w-full py-1.5 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors text-center">
+                  Upgrade Now
+                </Link>
               </div>
-              <p className="text-[11px] text-white/80 mb-3">
-                Unlock AI crop analysis &amp; premium market insights
-              </p>
-              <Link href="/upgrade" className="block w-full py-1.5 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors text-center">
-                Upgrade Now
-              </Link>
-            </div>
-          )}
+            )}
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
@@ -263,12 +260,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       const {
         data: { user: authUser },
       } = await supabase.auth.getUser();
-      
+
       if (!authUser || cancelled) {
         setProfileLoading(false);
         return;
       }
-      
+
       if (!cancelled) {
         setUser(authUser);
       }
@@ -278,7 +275,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         .select('id, firstname, lastname, subscription_tier')
         .eq('id', authUser.id)
         .single();
-        
+
       if (!cancelled) {
         setProfile(data ?? null);
         setProfileLoading(false);
@@ -296,8 +293,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       />
       <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
 
-      <Sidebar 
-        isOpen={sidebarOpen} 
+      <Sidebar
+        isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
         profile={profile}
         profileLoading={profileLoading}
