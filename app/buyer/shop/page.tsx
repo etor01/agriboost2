@@ -307,11 +307,11 @@ export default function BuyerShopPage() {
       {cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-teal-600 text-white px-5 py-3 rounded-2xl shadow-2xl hover:bg-teal-700 transition-all active:scale-95 flex items-center gap-2.5 font-semibold text-sm"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2.5 font-semibold text-sm"
         >
           <ShoppingCart className="h-4 w-4" />
           Cart
-          <span className="bg-white text-teal-700 text-xs font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
+          <span className="bg-white text-emerald-700 text-xs font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
             {cartCount}
           </span>
         </button>
@@ -346,7 +346,7 @@ export default function BuyerShopPage() {
           </div>
           <button
             onClick={() => setCartOpen(true)}
-            className="flex items-center gap-1.5 text-teal-700 font-semibold hover:text-teal-800 transition-colors text-sm"
+            className="flex items-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 transition-colors text-sm"
           >
             <ShoppingCart className="h-4 w-4" />
             Cart ({cartCount})
@@ -401,7 +401,7 @@ export default function BuyerShopPage() {
                 <div className="text-center mt-10">
                   <button
                     onClick={() => setPage((p) => p + 1)}
-                    className="px-8 py-3 bg-white border-2 border-teal-500 text-teal-600 font-semibold rounded-xl hover:bg-teal-50 transition-colors shadow-sm text-sm"
+                    className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm"
                   >
                     Load more · {filtered.length - paginated.length} remaining
                   </button>

@@ -16,7 +16,6 @@ import {
   Calendar,
   CheckCircle2,
   Tractor,
-  Tractor,
   Info,
   Clock,
 } from "lucide-react";
@@ -86,8 +85,8 @@ function TaskReminderTag({
     task.priority === "high"
       ? "bg-red-400"
       : task.priority === "medium"
-      ? "bg-amber-400"
-      : "bg-gray-300";
+        ? "bg-amber-400"
+        : "bg-gray-300";
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -188,8 +187,8 @@ function WeekRow({
   const rowBase = isCurrent
     ? "bg-green-50 border-green-300 shadow-sm"
     : isPast
-    ? "bg-gray-50/60 border-gray-100 opacity-70"
-    : "bg-white/70 border-gray-100";
+      ? "bg-gray-50/60 border-gray-100 opacity-70"
+      : "bg-white/70 border-gray-100";
 
   return (
     <div className={`border rounded-xl transition-all ${rowBase}`}>
@@ -445,7 +444,7 @@ export default function CropGrowthPlanSection({
         setOpenWeeks(new Set([cw]));
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (crops.length === 0) return null;
@@ -509,11 +508,10 @@ export default function CropGrowthPlanSection({
                   <button
                     key={c.id}
                     onClick={() => handleSelectCrop(i)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      i === selectedIdx
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${i === selectedIdx
                         ? "bg-emerald-500 text-white shadow-md"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
+                      }`}
                   >
                     {c.crop_type}
                   </button>

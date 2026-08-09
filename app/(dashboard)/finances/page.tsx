@@ -22,6 +22,7 @@ import {
   Zap,
   CreditCard,
 } from "lucide-react";
+import RevenueChart from "./RevenueChart";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PLATFORM_FEE_RATE = 0.05;
@@ -356,6 +357,8 @@ export default function FinancesPage() {
   const [showTopUp, setShowTopUp] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [filterTab, setFilterTab] = useState<"all" | "topup" | "escrow" | "withdrawal">("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // Paystack subscription (5-Star Farmer)
   const [paystackReady, setPaystackReady] = useState(false);
@@ -428,10 +431,22 @@ export default function FinancesPage() {
   };
 
   const filteredTx = (summary?.transactions || []).filter((tx) => {
-    if (filterTab === "topup") return tx.transaction_type === "wallet_topup";
-    if (filterTab === "escrow") return tx.transaction_type === "escrow_hold" || tx.transaction_type === "escrow_release";
-    if (filterTab === "withdrawal") return tx.transaction_type === "farmer_withdrawal";
-    return true;
+    let matchTab = true;
+    if (filterTab === "topup") matchTab = tx.transaction_type === "wallet_topup";
+    else if (filterTab === "escrow") matchTab = tx.transaction_type === "escrow_hold" || tx.transaction_type === "escrow_release";
+    else if (filterTab === "withdrawal") matchTab = tx.transaction_type === "farmer_withdrawal";
+
+    let matchDate = true;
+    const txDate = new Date(tx.created_at).getTime();
+    if (startDate) {
+      matchDate = matchDate && txDate >= new Date(startDate).getTime();
+    }
+    if (endDate) {
+      // Add a day to include the entire end date
+      matchDate = matchDate && txDate <= new Date(endDate).getTime() + 86400000;
+    }
+
+    return matchTab && matchDate;
   });
 
   const isFarmer = summary?.role === "farmer";
@@ -643,6 +658,11 @@ export default function FinancesPage() {
         </div>
       </div>
 
+      {/* ── Revenue Chart (farmer only) ─────────────────────────────────────── */}
+      {isFarmer && summary && (
+        <RevenueChart transactions={summary.transactions} />
+      )}
+
       {/* ── Fee Explainer (farmer only) ───────────────────────────────────────── */}
       {isFarmer && (
         <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-5">
@@ -795,6 +815,31 @@ export default function FinancesPage() {
                 {label}
               </button>
             ))}
+          </div>
+
+          {/* CSV Export & Date Filter */}
+          <div className="flex items-center gap-2">
+            <input 
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-xs px-2 py-1.5 border border-gray-200 rounded-lg text-gray-600 outline-none focus:border-emerald-500"
+            />
+            <span className="text-gray-400 text-xs">to</span>
+            <input 
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-xs px-2 py-1.5 border border-gray-200 rounded-lg text-gray-600 outline-none focus:border-emerald-500"
+            />
+            <button 
+              onClick={() => {
+                window.location.href = `/api/transactions/export?tab=${filterTab}${startDate ? `&start=${startDate}` : ""}${endDate ? `&end=${endDate}` : ""}`;
+              }}
+              className="ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
+            >
+              Export CSV
+            </button>
           </div>
         </div>
 

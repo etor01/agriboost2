@@ -25,6 +25,9 @@ import {
 import { addCrop, toggleTask, deleteCrop, regenerateCropPlan } from "./actions";
 import CropGrowthPlanSection from "@/components/features/crop/CropGrowthPlan";
 import { toast } from "@/components/ui/Toast";
+import EditFarmModal from "./EditFarmModal";
+import EditCropModal from "./EditCropModal";
+import HarvestModal from "./HarvestModal";
 
 // ── Glass Card ────────────────────────────────────────────────────
 function GlassCard({
@@ -76,6 +79,9 @@ export default function FarmDetailClient({
   const [showAddCrop, setShowAddCrop] = useState(false);
   const [isAddingCrop, setIsAddingCrop] = useState(false);
   const [addCropStatus, setAddCropStatus] = useState<string | null>(null);
+  const [showEditFarm, setShowEditFarm] = useState(false);
+  const [editingCrop, setEditingCrop] = useState<any | null>(null);
+  const [harvestingCrop, setHarvestingCrop] = useState<any | null>(null);
 
   const farmRegion =
     initialFarm.region ?? initialFarm.location ?? "Ghana";
@@ -195,9 +201,17 @@ export default function FarmDetailClient({
             <MapPin className="h-4 w-4" /> {initialFarm.location}
           </p>
         </div>
-        <span className="self-start px-3 py-1.5 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-          ● Active
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowEditFarm(true)}
+            className="text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Edit Farm
+          </button>
+          <span className="self-start px-3 py-1.5 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+            ● Active
+          </span>
+        </div>
       </div>
 
       {/* Farm Stats Row */}
@@ -301,14 +315,30 @@ export default function FarmDetailClient({
                           : ""}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5">
+                    {/* Edit / Harvest / Delete Buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {crop.current_growth_stage !== 'Harvested' && (
+                        <button
+                          onClick={() => setHarvestingCrop(crop)}
+                          className="text-xs font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-md transition-colors"
+                        >
+                          Harvest
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setEditingCrop(crop)}
+                        className="text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md transition-colors"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() =>
                           handleDeleteCropClick(crop.id, crop.crop_type)
                         }
-                        className="text-xs text-red-400 hover:text-red-600 font-semibold"
+                        className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete Crop"
                       >
-                        Delete
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -520,6 +550,35 @@ export default function FarmDetailClient({
           onAdd={handleAddCropSubmit}
           isSaving={isAddingCrop}
           statusMessage={addCropStatus}
+        />
+      )}
+
+      {/* Edit Farm Modal */}
+      {showEditFarm && (
+        <EditFarmModal
+          isOpen={showEditFarm}
+          onClose={() => setShowEditFarm(false)}
+          farm={initialFarm}
+        />
+      )}
+
+      {/* Edit Crop Modal */}
+      {editingCrop && (
+        <EditCropModal
+          isOpen={!!editingCrop}
+          onClose={() => setEditingCrop(null)}
+          farmId={initialFarm.id}
+          crop={editingCrop}
+        />
+      )}
+
+      {/* Harvest Crop Modal */}
+      {harvestingCrop && (
+        <HarvestModal
+          isOpen={!!harvestingCrop}
+          onClose={() => setHarvestingCrop(null)}
+          farmId={initialFarm.id}
+          crop={harvestingCrop}
         />
       )}
     </div>

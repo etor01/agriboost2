@@ -200,6 +200,34 @@ export default function AiCenterPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<
+    "All" | "Healthy" | "Disease Detected"
+  >("All");
+
+  const filteredHistory = history.filter((scan) => {
+    let matchStatus = true;
+    const result = scan.ai_result as DiagnosisResult | null;
+    if (historyStatusFilter === "Healthy") {
+      matchStatus = result?.is_healthy === true;
+    } else if (historyStatusFilter === "Disease Detected") {
+      matchStatus = result?.is_healthy === false;
+    }
+
+    let matchDate = true;
+    const txDate = new Date(scan.created_at).getTime();
+    if (historyStartDate) {
+      matchDate = matchDate && txDate >= new Date(historyStartDate).getTime();
+    }
+    if (historyEndDate) {
+      matchDate =
+        matchDate && txDate <= new Date(historyEndDate).getTime() + 86400000;
+    }
+
+    return matchStatus && matchDate;
+  });
+
   // Fetch scans remaining and user id on mount
   useEffect(() => {
     const init = async () => {
@@ -483,6 +511,51 @@ export default function AiCenterPage() {
           </span>
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-500">Status:</span>
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              {["All", "Healthy", "Disease Detected"].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setHistoryStatusFilter(status as any)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    historyStatusFilter === status
+                      ? "bg-white text-green-700 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex-1 w-full sm:w-auto h-px bg-gray-100 sm:h-8 sm:w-px sm:bg-gray-200" />
+          
+          <div className="flex items-center gap-3 text-sm">
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-500 mb-1">From</span>
+              <input
+                type="date"
+                value={historyStartDate}
+                onChange={(e) => setHistoryStartDate(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 bg-gray-50 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-500 mb-1">To</span>
+              <input
+                type="date"
+                value={historyEndDate}
+                onChange={(e) => setHistoryEndDate(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 bg-gray-50 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
         {historyLoading ? (
           /* Skeleton */
           <div className="space-y-3">
@@ -500,7 +573,7 @@ export default function AiCenterPage() {
               </div>
             ))}
           </div>
-        ) : history.length === 0 ? (
+        ) : filteredHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200">
             <Leaf className="h-12 w-12 text-gray-200 mb-3" />
             <p className="font-semibold text-gray-500">No scans yet</p>
@@ -510,7 +583,7 @@ export default function AiCenterPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {history.map((scan) => (
+            {filteredHistory.map((scan) => (
               <ScanHistoryCard key={scan.id} scan={scan} />
             ))}
 

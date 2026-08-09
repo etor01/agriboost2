@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "@/lib/actions/notifications";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 /** 5% of (subtotal + delivery_fee) goes to AgriBoost platform */
@@ -192,6 +193,13 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
           2
         )} once delivery is confirmed.`,
       });
+
+      await createNotification(
+        item.farmerProfileId,
+        "order_placed",
+        "New Order Received!",
+        `You have a new order for ${item.qty} ${item.unit} of ${item.title}. The funds (GH₵ ${itemSalesAmount.toFixed(2)}) are secured in escrow.`
+      );
     }
 
     createdOrders.push({
@@ -424,6 +432,10 @@ export async function getBuyerOrdersWithEscrow() {
         platform_fee,
         sales_amount,
         release_date
+      ),
+      reviews (
+        id,
+        rating
       )
     `)
     .eq("buyer_id", user.id)
@@ -576,4 +588,73 @@ export async function getBuyerWalletBalance(): Promise<number> {
     .single();
 
   return Number(data?.wallet_balance ?? 0);
+}
+
+// ── Reviews ───────────────────────────────────────────────────────────────────
+
+export async function submitReview(payload: {
+  orderId: string;
+  farmerId: string;
+  listingId: string;
+  rating: number;
+  comment: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Check if review already exists
+  const { data: existing } = await supabase
+    .from("reviews")
+    .select("id")
+    .eq("order_id", payload.orderId)
+    .single();
+
+  if (existing) {
+    return { success: false, error: "Review already submitted for this order" };
+  }
+
+  const { error } = await supabase
+    .from("reviews")
+    .insert({
+      order_id: payload.orderId,
+      buyer_id: user.id,
+      farmer_id: payload.farmerId,
+      listing_id: payload.listingId,
+      rating: payload.rating,
+      comment: payload.comment
+    });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/buyer/orders");
+  revalidatePath("/marketplace");
+
+  return { success: true };
+}
+
+export async function getFarmerAverageRating(farmerId: string): Promise<{
+  average: number;
+  count: number;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("farmer_id", farmerId);
+    
+  if (error || !data || data.length === 0) {
+    return { average: 0, count: 0 };
+  }
+  
+  const total = data.reduce((sum, r) => sum + r.rating, 0);
+  return {
+    average: Number((total / data.length).toFixed(1)),
+    count: data.length
+  };
 }

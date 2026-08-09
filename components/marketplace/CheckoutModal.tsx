@@ -234,7 +234,7 @@ export default function CheckoutModal({
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+      <div className={`relative w-full ${createdOrders ? "max-w-4xl h-[90vh] lg:h-[80vh]" : "max-w-2xl max-h-[90vh]"} bg-white rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col`}>
         {/* Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 bg-gradient-to-r from-emerald-50 via-white to-green-50">
           <div className="flex items-center gap-3">
@@ -262,135 +262,124 @@ export default function CheckoutModal({
         <div className="flex-1 overflow-y-auto p-7 space-y-6">
           {/* ── SUCCESS SCREEN ────────────────────────────────────────────────── */}
           {createdOrders ? (
-            <div className="text-center py-6 space-y-6">
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="h-11 w-11 text-emerald-600 animate-bounce" />
-              </div>
-
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 mb-2">
-                  <Lock className="h-3 w-3" />
-                  AgriBoost Escrow Protected
-                </span>
-                <h3 className="text-2xl font-extrabold text-gray-900">
-                  Order Placed Successfully!
-                </h3>
-                <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">
-                  <strong>
-                    GH₵ {(checkoutSummary?.grandTotal ?? grandTotal).toFixed(2)}
-                  </strong>{" "}
-                  deducted from your wallet and securely held in escrow. It
-                  will only be released to the farmer after you inspect and
-                  confirm your delivery.
-                </p>
-              </div>
-
-              {/* Fee breakdown pill */}
-              {checkoutSummary && (
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-left space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                    Payment Breakdown
-                  </p>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Products subtotal</span>
-                    <span className="font-semibold">GH₵ {subtotal.toFixed(2)}</span>
+            <div className="flex flex-col lg:flex-row gap-8 py-4 h-full">
+              {/* Left Column: Success Message & Breakdown */}
+              <div className="flex-1 space-y-6 lg:border-r lg:border-gray-100 lg:pr-8 flex flex-col justify-center">
+                <div className="text-center lg:text-left">
+                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center shadow-inner mb-6 mx-auto lg:mx-0">
+                    <CheckCircle2 className="h-11 w-11 text-emerald-600 animate-bounce" />
                   </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Delivery fee</span>
-                    <span className="font-semibold">
-                      {checkoutSummary.deliveryFee === 0
-                        ? "FREE"
-                        : `GH₵ ${checkoutSummary.deliveryFee.toFixed(2)}`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Platform fee (5%)</span>
-                    <span className="font-semibold text-red-600">
-                      GH₵ {checkoutSummary.platformFee.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-extrabold text-gray-900 pt-2 border-t border-gray-200">
-                    <span>Total Charged</span>
-                    <span className="text-emerald-700">
-                      GH₵ {checkoutSummary.grandTotal.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* OTP Cards */}
-              <div className="bg-gradient-to-br from-gray-900 to-emerald-950 text-white rounded-2xl p-6 text-left shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-emerald-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                      Your Delivery Verification OTP
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-gray-400">
-                    Required at Delivery
+                  
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 mb-3">
+                    <Lock className="h-3 w-3" />
+                    AgriBoost Escrow Protected
                   </span>
+                  <h3 className="text-3xl lg:text-4xl font-black text-gray-900 mb-3">
+                    Order Placed Successfully!
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed max-w-md mx-auto lg:mx-0">
+                    <strong>GH₵ {(checkoutSummary?.grandTotal ?? grandTotal).toFixed(2)}</strong> deducted from your wallet and securely held in escrow. It will only be released to the farmer after you inspect and confirm your delivery.
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  {createdOrders.map((order) => (
-                    <div
-                      key={order.orderId}
-                      className="flex items-center justify-between bg-white/10 rounded-xl p-4 border border-white/10"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {order.title}
-                        </p>
-                        <p className="text-xs text-gray-300">
-                          Order #{order.orderId.slice(0, 8).toUpperCase()} ·
-                          GH₵ {order.total.toFixed(2)}
-                        </p>
+                {checkoutSummary && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-3xl p-5 text-sm space-y-3 mt-4">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Payment Breakdown</p>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Products subtotal</span>
+                      <span className="font-semibold">GH₵ {subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Delivery fee</span>
+                      <span className="font-semibold">{checkoutSummary.deliveryFee === 0 ? "FREE" : `GH₵ ${checkoutSummary.deliveryFee.toFixed(2)}`}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Platform fee (5%)</span>
+                      <span className="font-semibold text-red-600">GH₵ {checkoutSummary.platformFee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-extrabold text-gray-900 pt-3 border-t border-gray-200 text-lg">
+                      <span>Total Charged</span>
+                      <span className="text-emerald-700">GH₵ {checkoutSummary.grandTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: OTPs & Actions */}
+              <div className="flex-1 space-y-6 flex flex-col justify-center">
+                <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-950 text-white rounded-3xl p-7 text-left shadow-2xl relative overflow-hidden">
+                  {/* Decorative Elements */}
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl" />
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+                  
+                  <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Sparkles className="h-5 w-5 text-emerald-400" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xl font-extrabold tracking-widest bg-black/40 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/40">
-                          {order.otp}
+                      <div>
+                        <span className="text-sm font-bold uppercase tracking-widest text-emerald-300 block mb-0.5">
+                          Delivery OTPs
                         </span>
-                        <button
-                          onClick={() => handleCopyOtp(order.otp)}
-                          className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-200 transition-colors"
-                          title="Copy OTP"
-                        >
-                          {copiedOtp === order.otp ? (
-                            <Check className="h-4 w-4 text-emerald-400" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
+                        <span className="text-xs text-gray-400 font-medium">
+                          Hand to farmer upon delivery
+                        </span>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="relative z-10 space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {createdOrders.map((order) => (
+                      <div
+                        key={order.orderId}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/5 hover:bg-white/10 transition-colors rounded-2xl p-4 border border-white/10"
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-white mb-1">
+                            {order.title}
+                          </p>
+                          <p className="text-xs text-emerald-200/80 font-medium">
+                            Order #{order.orderId.slice(0, 8).toUpperCase()} · GH₵ {order.total.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-2xl font-black tracking-widest bg-black/40 text-emerald-400 px-4 py-2 rounded-xl border border-emerald-500/30 shadow-inner">
+                            {order.otp}
+                          </span>
+                          <button
+                            onClick={() => handleCopyOtp(order.otp)}
+                            className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                            title="Copy OTP"
+                          >
+                            {copiedOtp === order.otp ? (
+                              <Check className="h-5 w-5 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <p className="text-xs text-emerald-200/80 leading-relaxed pt-1">
-                  💡 <strong>How it works:</strong> Provide this 4-digit code
-                  to the farmer or courier when your produce arrives in good
-                  condition.
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <a
-                  href="/buyer/orders"
-                  className="flex-1 py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all text-center shadow-lg hover:shadow-xl text-sm"
-                >
-                  View My Orders →
-                </a>
-                <button
-                  onClick={() => {
-                    onSuccess();
-                    onClose();
-                  }}
-                  className="flex-1 py-3.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-sm"
-                >
-                  Continue Shopping
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <a
+                    href="/buyer/orders"
+                    className="flex-1 py-4 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all text-center shadow-lg hover:shadow-xl text-sm"
+                  >
+                    View My Orders →
+                  </a>
+                  <button
+                    onClick={() => {
+                      onSuccess();
+                      onClose();
+                    }}
+                    className="flex-1 py-4 border-2 border-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-colors text-sm"
+                  >
+                    Continue Shopping
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

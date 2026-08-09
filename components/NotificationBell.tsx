@@ -26,64 +26,80 @@ export default function NotificationBell({ userId }: { userId?: string }) {
   }, [open]);
 
   useEffect(() => {
-    if (!userId) return;
+    let activeUserId = userId;
+    let channel: any;
 
-    const fetchNotifications = async () => {
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("profile_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (data) {
-        setNotifications(data);
-        setUnreadCount(data.filter((n) => !n.read).length);
+    const init = async () => {
+      if (!activeUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          activeUserId = user.id;
+        } else {
+          return;
+        }
       }
+
+      const fetchNotifications = async () => {
+        const { data } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("profile_id", activeUserId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (data) {
+          setNotifications(data);
+          setUnreadCount(data.filter((n) => !n.read).length);
+        }
+      };
+
+      await fetchNotifications();
+
+      channel = supabase
+        .channel("public:notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `profile_id=eq.${activeUserId}`,
+          },
+          (payload) => {
+            const newNotif = payload.new as Notification;
+            setNotifications((prev) => [newNotif, ...prev]);
+            setUnreadCount((c) => c + 1);
+            toast.success(`New Notification: ${newNotif.title}`);
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "notifications",
+            filter: `profile_id=eq.${activeUserId}`,
+          },
+          (payload) => {
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === payload.new.id ? (payload.new as Notification) : n))
+            );
+            setUnreadCount((prev) => {
+              const isReadNow = payload.new.read;
+              const wasRead = payload.old?.read;
+              if (!wasRead && isReadNow) return Math.max(0, prev - 1);
+              return prev;
+            });
+          }
+        )
+        .subscribe();
     };
 
-    fetchNotifications();
-
-    const channel = supabase
-      .channel("public:notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `profile_id=eq.${userId}`,
-        },
-        (payload) => {
-          const newNotif = payload.new as Notification;
-          setNotifications((prev) => [newNotif, ...prev]);
-          setUnreadCount((c) => c + 1);
-          toast.success(`New Notification: ${newNotif.title}`);
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-          filter: `profile_id=eq.${userId}`,
-        },
-        (payload) => {
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === payload.new.id ? (payload.new as Notification) : n))
-          );
-          setUnreadCount((prev) => {
-            const isReadNow = payload.new.read;
-            const wasRead = payload.old?.read;
-            if (!wasRead && isReadNow) return Math.max(0, prev - 1);
-            return prev;
-          });
-        }
-      )
-      .subscribe();
+    init();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [userId, supabase]);
 

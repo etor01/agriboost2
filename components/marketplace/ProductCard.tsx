@@ -44,7 +44,8 @@ export default function ProductCard({
       })
     : null;
 
-  const isLowStock = listing.quantity_available <= 10;
+  const isLowStock = listing.quantity_available <= 10 && listing.quantity_available > 0;
+  const isSoldOut = listing.quantity_available === 0 || listing.status === "sold";
 
   return (
     <div className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100/80">
@@ -62,6 +63,15 @@ export default function ProductCard({
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        
+        {/* Sold out overlay */}
+        {isSoldOut && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-10">
+            <span className="bg-red-600 text-white font-extrabold px-4 py-1.5 rounded-full shadow-lg transform -rotate-12 border-2 border-white/20 text-sm tracking-wider">
+              SOLD OUT
+            </span>
+          </div>
+        )}
 
         {/* Top-right: verified badge */}
         {listing.is_verified && (
@@ -137,13 +147,17 @@ export default function ProductCard({
           {/* Stock pill */}
           <span
             className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              isLowStock
+              isSoldOut
+                ? "bg-gray-100 text-gray-500 border border-gray-200"
+                : isLowStock
                 ? "bg-red-50 text-red-600 border border-red-200"
                 : "bg-emerald-50 text-emerald-700 border border-emerald-200"
             }`}
           >
             <Package className="h-2.5 w-2.5" />
-            {isLowStock
+            {isSoldOut
+              ? "Out of stock"
+              : isLowStock
               ? `Only ${listing.quantity_available} left`
               : `${listing.quantity_available} ${listing.unit}`}
           </span>
@@ -159,14 +173,19 @@ export default function ProductCard({
         {/* CTA */}
         <div className="mt-auto flex items-center gap-2">
           <button
+            disabled={isSoldOut}
             onClick={() => onAddToCart(listing)}
             className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
-              inCart
+              isSoldOut
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                : inCart
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
                 : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md hover:shadow-lg"
             }`}
           >
-            {inCart ? (
+            {isSoldOut ? (
+              "Sold Out"
+            ) : inCart ? (
               <>
                 <Check className="h-4 w-4" />
                 In Cart

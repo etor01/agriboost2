@@ -390,3 +390,111 @@ export async function toggleAiTask(
   return { success: true };
 }
 
+// ── 6. updateFarm ────────────────────────────────────────────────────────────
+export async function updateFarm(
+  farmId: string,
+  updates: {
+    name?: string;
+    location?: string;
+    size_in_acres?: number;
+    primary_crop?: string;
+    soil_type?: string;
+    irrigation_type?: string;
+  }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: 'User not authenticated.' };
+
+  const { error } = await supabase
+    .from('farms')
+    .update(updates)
+    .eq('id', farmId)
+    .eq('profile_id', user.id);
+
+  if (error) {
+    console.error('Error updating farm:', error);
+    return { success: false, message: error.message };
+  }
+
+  await supabase.from('activities').insert({
+    profile_id: user.id,
+    activity_type: 'farm_updated',
+    title: 'Farm Updated',
+    description: `Updated details for farm: ${updates.name || 'farm'}`,
+  });
+
+  revalidatePath(`/farm/${farmId}`);
+  revalidatePath('/farms');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ── 7. updateCrop ────────────────────────────────────────────────────────────
+export async function updateCrop(
+  farmId: string,
+  cropId: string,
+  updates: {
+    crop_type?: string;
+    planting_date?: string;
+    estimated_harvest_date?: string | null;
+    area?: number;
+    current_growth_stage?: string;
+  }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: 'User not authenticated.' };
+
+  const { error } = await supabase
+    .from('crops')
+    .update(updates)
+    .eq('id', cropId);
+
+  if (error) {
+    console.error('Error updating crop:', error);
+    return { success: false, message: error.message };
+  }
+
+  await supabase.from('activities').insert({
+    profile_id: user.id,
+    activity_type: 'crop_updated',
+    title: 'Crop Updated',
+    description: `Updated crop details for ${updates.crop_type || 'crop'}`,
+  });
+
+  revalidatePath(`/farm/${farmId}`);
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ── 8. markCropHarvested ─────────────────────────────────────────────────────
+export async function markCropHarvested(farmId: string, cropId: string, cropType: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: 'User not authenticated.' };
+
+  const { error } = await supabase
+    .from('crops')
+    .update({
+      current_growth_stage: 'Harvested',
+    })
+    .eq('id', cropId);
+
+  if (error) {
+    console.error('Error marking crop harvested:', error);
+    return { success: false, message: error.message };
+  }
+
+  await supabase.from('activities').insert({
+    profile_id: user.id,
+    activity_type: 'harvest_completed',
+    title: 'Crop Harvested 🌾',
+    description: `Successfully harvested ${cropType}. Consider listing it on the marketplace!`,
+  });
+
+  revalidatePath(`/farm/${farmId}`);
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+

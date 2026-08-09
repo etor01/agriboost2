@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { OrderStepper } from "@/components/ui/OrderStepper";
 import {
   Package,
   Clock,
@@ -15,12 +16,14 @@ import {
   Check,
   ShieldCheck,
   ShoppingBag,
-  ArrowRight,
 } from "lucide-react";
 import {
   getBuyerOrdersWithEscrow,
   confirmDeliveryAndReleaseEscrow,
+  submitReview
 } from "@/app/marketplace/actions";
+import { Star, MessageSquare } from "lucide-react";
+import ChatDrawer from "@/components/messaging/ChatDrawer";
 
 type OrderStatus = "processing" | "confirmed" | "delivered" | "cancelled";
 
@@ -38,6 +41,9 @@ interface DisplayOrder {
   deliveryOtp: string;
   escrowHeld: boolean;
   isRealOrder: boolean;
+  farmerId: string;
+  listingId: string;
+  hasReviewed: boolean;
 }
 
 const STATUS_CONFIG: Record<
@@ -77,6 +83,12 @@ export default function BuyerOrdersPage() {
   const [confirmingOrder, setConfirmingOrder] = useState<DisplayOrder | null>(
     null
   );
+  const [reviewingOrder, setReviewingOrder] = useState<DisplayOrder | null>(null);
+  const [chattingOrder, setChattingOrder] = useState<DisplayOrder | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  
   const [releasing, setReleasing] = useState(false);
 
   const fetchOrders = async () => {
@@ -115,6 +127,9 @@ export default function BuyerOrdersPage() {
           deliveryOtp: o.delivery_otp || "----",
           escrowHeld: isHeld,
           isRealOrder: true,
+          farmerId: farmerProfile.id || listing.profile_id,
+          listingId: listing.id || o.listing_id,
+          hasReviewed: Array.isArray(o.reviews) && o.reviews.length > 0,
         };
       });
       setOrders(mapped);
@@ -154,6 +169,34 @@ export default function BuyerOrdersPage() {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!reviewingOrder) return;
+    setSubmittingReview(true);
+    try {
+      const res = await submitReview({
+        orderId: reviewingOrder.id,
+        farmerId: reviewingOrder.farmerId,
+        listingId: reviewingOrder.listingId,
+        rating: reviewRating,
+        comment: reviewComment
+      });
+      
+      if (!res.success) {
+        alert("Error submitting review: " + res.error);
+        return;
+      }
+      
+      setReviewingOrder(null);
+      setReviewRating(5);
+      setReviewComment("");
+      fetchOrders();
+    } catch (e: any) {
+      alert("Failed to submit review: " + e.message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const totalSpent = orders
     .filter((o) => o.status !== "cancelled")
     .reduce((s, o) => s + o.total, 0);
@@ -161,6 +204,8 @@ export default function BuyerOrdersPage() {
   const totalEscrowHeld = orders
     .filter((o) => o.escrowHeld && o.status !== "cancelled")
     .reduce((s, o) => s + o.total, 0);
+
+  const pendingDeliveries = orders.filter((o) => o.status === "processing" || o.status === "confirmed");
 
   return (
     <div>
@@ -192,6 +237,47 @@ export default function BuyerOrdersPage() {
           </div>
         </div>
       </div>
+
+      {/* MT-5: Active Deliveries OTP Retrieval Banner */}
+      {pendingDeliveries.length > 0 && (
+        <div className="mb-7 bg-white/70 backdrop-blur-sm border-2 border-emerald-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+              <Truck className="h-5 w-5 text-emerald-600" /> Active Deliveries
+            </h2>
+            <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
+              Hand OTP to Farmer on Delivery
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pendingDeliveries.map((order) => (
+              <div key={order.id} className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-gray-900 text-sm truncate max-w-[120px]">{order.product}</p>
+                  <p className="text-xs text-gray-500">#{order.id.slice(0, 8).toUpperCase()}</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 mb-0.5">Delivery OTP</span>
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm">
+                    <span className="font-mono font-black text-lg tracking-widest text-emerald-800">{order.deliveryOtp}</span>
+                    <button
+                      onClick={() => handleCopyOtp(order.deliveryOtp)}
+                      className="p-1 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                      title="Copy OTP"
+                    >
+                      {copiedOtp === order.deliveryOtp ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Escrow Information Banner */}
       <div className="mb-7 p-4 bg-gradient-to-r from-emerald-600 via-emerald-700 to-green-600 text-white rounded-2xl shadow-md flex items-center justify-between flex-wrap gap-3">
@@ -378,22 +464,34 @@ export default function BuyerOrdersPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-col gap-2 items-start">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${color}`}
-                        >
-                          <Icon className="h-3 w-3" />
-                          {label}
-                        </span>
+                    <td className="px-5 py-4 w-64">
+                      <div className="flex flex-col gap-4 items-start w-full">
+                        <OrderStepper status={order.status} />
 
                         {order.status !== "delivered" &&
                           order.status !== "cancelled" && (
+                            <div className="w-full flex gap-2 mt-3">
+                              <button
+                                onClick={() => setChattingOrder(order)}
+                                className="text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 flex-1"
+                              >
+                                <MessageSquare className="h-3.5 w-3.5" /> Message
+                              </button>
+                              <button
+                                onClick={() => setConfirmingOrder(order)}
+                                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1 flex-1 justify-center"
+                              >
+                                Confirm →
+                              </button>
+                            </div>
+                          )}
+
+                        {order.status === "delivered" && !order.hasReviewed && (
                             <button
-                              onClick={() => setConfirmingOrder(order)}
-                              className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1"
+                              onClick={() => setReviewingOrder(order)}
+                              className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1 w-full justify-center mt-3"
                             >
-                              Confirm Delivery →
+                              <Star className="h-3.5 w-3.5" /> Leave a Review
                             </button>
                           )}
                       </div>
@@ -461,14 +559,37 @@ export default function BuyerOrdersPage() {
                       </span>
                     )}
                   </div>
+                </div>
 
+                <div className="pt-2 pb-4 px-2">
+                  <OrderStepper status={order.status} />
+                </div>
+
+                <div className="flex flex-col gap-2">
                   {order.status !== "delivered" &&
                     order.status !== "cancelled" && (
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={() => setChattingOrder(order)}
+                          className="flex-1 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" /> Message
+                        </button>
+                        <button
+                          onClick={() => setConfirmingOrder(order)}
+                          className="flex-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-sm"
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    )}
+
+                  {order.status === "delivered" && !order.hasReviewed && (
                       <button
-                        onClick={() => setConfirmingOrder(order)}
-                        className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-sm"
+                        onClick={() => setReviewingOrder(order)}
+                        className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg shadow-sm w-full flex items-center justify-center gap-1"
                       >
-                        Confirm Delivery
+                        <Star className="h-3.5 w-3.5" /> Leave a Review
                       </button>
                     )}
                 </div>
@@ -526,6 +647,79 @@ export default function BuyerOrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal */}
+      {reviewingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setReviewingOrder(null)}
+          />
+          <div className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl z-10 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto text-blue-600">
+              <Star className="h-6 w-6" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-extrabold text-gray-900">
+                Rate your experience
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                How was the <strong>{reviewingOrder.product}</strong> from <strong>{reviewingOrder.farmer}</strong>?
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-2 py-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setReviewRating(star)}
+                  className={`p-2 transition-transform hover:scale-110 active:scale-90`}
+                >
+                  <Star 
+                    className={`h-8 w-8 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-300"}`} 
+                  />
+                </button>
+              ))}
+            </div>
+            
+            <div>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Optional: Tell us more about the quality and delivery..."
+                className="w-full text-sm p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px] resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleSubmitReview}
+                disabled={submittingReview}
+                className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all text-sm shadow-md"
+              >
+                {submittingReview ? "Submitting..." : "Submit Review"}
+              </button>
+              <button
+                onClick={() => setReviewingOrder(null)}
+                className="px-4 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-100 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Drawer */}
+      {chattingOrder && (
+        <ChatDrawer
+          isOpen={true}
+          onClose={() => setChattingOrder(null)}
+          orderId={chattingOrder.id}
+          recipientId={chattingOrder.farmerId}
+          recipientName={chattingOrder.farmer}
+        />
       )}
     </div>
   );

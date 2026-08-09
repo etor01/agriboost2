@@ -58,46 +58,22 @@ const navItems: Array<{
 function Sidebar({
   isOpen,
   setIsOpen,
+  profile,
+  profileLoading,
+  user,
 }: {
   isOpen: boolean;
   setIsOpen: (v: boolean) => void;
+  profile: any;
+  profileLoading: boolean;
+  user: any;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
 
-  // Dynamic profile state
-  const [profile, setProfile] = useState<{
-    firstname: string | null;
-    lastname: string | null;
-    subscription_tier: string | null;
-  } | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-
   useEffect(() => {
-    let cancelled = false;
-    async function loadProfile() {
-      setProfileLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || cancelled) {
-        setProfileLoading(false);
-        return;
-      }
-      const { data } = await supabase
-        .from('profiles')
-        .select('firstname, lastname, subscription_tier')
-        .eq('id', user.id)
-        .single();
-      if (!cancelled) {
-        setProfile(data ?? null);
-        setProfileLoading(false);
-      }
-    }
-    loadProfile();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // This is now fetched in DashboardLayout
   }, []);
 
   const handleSignOut = async () => {
@@ -231,9 +207,9 @@ function Sidebar({
               <p className="text-[11px] text-white/80 mb-3">
                 Unlock AI crop analysis &amp; premium market insights
               </p>
-              <button className="w-full py-1.5 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors">
+              <Link href="/upgrade" className="block w-full py-1.5 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors text-center">
                 Upgrade Now
-              </button>
+              </Link>
             </div>
           )}
 
@@ -256,7 +232,7 @@ function Sidebar({
                   </>
                 )}
               </div>
-              <NotificationBell userId={profile?.id} />
+              <NotificationBell userId={user?.id} />
               <button
                 onClick={handleSignOut}
                 title="Sign Out"
@@ -274,6 +250,43 @@ function Sidebar({
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const supabase = createClient();
+
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProfile() {
+      setProfileLoading(true);
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      
+      if (!authUser || cancelled) {
+        setProfileLoading(false);
+        return;
+      }
+      
+      if (!cancelled) {
+        setUser(authUser);
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, firstname, lastname, subscription_tier')
+        .eq('id', authUser.id)
+        .single();
+        
+      if (!cancelled) {
+        setProfile(data ?? null);
+        setProfileLoading(false);
+      }
+    }
+    loadProfile();
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -283,7 +296,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       />
       <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
 
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen}
+        profile={profile}
+        profileLoading={profileLoading}
+        user={user}
+      />
       <AgriBoostToaster />
 
       <div className="lg:pl-72">
@@ -295,6 +314,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-2">
+            <Image
+              src="/icons/logo.png"
+              alt="AgriBoost"
+              width={30}
+              height={30}
+              className="drop-shadow-md"
+            />
+            <span className="text-xl font-bold text-gray-900 tracking-tight">
+              AgriBoost
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <NotificationBell userId={user?.id} />
             <Link href="/profile" className="flex-shrink-0">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
@@ -302,7 +333,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
             </Link>
           </div>
-          <div className="w-10" />
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8 min-h-screen">{children}</main>

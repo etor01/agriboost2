@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import BuyerWalletWidget from "@/components/wallet/BuyerWalletWidget";
+import NotificationBell from "@/components/NotificationBell";
 
 // ── Buyer Nav Items ────────────────────────────────────────────────
 const navItems: Array<{
@@ -38,48 +39,17 @@ const navItems: Array<{
 function BuyerSidebar({
   isOpen,
   setIsOpen,
+  profile,
+  profileLoading,
 }: {
   isOpen: boolean;
   setIsOpen: (v: boolean) => void;
+  profile: any;
+  profileLoading: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-
-  const [profile, setProfile] = useState<{
-    firstname: string | null;
-    lastname: string | null;
-    email: string | null;
-  } | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadProfile() {
-      setProfileLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || cancelled) {
-        setProfileLoading(false);
-        return;
-      }
-      const { data } = await supabase
-        .from("profiles")
-        .select("firstname, lastname, email")
-        .eq("id", user.id)
-        .single();
-      if (!cancelled) {
-        setProfile(data ?? null);
-        setProfileLoading(false);
-      }
-    }
-    loadProfile();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -213,6 +183,7 @@ function BuyerSidebar({
                   </>
                 )}
               </div>
+              <NotificationBell userId={profile?.id} />
               <button
                 onClick={handleSignOut}
                 title="Sign Out"
@@ -231,6 +202,36 @@ function BuyerSidebar({
 // ── Layout ─────────────────────────────────────────────────────────
 export default function BuyerLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const supabase = createClient();
+  const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProfile() {
+      setProfileLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) {
+        setProfileLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, firstname, lastname, email")
+        .eq("id", user.id)
+        .single();
+      if (!cancelled) {
+        setProfile(data ?? null);
+        setProfileLoading(false);
+      }
+    }
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -241,7 +242,12 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
       />
       <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
 
-      <BuyerSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <BuyerSidebar 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen} 
+        profile={profile} 
+        profileLoading={profileLoading} 
+      />
 
       <div className="lg:pl-72">
         {/* Mobile header */}
@@ -257,7 +263,8 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
             <span className="text-lg font-bold text-gray-900">AgriBoost</span>
           </div>
           {/* Wallet quick-access on mobile */}
-          <div className="w-auto">
+          <div className="flex items-center gap-2 w-auto">
+            <NotificationBell userId={profile?.id} />
             <BuyerWalletWidget compact />
           </div>
         </header>

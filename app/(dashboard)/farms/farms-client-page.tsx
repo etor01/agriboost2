@@ -2,18 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import {
-  Tractor,
-  Sprout,
-  MapPin,
-  Search,
-  Plus,
-  ArrowRight,
-  Layers,
-  CheckCircle2,
-  Filter,
-} from "lucide-react";
+import { MapPin, Search, Sprout, Plus, CheckCircle2, ChevronRight, Tractor, Target, Layers, ArrowRight } from "lucide-react";
 import { addFarm } from "../farm/new/actions";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 type FarmItem = {
   id: string;
@@ -234,11 +227,10 @@ export default function FarmsClientPage({
                       <Sprout className="h-6 w-6 text-emerald-600" />
                     </div>
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        farm.status.toLowerCase() === "active"
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${farm.status.toLowerCase() === "active"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-gray-100 text-gray-600"
-                      }`}
+                        }`}
                     >
                       ● {farm.status}
                     </span>
@@ -324,6 +316,15 @@ export default function FarmsClientPage({
   );
 }
 
+const farmSchema = z.object({
+  name: z.string().min(3, "Farm name must be at least 3 characters"),
+  location: z.string().min(3, "Location is required"),
+  size_in_acres: z.number().min(0.1, "Size must be greater than 0"),
+  crop: z.string().optional(),
+});
+
+type FarmFormValues = z.infer<typeof farmSchema>;
+
 function AddFarmModal({
   onClose,
   onAdd,
@@ -336,21 +337,29 @@ function AddFarmModal({
     crop: string;
   }) => void;
 }) {
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [acres, setAcres] = useState("");
-  const [crop, setCrop] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !location || !acres) return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FarmFormValues>({
+    resolver: zodResolver(farmSchema),
+    defaultValues: {
+      name: "",
+      location: "",
+      size_in_acres: undefined,
+      crop: "",
+    },
+  });
+
+  const onSubmit = async (data: FarmFormValues) => {
     setIsSubmitting(true);
     await onAdd({
-      name,
-      location,
-      size_in_acres: parseFloat(acres),
-      crop: crop || "Mixed Crops",
+      name: data.name,
+      location: data.location,
+      size_in_acres: data.size_in_acres,
+      crop: data.crop || "Mixed Crops",
     });
     setIsSubmitting(false);
   };
@@ -373,19 +382,18 @@ function AddFarmModal({
             ✕
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
               Farm Name *
             </label>
             <input
               type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              {...register("name")}
               placeholder="e.g. Green Valley Farm"
-              className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+              className={`mt-1.5 w-full px-4 py-2.5 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm ${errors.name ? 'border-red-400 ring-red-400' : 'border-gray-200'}`}
             />
+            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
           </div>
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -393,12 +401,11 @@ function AddFarmModal({
             </label>
             <input
               type="text"
-              required
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              {...register("location")}
               placeholder="e.g. Ejisu, Ashanti Region"
-              className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+              className={`mt-1.5 w-full px-4 py-2.5 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm ${errors.location ? 'border-red-400 ring-red-400' : 'border-gray-200'}`}
             />
+            {errors.location && <p className="text-xs text-red-500 mt-1">{errors.location.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -408,12 +415,11 @@ function AddFarmModal({
               <input
                 type="number"
                 step="0.5"
-                required
-                value={acres}
-                onChange={(e) => setAcres(e.target.value)}
+                {...register("size_in_acres", { valueAsNumber: true })}
                 placeholder="e.g. 15"
-                className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className={`mt-1.5 w-full px-4 py-2.5 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm ${errors.size_in_acres ? 'border-red-400 ring-red-400' : 'border-gray-200'}`}
               />
+              {errors.size_in_acres && <p className="text-xs text-red-500 mt-1">{errors.size_in_acres.message}</p>}
             </div>
             <div>
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -421,8 +427,7 @@ function AddFarmModal({
               </label>
               <input
                 type="text"
-                value={crop}
-                onChange={(e) => setCrop(e.target.value)}
+                {...register("crop")}
                 placeholder="e.g. Maize"
                 className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
               />

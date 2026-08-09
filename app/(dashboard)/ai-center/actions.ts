@@ -2,6 +2,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createNotification } from '@/lib/actions/notifications';
 
 const HF_API_URL = 'https://router.huggingface.co/v1/chat/completions';
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY!;
@@ -207,6 +208,16 @@ export async function analyzeCropImage(formData: FormData) {
           : analysisResult.disease_name ?? 'Issue detected'
       } (Confidence: ${analysisResult.confidence ?? 'N/A'})`,
     });
+
+    // 9. Send real-time notification
+    await createNotification(
+      user.id,
+      'scan_complete',
+      'AI Scan Complete',
+      `Your scan for ${analysisResult.crop_name ?? 'crop'} is ready. Status: ${
+        analysisResult.is_healthy ? 'Healthy' : 'Issue detected'
+      }`
+    );
 
     return {
       success: true,

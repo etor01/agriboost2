@@ -96,6 +96,8 @@ export default function MyListingsClientPage({
   const [deletingListing, setDeletingListing] = useState<ListingItem | null>(
     null
   );
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [toast, setToast] = useState<{
     type: "success" | "error" | "info";
     message: string;
@@ -154,6 +156,78 @@ export default function MyListingsClientPage({
     setToast({
       type: "success",
       message: customMsg || "🗑️ Listing removed successfully.",
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredListings.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredListings.map(l => l.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDeactivate = async () => {
+    setIsBulkProcessing(true);
+    let successCount = 0;
+    
+    for (const id of selectedIds) {
+      const listing = listings.find(l => l.id === id);
+      if (!listing) continue;
+      
+      const payload: UpdateListingPayload = {
+        name: listing.name,
+        description: listing.description,
+        price_per_unit: listing.price_per_unit,
+        unit_type: listing.unit_type,
+        quantity: listing.quantity,
+        status: "inactive"
+      };
+      
+      const res = await updateListing(id, payload);
+      if (res.success) {
+        successCount++;
+        setListings(prev => prev.map(l => l.id === id ? { ...l, status: "inactive" } : l));
+      }
+    }
+    
+    setIsBulkProcessing(false);
+    setSelectedIds([]);
+    setToast({
+      type: "success",
+      message: `✅ Successfully deactivated ${successCount} listings.`
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} listings? Active orders may cause some to be archived instead.`)) return;
+    
+    setIsBulkProcessing(true);
+    let successCount = 0;
+    
+    for (const id of selectedIds) {
+      const res = await deleteListing(id);
+      if (res.success) {
+        successCount++;
+        if (res.archived) {
+          setListings(prev => prev.map(l => l.id === id ? { ...l, status: "inactive" } : l));
+        } else {
+          setListings(prev => prev.filter(l => l.id !== id));
+        }
+      }
+    }
+    
+    setIsBulkProcessing(false);
+    setSelectedIds([]);
+    setToast({
+      type: "success",
+      message: `🗑️ Successfully processed ${successCount} listings.`
     });
   };
 
@@ -336,7 +410,20 @@ export default function MyListingsClientPage({
           )}
         </GlassCard>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 px-2">
+            <input 
+              type="checkbox" 
+              checked={selectedIds.length === filteredListings.length && filteredListings.length > 0}
+              onChange={toggleSelectAll}
+              className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              id="selectAll"
+            />
+            <label htmlFor="selectAll" className="text-sm font-semibold text-gray-700 cursor-pointer">
+              Select All ({filteredListings.length})
+            </label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredListings.map((listing) => {
             const hasImage =
               listing.image_urls &&
@@ -378,6 +465,14 @@ export default function MyListingsClientPage({
                           ? "Sold Out"
                           : "Inactive"}
                       </span>
+                    </div>
+                    <div className="absolute top-3 left-3 z-10">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(listing.id)}
+                        onChange={() => toggleSelectOne(listing.id)}
+                        className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 shadow-sm cursor-pointer bg-white"
+                      />
                     </div>
                   </div>
 
@@ -441,9 +536,42 @@ export default function MyListingsClientPage({
             );
           })}
         </div>
+        </div>
       )}
 
-      {/* Edit Listing Modal */}
+      {/* Floating Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-50 animate-in slide-in-from-bottom-5">
+          <span className="text-sm font-bold">
+            {selectedIds.length} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={isBulkProcessing}
+              onClick={handleBulkDeactivate}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+            >
+              Deactivate
+            </button>
+            <button
+              disabled={isBulkProcessing}
+              onClick={handleBulkDelete}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-sm font-semibold rounded-xl transition-colors shadow-lg disabled:opacity-50"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="p-2 text-gray-400 hover:text-white rounded-xl transition-colors ml-2"
+              title="Clear selection"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
       {editingListing && (
         <EditListingModal
           listing={editingListing}

@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ProfileClientPage from "./profile-client-page";
+import { getFarmerAverageRating } from '@/app/marketplace/actions';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -40,12 +41,16 @@ export default async function ProfilePage() {
     console.error("Error loading listings:", listingsError);
   }
 
+  // Fetch reviews
+  const ratingData = await getFarmerAverageRating(user.id);
+
   return (
     <ProfileClientPage
       user={user}
       profile={profile}
       initialFarms={farms || []}
       initialListings={listings || []}
+      ratingData={ratingData}
     />
   );
 }

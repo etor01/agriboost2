@@ -107,6 +107,7 @@ interface ProfileClientPageProps {
   profile: any;
   initialFarms: any[];
   initialListings: any[];
+  ratingData?: { average: number; count: number };
 }
 
 export default function ProfileClientPage({
@@ -114,6 +115,7 @@ export default function ProfileClientPage({
   profile: dbProfile,
   initialFarms,
   initialListings,
+  ratingData,
 }: ProfileClientPageProps) {
   const [activeTab, setActiveTab] = useState("personal");
   const [supabaseClient] = useState(() => createClient());
@@ -137,8 +139,8 @@ export default function ProfileClientPage({
       id_card_url: dbProfile?.id_card_url ?? dbProfile?.verification_doc_url ?? null,
       member_since: new Date(user.created_at).toLocaleDateString("en-GH", { month: "long", year: "numeric" }),
       total_sales: formatCurrency(initialListings.reduce((sum, item) => sum + Number(item.price_per_unit ?? 0), 0)),
-      rating: 4.8,
-      reviews: initialListings.length * 2,
+      rating: ratingData?.average || 4.8,
+      reviews: ratingData?.count || 0,
     };
   });
 
