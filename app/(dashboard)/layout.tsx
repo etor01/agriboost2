@@ -24,6 +24,7 @@ import {
   Tag,
   ClipboardList,
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 // ── Nav Items ──────────────────────────────────────────────────────
 const navItems: Array<{
@@ -255,6 +256,7 @@ function Sidebar({
                   </>
                 )}
               </div>
+              <NotificationBell userId={profile?.id} />
               <button
                 onClick={handleSignOut}
                 title="Sign Out"
@@ -293,13 +295,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-2">
-            <Image
-              src="/icons/logo.png"
-              alt="AgriBoost"
-              width={30}
-              height={30}
-            />
-            <span className="text-lg font-bold text-gray-900">AgriBoost</span>
+            <NotificationBell userId={user?.id} />
+            <Link href="/profile" className="flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
+                {user?.email?.charAt(0).toUpperCase() || "F"}
+              </div>
+            </Link>
           </div>
           <div className="w-10" />
         </header>
