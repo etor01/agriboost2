@@ -112,7 +112,7 @@ function BuyerSidebar({
           {/* Logo */}
           <div className="flex items-center justify-between px-5 pt-6 pb-5 border-b border-gray-100/80">
             <Link href="/buyer/shop" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-200">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-200">
                 <Image
                   src="/icons/logo.png"
                   alt="AgriBoost"
@@ -123,7 +123,7 @@ function BuyerSidebar({
               </div>
               <div>
                 <span className="text-base font-bold text-gray-900">AgriBoost</span>
-                <p className="text-[10px] text-teal-600 font-semibold uppercase tracking-wider">
+                <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">
                   Buyer Portal
                 </p>
               </div>
@@ -155,14 +155,14 @@ function BuyerSidebar({
                   <div
                     className={`group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer
                     ${isActive
-                        ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-200"
-                        : "text-gray-600 hover:bg-teal-50 hover:text-teal-700"
+                        ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-md shadow-emerald-200"
+                        : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
                       }`}
                   >
                     <span
                       className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${isActive
                         ? "bg-white/20"
-                        : "bg-gray-100 group-hover:bg-teal-100"
+                        : "bg-gray-100 group-hover:bg-emerald-100"
                         }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -193,7 +193,7 @@ function BuyerSidebar({
 
             {/* Profile strip */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-sm font-bold shadow">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
                 {avatarLetter}
               </div>
               <div className="flex-1 min-w-0">
@@ -239,7 +239,7 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
         className="fixed inset-0 bg-cover bg-center -z-10"
         style={{ backgroundImage: "url('/features.jpg')" }}
       />
-      <div className="fixed inset-0 bg-gradient-to-br from-teal-900/30 via-white/60 to-emerald-900/20 -z-10" />
+      <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
 
       <BuyerSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 

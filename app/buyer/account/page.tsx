@@ -132,7 +132,7 @@ export default function BuyerAccountPage() {
   };
 
   const inputClass =
-    "w-full px-4 py-3 rounded-xl bg-white/60 border border-white/30 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/30 focus:border-teal-600 transition-all text-sm";
+    "w-full px-4 py-3 rounded-xl bg-white/60 border border-white/30 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition-all text-sm";
   const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
 
   if (loading) {
@@ -156,8 +156,8 @@ export default function BuyerAccountPage() {
       {/* ── Profile Section ─────────────────────────────────────── */}
       <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl p-6 mb-5">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-            <UserCircle2 className="h-5 w-5 text-teal-600" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <UserCircle2 className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
             <h2 className="text-sm font-bold text-gray-900">Personal Information</h2>
@@ -168,7 +168,7 @@ export default function BuyerAccountPage() {
         <form onSubmit={handleSaveProfile} className="space-y-4">
           {/* Avatar placeholder */}
           <div className="flex items-center gap-4 mb-2">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-2xl font-extrabold shadow-lg">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center text-white text-2xl font-extrabold shadow-lg">
               {profile.firstname ? profile.firstname[0].toUpperCase() : "B"}
             </div>
             <div>
@@ -272,7 +272,7 @@ export default function BuyerAccountPage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-500 text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save Changes"}

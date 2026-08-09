@@ -6,9 +6,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
+import { AgriBoostToaster } from "@/components/ui/Toast";
 import {
   type LucideIcon,
   Crown,
+  BadgeCheck,
   Home,
   UserCircle2,
   Wallet,
@@ -207,18 +209,30 @@ function Sidebar({
           </nav>
 
           <div className="px-4 pb-6 space-y-3 border-t border-gray-100/80 pt-4">
+            {!profileLoading && profile?.subscription_tier === 'premium' ? (
+            // Premium member badge
+            <div className="rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 p-4 text-white shadow-lg shadow-amber-200 flex items-center gap-3">
+              <BadgeCheck className="h-6 w-6 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-bold">Premium Member</p>
+                <p className="text-[10px] text-white/80 mt-0.5">All features unlocked ✓</p>
+              </div>
+            </div>
+          ) : (
+            // Upgrade prompt for free users
             <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 p-4 text-white shadow-lg shadow-emerald-200">
               <div className="flex items-center gap-2 mb-1">
                 <Crown className="h-4 w-4" />
                 <p className="text-xs font-bold">Upgrade to Pro</p>
               </div>
               <p className="text-[11px] text-white/80 mb-3">
-                Unlock AI crop analysis & premium market insights
+                Unlock AI crop analysis &amp; premium market insights
               </p>
               <button className="w-full py-1.5 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors">
                 Upgrade Now
               </button>
             </div>
+          )}
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
@@ -266,6 +280,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
 
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <AgriBoostToaster />
 
       <div className="lg:pl-72">
         <header className="lg:hidden sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-white/60 shadow-sm px-4 py-3 flex items-center justify-between">

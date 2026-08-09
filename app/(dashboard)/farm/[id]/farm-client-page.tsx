@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { addCrop, toggleTask, deleteCrop, regenerateCropPlan } from "./actions";
 import CropGrowthPlanSection from "@/components/features/crop/CropGrowthPlan";
+import { toast } from "@/components/ui/Toast";
 
 // ── Glass Card ────────────────────────────────────────────────────
 function GlassCard({
@@ -63,6 +65,7 @@ export default function FarmDetailClient({
   initialTasks,
   initialActivities,
 }: FarmDetailClientProps) {
+  const router = useRouter();
   const [crops, setCrops] = useState(initialCrops);
   const [tasks, setTasks] = useState(initialTasks);
   const [activities, setActivities] = useState(initialActivities);
@@ -134,9 +137,9 @@ export default function FarmDetailClient({
       setAddCropStatus(null);
       setCrops((prev) => [...prev, res.crop]);
       setShowAddCrop(false);
-      window.location.reload();
+      router.refresh();
     } else {
-      alert("Error adding crop: " + res.message);
+      toast.error("Error adding crop: " + res.message);
       setAddCropStatus(null);
     }
     setIsAddingCrop(false);
@@ -165,7 +168,7 @@ export default function FarmDetailClient({
         ...prev,
       ]);
     } else {
-      alert("Error deleting crop: " + res.message);
+      toast.error("Error deleting crop: " + res.message);
     }
   };
 

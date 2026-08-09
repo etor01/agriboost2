@@ -117,19 +117,19 @@ export default function BuyerWalletPage() {
       </div>
 
       {/* Balance Hero */}
-      <div className="bg-gradient-to-br from-teal-600 via-emerald-600 to-green-700 rounded-3xl p-7 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-emerald-600 via-green-600 to-green-700 rounded-3xl p-7 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-60 h-60 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 w-44 h-44 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/3" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="h-5 w-5 text-teal-200" />
-            <span className="text-teal-100 text-sm font-bold uppercase tracking-wider">
+            <ShieldCheck className="h-5 w-5 text-emerald-200" />
+            <span className="text-emerald-100 text-sm font-bold uppercase tracking-wider">
               AgriBoost Buyer Wallet
             </span>
           </div>
           <p className="text-5xl font-black tracking-tight mt-1">
             {loading ? (
-              <span className="text-teal-300 text-2xl">Loading…</span>
+              <span className="text-emerald-300 text-2xl">Loading…</span>
             ) : (
               `GH₵ ${balance.toLocaleString("en-GH", {
                 minimumFractionDigits: 2,
@@ -137,12 +137,12 @@ export default function BuyerWalletPage() {
               })}`
             )}
           </p>
-          <p className="text-teal-200 text-sm mt-1">
+          <p className="text-emerald-200 text-sm mt-1">
             Available to spend at checkout — 100% escrow-protected
           </p>
           <button
             onClick={() => setShowTopUp(true)}
-            className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-white text-teal-700 rounded-xl font-extrabold text-sm hover:bg-teal-50 transition-all shadow-lg"
+            className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-700 rounded-xl font-extrabold text-sm hover:bg-emerald-50 transition-all shadow-lg"
           >
             <Plus className="h-4 w-4" /> Add Money
           </button>

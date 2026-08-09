@@ -88,7 +88,7 @@ export default function BuyerWalletWidget({
       )}
 
       {/* Wallet card in sidebar */}
-      <div className="mx-4 mb-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-4 shadow-lg shadow-emerald-900/20">
+      <div className="mx-4 mb-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white p-4 shadow-lg shadow-emerald-900/20">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">

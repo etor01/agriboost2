@@ -26,10 +26,49 @@ import {
 import WeatherWidget from "@/components/WeatherWidget";
 import FarmingTipWidget from "@/components/FarmingTipWidget";
 
+// ── Ghana region / city → GPS coordinates ────────────────────────
+const GHANA_REGION_COORDS: Record<string, { lat: number; lon: number }> = {
+  "Greater Accra": { lat: 5.6037, lon: -0.1870 },
+  "Ashanti":       { lat: 6.6885, lon: -1.6244 },
+  "Western":       { lat: 5.1186, lon: -1.7500 },
+  "Eastern":       { lat: 6.2638, lon: -0.2255 },
+  "Central":       { lat: 5.1135, lon: -1.2670 },
+  "Volta":         { lat: 6.5735, lon:  0.4514 },
+  "Northern":      { lat: 9.5583, lon: -0.9336 },
+  "Upper East":    { lat: 10.7866, lon: -0.9462 },
+  "Upper West":    { lat: 10.2552, lon: -2.3225 },
+  "Bono":          { lat: 7.3349, lon: -1.6891 },
+  "Brong-Ahafo":   { lat: 7.3349, lon: -1.6891 },
+  "Savannah":      { lat: 9.0820, lon: -1.7177 },
+  "Oti":           { lat: 7.9528, lon:  0.1779 },
+  "Ahafo":         { lat: 7.0,    lon: -2.3    },
+  "Bono East":     { lat: 7.7,    lon: -1.2    },
+  "North East":    { lat: 10.5,   lon: -0.35   },
+  "Western North": { lat: 6.3,    lon: -2.8    },
+  // Common city shortcuts
+  "Accra":         { lat: 5.6037, lon: -0.1870 },
+  "Kumasi":        { lat: 6.6885, lon: -1.6244 },
+  "Tamale":        { lat: 9.4008, lon: -0.8393 },
+  "Cape Coast":    { lat: 5.1037, lon: -1.2465 },
+  "Takoradi":      { lat: 4.8981, lon: -1.7557 },
+  "Ho":            { lat: 6.6011, lon:  0.4712 },
+  "Bolgatanga":    { lat: 10.7866, lon: -0.9462 },
+  "Wa":            { lat: 10.0601, lon: -2.5099 },
+  "Sunyani":       { lat: 7.3349, lon: -2.3287 },
+};
+
+function resolveCoords(regionOrCity: string): { lat: number; lon: number } {
+  const key = Object.keys(GHANA_REGION_COORDS).find((k) =>
+    regionOrCity.toLowerCase().includes(k.toLowerCase()) ||
+    k.toLowerCase().includes(regionOrCity.toLowerCase())
+  );
+  return key ? GHANA_REGION_COORDS[key] : { lat: 6.6885, lon: -1.6244 };
+}
+
 // ── Weather fetch ─────────────────────────────────────────────────
-async function getWeatherData() {
+async function getWeatherData(lat = 6.6885, lon = -1.6244) {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=6.6885&longitude=-1.6244&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=5`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=5`;
     const res = await fetch(url, { next: { revalidate: 3600 } });
     if (!res.ok) throw new Error("failed");
     return res.json();
@@ -165,14 +204,22 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, farmsRes, weatherData] = await Promise.all([
+  const [profileRes, farmsRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("farms").select("*").eq("profile_id", user.id),
-    getWeatherData(),
   ]);
 
   const profile = profileRes.data;
   const farms = farmsRes.data ?? [];
+
+  // Resolve the first farm (or profile) region to GPS coords for accurate weather
+  const regionOrCity =
+    (farms[0] as any)?.region ??
+    (farms[0] as any)?.location ??
+    profile?.region ??
+    "Ashanti";
+  const { lat, lon } = resolveCoords(regionOrCity);
+  const weatherData = await getWeatherData(lat, lon);
 
   // Fetch crops (include ai_growth_data + planting_date via select *)
   const farmIds = farms.map((f: Farm) => f.id);
@@ -223,12 +270,19 @@ export default async function DashboardPage() {
     tasks = (tasksData as any as TaskWithCrop[]) ?? [];
   }
 
-  // Listings + revenue
+  // Listings count + new listings this week
   const { count: activeListingsCount } = await supabase
     .from("listings")
     .select("*", { count: "exact", head: true })
     .eq("profile_id", user.id)
     .eq("status", "active");
+
+  const oneWeekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const { count: newListingsThisWeek } = await supabase
+    .from("listings")
+    .select("*", { count: "exact", head: true })
+    .eq("profile_id", user.id)
+    .gte("created_at", oneWeekAgo);
 
   const { data: txData } = await supabase
     .from("transactions")
@@ -262,7 +316,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="bg-green-200 p-2 rounded-b-2xl">
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-4">
           <p className="text-sm text-emerald-600 font-semibold">
             {today.toLocaleDateString("en-GH", {
               weekday: "long",
@@ -319,16 +373,15 @@ export default async function DashboardPage() {
         <KpiCard
           icon={Wallet}
           label="Revenue (MTD)"
-          value={`GH₵ ${totalRevenue.toFixed(2)}`}
+          value={`GH\u20B5 ${totalRevenue.toFixed(2)}`}
           sub="Total completed payouts"
-          trend="+0%"
         />
         <KpiCard
           icon={Package}
           label="Active Listings"
           value={String(activeListingsCount || 0)}
           sub="On marketplace"
-          trend="+0 this week"
+          trend={newListingsThisWeek ? `+${newListingsThisWeek} this week` : undefined}
         />
       </div>
 

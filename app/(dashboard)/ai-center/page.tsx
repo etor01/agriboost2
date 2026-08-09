@@ -362,6 +362,7 @@ export default function AiCenterPage() {
               className="sr-only"
               onChange={handleImageChange}
               accept="image/*"
+              capture="environment"
             />
           </label>
 
