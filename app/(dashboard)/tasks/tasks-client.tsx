@@ -10,27 +10,66 @@ import {
   AlertTriangle,
   Leaf,
   Tractor,
+  Sparkles,
 } from "lucide-react";
-import { toggleTask } from "@/app/(dashboard)/farm/[id]/actions";
+import { toggleTask, toggleAiTask } from "@/app/(dashboard)/farm/[id]/actions";
 import { toast } from "@/components/ui/Toast";
 
 type FilterTab = "all" | "pending" | "completed" | "high_priority";
 
-export default function TasksClientPage({ tasks, crops, farms }: any) {
+export default function TasksClientPage({ tasks, crops, farms, completions = [] }: any) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [toggling, setToggling] = useState<string | null>(null);
-  
-  // We will merge AI growth plan tasks here later in LF-2.
-  // For now, we only render the regular `tasks` array.
-  
-  // Grouping structure: Map<farmId, Map<cropId, tasks>>
+
+  // Combine regular tasks and AI tasks
+  const combinedTasks: any[] = [...tasks];
+
+  // Map completions
+  const completionMap = new Map();
+  completions.forEach((c: any) => {
+    completionMap.set(c.task_key, c.completed);
+  });
+
+  crops.forEach((crop: any) => {
+    if (crop.ai_growth_data && crop.planting_date) {
+      const plan = crop.ai_growth_data;
+      const planted = new Date(crop.planting_date).getTime();
+      const daysElapsed = Math.max(0, Math.floor((Date.now() - planted) / 86_400_000));
+      const currentWeek = Math.min(Math.floor(daysElapsed / 7) + 1, plan.total_weeks);
+
+      plan.weeks?.forEach((week: any) => {
+        // Only show AI tasks for the current week or past weeks if pending?
+        // Let's show all for now, or maybe up to current week. Let's show up to current week.
+        if (week.week_number <= currentWeek) {
+          week.tasks?.forEach((task: any, i: number) => {
+            const uid = `${week.week_number}_task_${i}`;
+            const isCompleted = completionMap.get(uid) || false;
+            
+            combinedTasks.push({
+              id: uid,
+              is_ai: true,
+              ai_week: week.week_number,
+              ai_index: i,
+              crop_id: crop.id,
+              crops: { farm_id: crop.farm_id, crop_type: crop.crop_type },
+              description: task.task,
+              due_date: week.week_end_date, // rough due date
+              completed: isCompleted,
+              priority: task.priority,
+            });
+          });
+        }
+      });
+    }
+  });
+
   const groupedTasks = new Map<string, Map<string, any[]>>();
 
   farms.forEach((f: any) => {
     groupedTasks.set(f.id, new Map());
   });
 
-  const filteredTasks = tasks.filter((t: any) => {
+  const filteredTasks = combinedTasks.filter((t: any) => {
     if (filter === "pending") return !t.completed;
     if (filter === "completed") return t.completed;
     if (filter === "high_priority") return !t.completed && t.priority === "high";
@@ -55,12 +94,26 @@ export default function TasksClientPage({ tasks, crops, farms }: any) {
 
   const handleToggle = async (task: any) => {
     setToggling(task.id);
-    const res = await toggleTask(
-      task.crops?.farm_id,
-      task.id,
-      !task.completed,
-      task.description
-    );
+    let res;
+    if (task.is_ai) {
+      res = await toggleAiTask(
+        task.crops?.farm_id,
+        task.crop_id,
+        task.ai_week,
+        task.ai_index,
+        task.id,
+        !task.completed,
+        task.description
+      );
+    } else {
+      res = await toggleTask(
+        task.crops?.farm_id,
+        task.id,
+        !task.completed,
+        task.description
+      );
+    }
+
     if (!res.success) {
       toast.error(res.message || "Failed to update task");
     } else {
@@ -174,13 +227,16 @@ export default function TasksClientPage({ tasks, crops, farms }: any) {
                                 </button>
                                 <div className="flex-1 min-w-0">
                                   <p
-                                    className={`text-sm font-medium ${
+                                    className={`text-sm font-medium flex items-center gap-2 ${
                                       task.completed
                                         ? "text-gray-400 line-through"
                                         : "text-gray-800"
                                     }`}
                                   >
                                     {task.description}
+                                    {task.is_ai && (
+                                      <Sparkles className="h-3 w-3 text-emerald-500" title="AI Generated Task" />
+                                    )}
                                   </p>
                                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                                     {task.due_date && (

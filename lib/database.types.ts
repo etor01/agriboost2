@@ -180,6 +180,17 @@ export interface CropTaskCompletion {
   created_at: string;
 }
 
+export interface Notification {
+  id: string;
+  profile_id: string;
+  type: 'order_placed' | 'escrow_released' | 'task_due' | 'scan_complete' | string;
+  title: string;
+  message: string | null;
+  data: Json | null;
+  read: boolean;
+  created_at: string;
+}
+
 export interface CropDiagnostic {
   id: string;
   profile_id: string | null;
