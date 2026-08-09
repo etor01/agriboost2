@@ -12,7 +12,7 @@ export default function LandingPage() {
     <div className="bg-gray-50 text-gray-800 font-sans">
       <Header />
 
-      <main>
+      <main className="bg-gray-300">
         <Hero />
         <FeatureSection />
         <CTA />
