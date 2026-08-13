@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   BadgeCheck,
   MapPin,
+  RefreshCw,
   ShoppingCart,
   Sprout,
 } from "lucide-react";
@@ -40,11 +41,14 @@ type SupabaseListingRow = {
   discount?: number | string | null;
   delivery_available?: boolean | null;
   description?: string | null;
+  created_at?: string | null;
   // profile_id FK → farmers → profiles (nested join)
   farmers?: {
     profiles?: {
       location?: string | null;
       verified_status?: boolean | null;
+      firstname?: string | null;
+      lastname?: string | null;
     } | null;
   } | null;
   crops?: {
@@ -100,14 +104,32 @@ export default function MarketplaceClient() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  // ── Data fetch ────────────────────────────────────────────────────
+  // ── Data fetch with server-side pagination & filtering ────────────
   useEffect(() => {
-    async function fetchListings() {
-      setLoading(true);
+    let isMounted = true;
 
-      const { data, error } = await supabase
+    async function fetchListings() {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const farmersSelect =
+        region !== "All Regions"
+          ? "farmers!listings_profile_id_fkey!inner(profiles!inner(location, verified_status, firstname, lastname))"
+          : "farmers!listings_profile_id_fkey(profiles(location, verified_status, firstname, lastname))";
+
+      const cropsSelect =
+        category !== "All"
+          ? "crops!inner(crop_type, estimated_harvest_date)"
+          : "crops(crop_type, estimated_harvest_date)";
+
+      let query = supabase
         .from("listings")
         .select(
           `
@@ -124,55 +146,113 @@ export default function MarketplaceClient() {
           is_featured,
           discount,
           delivery_available,
-          farmers!listings_profile_id_fkey (
-            profiles ( location, verified_status )
-          ),
-          crops ( crop_type, estimated_harvest_date )
+          created_at,
+          ${farmersSelect},
+          ${cropsSelect}
         `,
+          { count: "exact" }
         )
         .eq("status", "active");
 
+      if (search.trim()) {
+        query = query.ilike("name", `%${search.trim()}%`);
+      }
+
+      if (category !== "All") {
+        query = query.eq("crops.crop_type", category);
+      }
+
+      if (region !== "All Regions") {
+        query = query.eq("farmers.profiles.location", region);
+      }
+
+      if (sort === "price_asc") {
+        query = query.order("price_per_unit", { ascending: true });
+      } else if (sort === "price_desc") {
+        query = query.order("price_per_unit", { ascending: false });
+      } else if (sort === "rating") {
+        query = query.order("rating", { ascending: false });
+      } else if (sort === "newest") {
+        query = query.order("created_at", { ascending: false });
+      } else {
+        // "featured" default
+        query = query
+          .order("is_featured", { ascending: false })
+          .order("created_at", { ascending: false });
+      }
+
+      const from = (page - 1) * PER_PAGE;
+      const to = page * PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const { data, count, error } = await query;
+
+      if (!isMounted) return;
+
       if (error) {
         console.error("Error fetching listings:", error);
-        setListings([]);
+        if (page === 1) {
+          setListings([]);
+          setTotalCount(0);
+        }
       } else if (data) {
         const formattedListings: Listing[] = (data as SupabaseListingRow[]).map(
-          (item) => ({
-            id: item.id,
-            title: item.name,
-            category: item.crops?.crop_type || "General",
-            price: Number(item.price_per_unit),
-            unit: item.unit_type || "unit",
-            quantity_available: Number(item.quantity),
-            // profiles is nested: listings → farmers → profiles
-            location: item.farmers?.profiles?.location || "Unknown Location",
-            is_verified: item.farmers?.profiles?.verified_status || false,
-            harvest_date:
-              item.crops?.estimated_harvest_date || new Date().toISOString(),
-            image_urls: item.image_urls || [
-              "https://placehold.co/600x400/e2e8f0/1e293b?text=No+Image",
-            ],
-            rating: Number(item.rating) || 0,
-            reviews: Number(item.reviews) || 0,
-            is_featured: item.is_featured || false,
-            discount: Number(item.discount) || 0,
-            delivery_available: item.delivery_available ?? false,
-            description:
-              item.description || "Fresh produce from a verified local farmer.",
-            farmer_name: "Local Farmer",
-            farmer_avatar: "https://i.pravatar.cc/150?img=1",
-            min_order: 1,
-          }),
+          (item) => {
+            const profile = item.farmers?.profiles;
+            const farmerName = profile
+              ? [profile.firstname, profile.lastname].filter(Boolean).join(" ")
+              : "";
+            return {
+              id: item.id,
+              title: item.name,
+              category: item.crops?.crop_type || "General",
+              price: Number(item.price_per_unit),
+              unit: item.unit_type || "unit",
+              quantity_available: Number(item.quantity),
+              location: profile?.location || "Unknown Location",
+              is_verified: profile?.verified_status || false,
+              harvest_date:
+                item.crops?.estimated_harvest_date ||
+                item.created_at ||
+                new Date().toISOString(),
+              image_urls: item.image_urls || [
+                "https://placehold.co/600x400/e2e8f0/1e293b?text=No+Image",
+              ],
+              rating: Number(item.rating) || 0,
+              reviews: Number(item.reviews) || 0,
+              is_featured: item.is_featured || false,
+              discount: Number(item.discount) || 0,
+              delivery_available: item.delivery_available ?? false,
+              description:
+                item.description || "Fresh produce from a verified local farmer.",
+              farmer_name: farmerName || "Local Farmer",
+              farmer_avatar: "https://i.pravatar.cc/150?img=1",
+              min_order: 1,
+            };
+          }
         );
 
-        setListings(formattedListings);
+        if (page === 1) {
+          setListings(formattedListings);
+        } else {
+          setListings((prev) => [...prev, ...formattedListings]);
+        }
+
+        if (count !== null) {
+          setTotalCount(count);
+        }
       }
 
       setLoading(false);
+      setLoadingMore(false);
     }
 
     fetchListings();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [page, search, category, region, sort]);
 
   // ── Cart helpers ──────────────────────────────────────────────────
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
@@ -183,7 +263,7 @@ export default function MarketplaceClient() {
       const existing = prev.find((i) => i.listing.id === listing.id);
       if (existing)
         return prev.map((i) =>
-          i.listing.id === listing.id ? { ...i, qty: i.qty + 1 } : i,
+          i.listing.id === listing.id ? { ...i, qty: i.qty + 1 } : i
         );
       return [...prev, { listing, qty: 1 }];
     });
@@ -194,55 +274,25 @@ export default function MarketplaceClient() {
 
   const changeQty = (id: string, qty: number) =>
     setCart((prev) =>
-      prev.map((i) => (i.listing.id === id ? { ...i, qty } : i)),
+      prev.map((i) => (i.listing.id === id ? { ...i, qty } : i))
     );
 
   const clearCart = () => {
     setCart([]);
   };
 
-  // ── Filter + sort ─────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    let items = listings.filter((l) => {
-      const q = search.toLowerCase();
-      const matchSearch =
-        !q ||
-        l.title.toLowerCase().includes(q) ||
-        l.location.toLowerCase().includes(q) ||
-        l.category.toLowerCase().includes(q);
-      const matchCat = category === "All" || l.category === category;
-      const matchRegion = region === "All Regions" || l.location === region;
-      return matchSearch && matchCat && matchRegion;
-    });
-
-    if (sort === "price_asc") items = [...items].sort((a, b) => a.price - b.price);
-    else if (sort === "price_desc") items = [...items].sort((a, b) => b.price - a.price);
-    else if (sort === "rating") items = [...items].sort((a, b) => b.rating - a.rating);
-    else if (sort === "featured")
-      items = [...items].sort(
-        (a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0),
-      );
-    else if (sort === "newest")
-      items = [...items].sort((a, b) =>
-        b.harvest_date.localeCompare(a.harvest_date),
-      );
-
-    return items;
-  }, [listings, search, category, region, sort]);
-
-  const paginated = filtered.slice(0, page * PER_PAGE);
-  const hasMore = paginated.length < filtered.length;
   const hasActiveFilters =
-    !!search || category !== "All" || region !== "All Regions";
+    Boolean(search.trim() || category !== "All" || region !== "All Regions");
 
   const clearFilters = () => {
     setSearch("");
     setCategory("All");
     setRegion("All Regions");
+    setSort("featured");
     setPage(1);
   };
 
-  // ── Derived stats ─────────────────────────────────────────────────
+  const hasMore = listings.length < totalCount;
   const verifiedCount = listings.filter((l) => l.is_verified).length;
 
   return (
@@ -291,7 +341,7 @@ export default function MarketplaceClient() {
           <div className="flex items-center gap-5">
             <span className="flex items-center gap-1.5 text-gray-500">
               <Sprout className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">{listings.length}</strong>
+              <strong className="text-gray-800">{totalCount}</strong>
               &nbsp;listings
             </span>
             <span className="flex items-center gap-1.5 text-gray-500">
@@ -301,7 +351,7 @@ export default function MarketplaceClient() {
             <span className="flex items-center gap-1.5 text-gray-500">
               <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
               <strong className="text-gray-800">{verifiedCount}</strong>
-              &nbsp;verified farmers
+              &nbsp;verified loaded
             </span>
           </div>
 
@@ -333,12 +383,21 @@ export default function MarketplaceClient() {
           region={region}
           sort={sort}
           regions={REGIONS_FILTER}
-          filteredCount={filtered.length}
-          totalCount={listings.length}
+          filteredCount={listings.length}
+          totalCount={totalCount}
           hasActiveFilters={hasActiveFilters}
-          onSearchChange={(v) => { setSearch(v); setPage(1); }}
-          onRegionChange={(v) => { setRegion(v); setPage(1); }}
-          onSortChange={(v) => { setSort(v); setPage(1); }}
+          onSearchChange={(v) => {
+            setSearch(v);
+            setPage(1);
+          }}
+          onRegionChange={(v) => {
+            setRegion(v);
+            setPage(1);
+          }}
+          onSortChange={(v) => {
+            setSort(v);
+            setPage(1);
+          }}
           onClearFilters={clearFilters}
         />
 
@@ -350,12 +409,12 @@ export default function MarketplaceClient() {
                 <SkeletonCard key={i} />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : listings.length === 0 ? (
             <EmptyState onClear={clearFilters} />
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {paginated.map((listing) => (
+                {listings.map((listing) => (
                   <ProductCard
                     key={listing.id}
                     listing={listing}
@@ -370,9 +429,17 @@ export default function MarketplaceClient() {
                 <div className="text-center mt-10">
                   <button
                     onClick={() => setPage((p) => p + 1)}
-                    className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm"
+                    disabled={loadingMore}
+                    className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm disabled:opacity-50 inline-flex items-center gap-2"
                   >
-                    Load more · {filtered.length - paginated.length} remaining
+                    {loadingMore ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      `Load more · ${totalCount - listings.length} remaining`
+                    )}
                   </button>
                 </div>
               )}
@@ -383,3 +450,4 @@ export default function MarketplaceClient() {
     </>
   );
 }
+

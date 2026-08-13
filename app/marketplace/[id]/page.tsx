@@ -41,9 +41,19 @@ type SupabaseListingRow = {
   farmer_name?: string | null;
   farmer_avatar?: string | null;
   min_order?: number | string | null;
+  farmers?: {
+    profiles?: {
+      location?: string | null;
+      verified_status?: boolean | null;
+      firstname?: string | null;
+      lastname?: string | null;
+    } | null;
+  } | null;
   profiles?: {
     location?: string | null;
     verified_status?: boolean | null;
+    firstname?: string | null;
+    lastname?: string | null;
   } | null;
   crops?: {
     crop_type?: string | null;
@@ -51,30 +61,37 @@ type SupabaseListingRow = {
   } | null;
 };
 
-const mapListing = (item: SupabaseListingRow): Listing => ({
-  id: item.id,
-  title: item.name,
-  category: item.crops?.crop_type || "General",
-  price: Number(item.price_per_unit) || 0,
-  unit: item.unit_type || "unit",
-  quantity_available: Number(item.quantity) || 0,
-  location: item.profiles?.location || "Unknown Location",
-  image_urls: item.image_urls || [
-    "https://placehold.co/600x400/e2e8f0/1e293b?text=No+Image",
-  ],
-  description:
-    item.description || "Fresh produce from a verified local farmer.",
-  rating: Number(item.rating) || 0,
-  reviews: Number(item.reviews) || 0,
-  farmer_name: item.farmer_name || "Local Farmer",
-  farmer_avatar: item.farmer_avatar || "https://i.pravatar.cc/150?img=1",
-  is_verified: Boolean(item.profiles?.verified_status),
-  is_featured: Boolean(item.is_featured),
-  discount: Number(item.discount) || undefined,
-  harvest_date: item.crops?.estimated_harvest_date || new Date().toISOString(),
-  delivery_available: Boolean(item.delivery_available),
-  min_order: Number(item.min_order) || 1,
-});
+const mapListing = (item: SupabaseListingRow): Listing => {
+  const profile = item.farmers?.profiles || item.profiles;
+  const farmerName = profile
+    ? [profile.firstname, profile.lastname].filter(Boolean).join(" ")
+    : "";
+
+  return {
+    id: item.id,
+    title: item.name,
+    category: item.crops?.crop_type || "General",
+    price: Number(item.price_per_unit) || 0,
+    unit: item.unit_type || "unit",
+    quantity_available: Number(item.quantity) || 0,
+    location: profile?.location || "Unknown Location",
+    image_urls: item.image_urls || [
+      "https://placehold.co/600x400/e2e8f0/1e293b?text=No+Image",
+    ],
+    description:
+      item.description || "Fresh produce from a verified local farmer.",
+    rating: Number(item.rating) || 0,
+    reviews: Number(item.reviews) || 0,
+    farmer_name: farmerName || item.farmer_name || "Local Farmer",
+    farmer_avatar: item.farmer_avatar || "https://i.pravatar.cc/150?img=1",
+    is_verified: Boolean(profile?.verified_status),
+    is_featured: Boolean(item.is_featured),
+    discount: Number(item.discount) || undefined,
+    harvest_date: item.crops?.estimated_harvest_date || new Date().toISOString(),
+    delivery_available: Boolean(item.delivery_available),
+    min_order: Number(item.min_order) || 1,
+  };
+};
 
 // ── Icons ──────────────────────────────────────────────────────────
 const MapPinIcon = (p: React.SVGProps<SVGSVGElement>) => <MapPin {...p} />;
@@ -215,7 +232,10 @@ export default function ListingDetailPage({
           farmer_name,
           farmer_avatar,
           min_order,
-          profiles ( location, verified_status ),
+          farmers!listings_profile_id_fkey (
+            profiles ( location, verified_status, firstname, lastname )
+          ),
+          profiles ( location, verified_status, firstname, lastname ),
           crops ( crop_type, estimated_harvest_date )
         `,
         )
@@ -253,7 +273,10 @@ export default function ListingDetailPage({
           farmer_name,
           farmer_avatar,
           min_order,
-          profiles ( location, verified_status ),
+          farmers!listings_profile_id_fkey (
+            profiles ( location, verified_status, firstname, lastname )
+          ),
+          profiles ( location, verified_status, firstname, lastname ),
           crops ( crop_type, estimated_harvest_date )
         `,
         )
