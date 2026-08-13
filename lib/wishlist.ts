@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type Listing } from "@/lib/data/marketplaceData";
+
 export interface WishlistItem {
   id: string;
   title: string;
@@ -17,9 +18,11 @@ export interface WishlistItem {
   delivery_available: boolean;
   added_at?: string;
 }
+
 const WISHLIST_KEY_PREFIX = "agriboost_wishlist_";
 const DEFAULT_KEY = "agriboost_wishlist_guest";
 const WISHLIST_EVENT = "agriboost-wishlist-change";
+
 /**
  * Gets the localStorage key for the given user ID (or default guest).
  */
@@ -29,6 +32,7 @@ export function getWishlistKey(userId?: string | null): string {
   }
   return DEFAULT_KEY;
 }
+
 /**
  * Helper to convert any Listing (or partial item) to a WishlistItem.
  */
@@ -57,6 +61,7 @@ export function normalizeToWishlistItem(
     added_at: new Date().toISOString(),
   };
 }
+
 /**
  * Retrieves the current wishlist for a user from localStorage.
  */
@@ -68,7 +73,6 @@ export function getWishlistFromStorage(
     const key = getWishlistKey(userId);
     const raw = localStorage.getItem(key);
     if (!raw) {
-      // If user is logged in, check if there's a guest wishlist to merge/migrate
       if (userId && userId.trim() !== "") {
         const guestRaw = localStorage.getItem(DEFAULT_KEY);
         if (guestRaw) {
@@ -93,6 +97,7 @@ export function getWishlistFromStorage(
     return [];
   }
 }
+
 /**
  * Saves a wishlist to localStorage for a user and dispatches change event.
  */
@@ -111,6 +116,84 @@ export function saveWishlistToStorage(
     console.error("Error saving wishlist to localStorage:", e);
   }
 }
+
+/**
+ * Fetches user's wishlist from Supabase database table `wishlist_items`.
+ */
+export async function fetchWishlistFromDb(
+  userId: string
+): Promise<WishlistItem[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("wishlist_items")
+      .select("listing_id, listing_snapshot, created_at")
+      .eq("profile_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error || !data) {
+      console.error("Error fetching wishlist from DB:", error);
+      return [];
+    }
+
+    return data.map((row: any) => {
+      if (row.listing_snapshot && typeof row.listing_snapshot === "object") {
+        return {
+          ...row.listing_snapshot,
+          id: row.listing_id || row.listing_snapshot.id,
+          added_at: row.created_at || row.listing_snapshot.added_at,
+        };
+      }
+      return {
+        id: row.listing_id,
+        title: "Saved Item",
+        category: "General",
+        price: 0,
+        unit: "unit",
+        farmer: "Local Farmer",
+        location: "Unknown Location",
+        rating: 0,
+        reviews: 0,
+        image: "https://placehold.co/600x400/e2e8f0/1e293b?text=No+Image",
+        delivery_available: false,
+        added_at: row.created_at,
+      };
+    });
+  } catch (e) {
+    console.error("Failed to fetch wishlist from DB:", e);
+    return [];
+  }
+}
+
+/**
+ * Migrates guest items in localStorage to Supabase database table `wishlist_items`.
+ */
+export async function migrateGuestWishlistToDb(userId: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  const guestRaw = localStorage.getItem(DEFAULT_KEY);
+  if (!guestRaw) return;
+
+  try {
+    const guestItems: WishlistItem[] = JSON.parse(guestRaw);
+    if (Array.isArray(guestItems) && guestItems.length > 0) {
+      const supabase = createClient();
+      const rowsToInsert = guestItems.map((item) => ({
+        profile_id: userId,
+        listing_id: item.id,
+        listing_snapshot: item,
+      }));
+
+      await supabase
+        .from("wishlist_items")
+        .upsert(rowsToInsert, { onConflict: "profile_id, listing_id" });
+
+      localStorage.removeItem(DEFAULT_KEY);
+    }
+  } catch (e) {
+    console.error("Error migrating guest wishlist to DB:", e);
+  }
+}
+
 /**
  * Checks if an item is in the wishlist.
  */
@@ -118,6 +201,7 @@ export function isItemInWishlist(id: string, userId?: string | null): boolean {
   const items = getWishlistFromStorage(userId);
   return items.some((item) => item.id === id);
 }
+
 /**
  * Adds an item to the wishlist if not already present.
  */
@@ -134,6 +218,7 @@ export function addItemToWishlist(
   }
   return items;
 }
+
 /**
  * Removes an item from the wishlist by ID.
  */
@@ -146,6 +231,7 @@ export function removeItemFromWishlist(
   saveWishlistToStorage(next, userId);
   return next;
 }
+
 /**
  * Toggles an item in the wishlist. Returns { inWishlist: boolean, items: WishlistItem[] }.
  */
@@ -166,23 +252,44 @@ export function toggleItemInWishlist(
     return { inWishlist: true, items: next };
   }
 }
+
 /**
  * Clears all items in the user's wishlist.
  */
 export function clearUserWishlist(userId?: string | null): void {
   saveWishlistToStorage([], userId);
 }
+
 /**
- * React Hook for managing the user's wishlist from localStorage.
+ * React Hook for managing the user's wishlist synchronized with Supabase DB & localStorage.
  */
 export function useWishlist() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // Load current user from Supabase
+
+  const syncWishlist = useCallback(async (uid: string | null) => {
+    setLoading(true);
+    if (uid && uid.trim() !== "") {
+      // 1. Migrate any guest items saved before logging in
+      await migrateGuestWishlistToDb(uid);
+      // 2. Fetch DB wishlist
+      const dbItems = await fetchWishlistFromDb(uid);
+      setWishlist(dbItems);
+      saveWishlistToStorage(dbItems, uid);
+    } else {
+      // Guest mode
+      const guestItems = getWishlistFromStorage(null);
+      setWishlist(guestItems);
+    }
+    setLoading(false);
+  }, []);
+
+  // Load current user & sync wishlist from Supabase
   useEffect(() => {
     let active = true;
     const supabase = createClient();
+
     async function loadUser() {
       try {
         const {
@@ -191,32 +298,35 @@ export function useWishlist() {
         if (active) {
           const uid = user?.id ?? null;
           setUserId(uid);
-          setWishlist(getWishlistFromStorage(uid));
-          setLoading(false);
+          await syncWishlist(uid);
         }
       } catch (e) {
         if (active) {
+          setUserId(null);
           setWishlist(getWishlistFromStorage(null));
           setLoading(false);
         }
       }
     }
+
     loadUser();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (active) {
         const uid = session?.user?.id ?? null;
         setUserId(uid);
-        setWishlist(getWishlistFromStorage(uid));
-        setLoading(false);
+        await syncWishlist(uid);
       }
     });
+
     return () => {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [syncWishlist]);
+
   // Sync with window events and storage events
   useEffect(() => {
     const handleWishlistChange = () => {
@@ -234,29 +344,93 @@ export function useWishlist() {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [userId]);
+
   const isSaved = useCallback(
     (id: string) => wishlist.some((item) => item.id === id),
     [wishlist]
   );
+
   const toggleSave = useCallback(
     (item: Listing | WishlistItem) => {
-      const res = toggleItemInWishlist(item, userId);
-      setWishlist(res.items);
-      return res.inWishlist;
+      const normalized = normalizeToWishlistItem(item);
+      const exists = wishlist.some((i) => i.id === normalized.id);
+      const next = exists
+        ? wishlist.filter((i) => i.id !== normalized.id)
+        : [normalized, ...wishlist];
+
+      setWishlist(next);
+      saveWishlistToStorage(next, userId);
+
+      if (userId) {
+        const supabase = createClient();
+        if (exists) {
+          supabase
+            .from("wishlist_items")
+            .delete()
+            .eq("profile_id", userId)
+            .eq("listing_id", normalized.id)
+            .then(({ error }) => {
+              if (error) console.error("Failed to delete wishlist item from DB:", error);
+            });
+        } else {
+          supabase
+            .from("wishlist_items")
+            .upsert(
+              {
+                profile_id: userId,
+                listing_id: normalized.id,
+                listing_snapshot: normalized,
+              },
+              { onConflict: "profile_id, listing_id" }
+            )
+            .then(({ error }) => {
+              if (error) console.error("Failed to upsert wishlist item to DB:", error);
+            });
+        }
+      }
+
+      return !exists;
     },
-    [userId]
+    [wishlist, userId]
   );
+
   const removeSave = useCallback(
     (id: string) => {
-      const next = removeItemFromWishlist(id, userId);
+      const next = wishlist.filter((i) => i.id !== id);
       setWishlist(next);
+      saveWishlistToStorage(next, userId);
+
+      if (userId) {
+        const supabase = createClient();
+        supabase
+          .from("wishlist_items")
+          .delete()
+          .eq("profile_id", userId)
+          .eq("listing_id", id)
+          .then(({ error }) => {
+            if (error) console.error("Failed to remove wishlist item from DB:", error);
+          });
+      }
     },
-    [userId]
+    [wishlist, userId]
   );
+
   const clearAll = useCallback(() => {
-    clearUserWishlist(userId);
     setWishlist([]);
+    saveWishlistToStorage([], userId);
+
+    if (userId) {
+      const supabase = createClient();
+      supabase
+        .from("wishlist_items")
+        .delete()
+        .eq("profile_id", userId)
+        .then(({ error }) => {
+          if (error) console.error("Failed to clear wishlist from DB:", error);
+        });
+    }
   }, [userId]);
+
   return {
     wishlist,
     isSaved,
@@ -267,3 +441,4 @@ export function useWishlist() {
     loading,
   };
 }
+
