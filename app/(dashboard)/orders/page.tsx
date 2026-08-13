@@ -15,11 +15,14 @@ import {
   Check,
   AlertCircle,
   ArrowRight,
+  MessageSquare,
 } from "lucide-react";
 import {
   getFarmerOrdersWithEscrow,
   verifyDeliveryOtpAndReleaseEscrow,
 } from "@/app/marketplace/actions";
+import { createClient } from "@/lib/supabase/client";
+import ChatDrawer from "@/components/messaging/ChatDrawer";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface FarmerOrderDisplay {
@@ -98,14 +101,37 @@ export default function FarmerOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "completed">("all");
   const [selectedOrder, setSelectedOrder] = useState<FarmerOrderDisplay | null>(null);
+  const [chattingOrder, setChattingOrder] = useState<FarmerOrderDisplay | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [otpInput, setOtpInput] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const supabase = createClient();
 
   // ── Data fetch ────────────────────────────────────────────────────────────
   const fetchOrders = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        const { data: unreadMsgs } = await supabase
+          .from("messages")
+          .select("order_id")
+          .neq("sender_id", user.id)
+          .eq("read", false);
+
+        if (unreadMsgs) {
+          const counts: Record<string, number> = {};
+          unreadMsgs.forEach((m: any) => {
+            counts[m.order_id] = (counts[m.order_id] || 0) + 1;
+          });
+          setUnreadCounts(counts);
+        }
+      }
+
       const liveData = await getFarmerOrdersWithEscrow();
       if (liveData && liveData.length > 0) {
         const mapped: FarmerOrderDisplay[] = liveData.map((tx: any) => {
@@ -323,6 +349,8 @@ export default function FarmerOrdersPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredOrders.map((order) => {
                     const isHeld = order.escrowHeld && order.status !== "delivered";
+                    const unreadCount = unreadCounts[order.orderId] || 0;
+
                     return (
                       <tr key={order.id} className="hover:bg-gray-50/70 transition-colors">
 
@@ -396,21 +424,36 @@ export default function FarmerOrdersPage() {
                         </td>
 
                         <td className="p-4 text-right">
-                          {isHeld ? (
+                          <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setOtpInput("");
-                                setMessage(null);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm"
+                              onClick={() => setChattingOrder(order)}
+                              className="relative inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold rounded-xl text-xs transition-all shadow-sm"
                             >
-                              <KeyRound className="h-3.5 w-3.5" />
-                              Verify OTP
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Chat
+                              {unreadCount > 0 && (
+                                <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                                  {unreadCount}
+                                </span>
+                              )}
                             </button>
-                          ) : (
-                            <span className="text-xs font-semibold text-gray-400">Completed</span>
-                          )}
+
+                            {isHeld ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setOtpInput("");
+                                  setMessage(null);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm"
+                              >
+                                <KeyRound className="h-3.5 w-3.5" />
+                                Verify OTP
+                              </button>
+                            ) : (
+                              <span className="text-xs font-semibold text-gray-400">Completed</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -507,6 +550,21 @@ export default function FarmerOrdersPage() {
         </div>
       )}
 
+      {/* Chat Drawer */}
+      {chattingOrder && (
+        <ChatDrawer
+          isOpen={true}
+          onClose={() => {
+            setChattingOrder(null);
+            fetchOrders();
+          }}
+          orderId={chattingOrder.orderId}
+          currentUserId={currentUserId}
+          recipientName={chattingOrder.buyerName}
+        />
+      )}
+
     </div>
   );
 }
+

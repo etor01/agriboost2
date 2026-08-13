@@ -1,5 +1,3 @@
-// app/(buyer)/orders/page.tsx
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -16,6 +14,7 @@ import {
   Check,
   ShieldCheck,
   ShoppingBag,
+  ArrowRight,
 } from "lucide-react";
 import {
   getBuyerOrdersWithEscrow,
@@ -24,6 +23,7 @@ import {
 } from "@/app/marketplace/actions";
 import { Star, MessageSquare } from "lucide-react";
 import ChatDrawer from "@/components/messaging/ChatDrawer";
+import { createClient } from "@/lib/supabase/client";
 
 type OrderStatus = "processing" | "confirmed" | "delivered" | "cancelled";
 
@@ -85,15 +85,36 @@ export default function BuyerOrdersPage() {
   );
   const [reviewingOrder, setReviewingOrder] = useState<DisplayOrder | null>(null);
   const [chattingOrder, setChattingOrder] = useState<DisplayOrder | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-  
+
   const [releasing, setReleasing] = useState(false);
+  const supabase = createClient();
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        const { data: unreadMsgs } = await supabase
+          .from("messages")
+          .select("order_id")
+          .neq("sender_id", user.id)
+          .eq("read", false);
+
+        if (unreadMsgs) {
+          const counts: Record<string, number> = {};
+          unreadMsgs.forEach((m: any) => {
+            counts[m.order_id] = (counts[m.order_id] || 0) + 1;
+          });
+          setUnreadCounts(counts);
+        }
+      }
+
       const liveOrders = await getBuyerOrdersWithEscrow();
       const mapped: DisplayOrder[] = (liveOrders || []).map((o: any) => {
         const listing = o.listings || {};
@@ -180,12 +201,12 @@ export default function BuyerOrdersPage() {
         rating: reviewRating,
         comment: reviewComment
       });
-      
+
       if (!res.success) {
         alert("Error submitting review: " + res.error);
         return;
       }
-      
+
       setReviewingOrder(null);
       setReviewRating(5);
       setReviewComment("");
@@ -356,137 +377,143 @@ export default function BuyerOrdersPage() {
           </div>
         </div>
       ) : (
-      <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100/80 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-emerald-600" />
-            <h2 className="text-sm font-bold text-gray-800">
-              Escrow Order History
-            </h2>
+        <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100/80 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-emerald-600" />
+              <h2 className="text-sm font-bold text-gray-800">
+                Escrow Order History
+              </h2>
+            </div>
+            <span className="text-xs text-gray-400">
+              {orders.length} order{orders.length !== 1 ? "s" : ""}
+            </span>
           </div>
-          <span className="text-xs text-gray-400">
-            {orders.length} order{orders.length !== 1 ? "s" : ""}
-          </span>
-        </div>
 
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50/70 border-b border-gray-100">
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Order ID
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Qty & Total
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Delivery OTP
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Escrow Status
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Status & Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100/80">
-              {orders.map((order) => {
-                const { label, color, bg, Icon } = STATUS_CONFIG[order.status];
-                const isHeld = order.escrowHeld && order.status !== "delivered";
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50/70 border-b border-gray-100">
+                  <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Order ID
+                  </th>
+                  <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Qty & Total
+                  </th>
+                  <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Delivery OTP
+                  </th>
+                  <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Escrow Status
+                  </th>
+                  <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Status & Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100/80">
+                {orders.map((order) => {
+                  const { label, color, bg, Icon } = STATUS_CONFIG[order.status];
+                  const isHeld = order.escrowHeld && order.status !== "delivered";
+                  const unreadCount = unreadCounts[order.id] || 0;
 
-                return (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-gray-50/50 transition-colors"
-                  >
-                    <td className="px-5 py-4 font-mono text-xs text-gray-500 font-semibold">
-                      #{order.id.slice(0, 8).toUpperCase()}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={order.image}
-                          alt={order.product}
-                          className="w-11 h-11 rounded-xl object-cover border border-gray-100"
-                        />
-                        <div>
-                          <p className="font-semibold text-gray-800">
-                            {order.product}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {order.farmer}
-                          </p>
+                  return (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="px-5 py-4 font-mono text-xs text-gray-500 font-semibold">
+                        #{order.id.slice(0, 8).toUpperCase()}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={order.image}
+                            alt={order.product}
+                            className="w-11 h-11 rounded-xl object-cover border border-gray-100"
+                          />
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              {order.product}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {order.farmer}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="font-bold text-gray-900">
-                        GH₵ {order.total.toFixed(2)}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {order.qty} {order.unit}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="inline-flex items-center gap-1.5 bg-gray-100/80 border border-gray-200 rounded-lg px-2.5 py-1">
-                        <span className="font-mono font-bold text-sm text-gray-800 tracking-wider">
-                          {order.deliveryOtp}
-                        </span>
-                        <button
-                          onClick={() => handleCopyOtp(order.deliveryOtp)}
-                          className="p-1 rounded hover:bg-gray-200 text-gray-500 transition-colors"
-                          title="Copy Delivery OTP"
-                        >
-                          {copiedOtp === order.deliveryOtp ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      {isHeld ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <Lock className="h-3 w-3" />
-                          🔒 Held in Escrow
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="h-3 w-3" />
-                          ✅ Released to Farmer
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 w-64">
-                      <div className="flex flex-col gap-4 items-start w-full">
-                        <OrderStepper status={order.status} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-gray-900">
+                          GH₵ {order.total.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {order.qty} {order.unit}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="inline-flex items-center gap-1.5 bg-gray-100/80 border border-gray-200 rounded-lg px-2.5 py-1">
+                          <span className="font-mono font-bold text-sm text-gray-800 tracking-wider">
+                            {order.deliveryOtp}
+                          </span>
+                          <button
+                            onClick={() => handleCopyOtp(order.deliveryOtp)}
+                            className="p-1 rounded hover:bg-gray-200 text-gray-500 transition-colors"
+                            title="Copy Delivery OTP"
+                          >
+                            {copiedOtp === order.deliveryOtp ? (
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        {isHeld ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Lock className="h-3 w-3" />
+                            🔒 Held in Escrow
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="h-3 w-3" />
+                            ✅ Released to Farmer
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 w-64">
+                        <div className="flex flex-col gap-4 items-start w-full">
+                          <OrderStepper status={order.status} />
 
-                        {order.status !== "delivered" &&
-                          order.status !== "cancelled" && (
-                            <div className="w-full flex gap-2 mt-3">
-                              <button
-                                onClick={() => setChattingOrder(order)}
-                                className="text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 flex-1"
-                              >
-                                <MessageSquare className="h-3.5 w-3.5" /> Message
-                              </button>
-                              <button
-                                onClick={() => setConfirmingOrder(order)}
-                                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1 flex-1 justify-center"
-                              >
-                                Confirm →
-                              </button>
-                            </div>
-                          )}
+                          {order.status !== "delivered" &&
+                            order.status !== "cancelled" && (
+                              <div className="w-full flex gap-2 mt-3">
+                                <button
+                                  onClick={() => setChattingOrder(order)}
+                                  className="text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 flex-1 relative"
+                                >
+                                  <MessageSquare className="h-3.5 w-3.5" /> Message
+                                  {unreadCount > 0 && (
+                                    <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
+                                      {unreadCount}
+                                    </span>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => setConfirmingOrder(order)}
+                                  className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1 flex-1 justify-center"
+                                >
+                                  Confirm →
+                                </button>
+                              </div>
+                            )}
 
-                        {order.status === "delivered" && !order.hasReviewed && (
+                          {order.status === "delivered" && !order.hasReviewed && (
                             <button
                               onClick={() => setReviewingOrder(order)}
                               className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1 w-full justify-center mt-3"
@@ -494,97 +521,103 @@ export default function BuyerOrdersPage() {
                               <Star className="h-3.5 w-3.5" /> Leave a Review
                             </button>
                           )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y divide-gray-100/80">
+            {orders.map((order) => {
+              const { label, color, bg, Icon } = STATUS_CONFIG[order.status];
+              const isHeld = order.escrowHeld && order.status !== "delivered";
+              const unreadCount = unreadCounts[order.id] || 0;
+
+              return (
+                <div key={order.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={order.image}
+                        alt={order.product}
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-100"
+                      />
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {order.product}
+                        </p>
+                        <p className="text-xs text-gray-400">{order.farmer}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {order.qty} {order.unit} ·{" "}
+                          <strong className="text-gray-900">
+                            GH₵ {order.total.toFixed(2)}
+                          </strong>
+                        </p>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden divide-y divide-gray-100/80">
-          {orders.map((order) => {
-            const { label, color, bg, Icon } = STATUS_CONFIG[order.status];
-            const isHeld = order.escrowHeld && order.status !== "delivered";
-
-            return (
-              <div key={order.id} className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={order.image}
-                      alt={order.product}
-                      className="w-12 h-12 rounded-xl object-cover border border-gray-100"
-                    />
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {order.product}
-                      </p>
-                      <p className="text-xs text-gray-400">{order.farmer}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {order.qty} {order.unit} ·{" "}
-                        <strong className="text-gray-900">
-                          GH₵ {order.total.toFixed(2)}
-                        </strong>
-                      </p>
                     </div>
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${bg} ${color}`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {label}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200/70 text-xs">
-                  <div>
-                    <span className="text-gray-400 block">Delivery OTP</span>
-                    <span className="font-mono font-bold text-sm text-gray-800">
-                      {order.deliveryOtp}
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${bg} ${color}`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {label}
                     </span>
                   </div>
 
-                  <div>
-                    {isHeld ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
-                        🔒 In Escrow
+                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200/70 text-xs">
+                    <div>
+                      <span className="text-gray-400 block">Delivery OTP</span>
+                      <span className="font-mono font-bold text-sm text-gray-800">
+                        {order.deliveryOtp}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                        ✅ Released
-                      </span>
-                    )}
+                    </div>
+
+                    <div>
+                      {isHeld ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                          🔒 In Escrow
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                          ✅ Released
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="pt-2 pb-4 px-2">
-                  <OrderStepper status={order.status} />
-                </div>
+                  <div className="pt-2 pb-4 px-2">
+                    <OrderStepper status={order.status} />
+                  </div>
 
-                <div className="flex flex-col gap-2">
-                  {order.status !== "delivered" &&
-                    order.status !== "cancelled" && (
-                      <div className="flex gap-2 w-full">
-                        <button
-                          onClick={() => setChattingOrder(order)}
-                          className="flex-1 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm flex items-center justify-center gap-1.5"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" /> Message
-                        </button>
-                        <button
-                          onClick={() => setConfirmingOrder(order)}
-                          className="flex-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-sm"
-                        >
-                          Confirm
-                        </button>
-                      </div>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    {order.status !== "delivered" &&
+                      order.status !== "cancelled" && (
+                        <div className="flex gap-2 w-full">
+                          <button
+                            onClick={() => setChattingOrder(order)}
+                            className="flex-1 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm flex items-center justify-center gap-1.5"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" /> Message
+                            {unreadCount > 0 && (
+                              <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
+                                {unreadCount}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setConfirmingOrder(order)}
+                            className="flex-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-sm"
+                          >
+                            Confirm
+                          </button>
+                        </div>
+                      )}
 
-                  {order.status === "delivered" && !order.hasReviewed && (
+                    {order.status === "delivered" && !order.hasReviewed && (
                       <button
                         onClick={() => setReviewingOrder(order)}
                         className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg shadow-sm w-full flex items-center justify-center gap-1"
@@ -592,12 +625,12 @@ export default function BuyerOrdersPage() {
                         <Star className="h-3.5 w-3.5" /> Leave a Review
                       </button>
                     )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
       )}
 
       {/* Confirmation Modal */}
@@ -636,7 +669,7 @@ export default function BuyerOrdersPage() {
                 {releasing
                   ? "Releasing Escrow..."
                   : "Yes, Confirm & Release GH₵ " +
-                    confirmingOrder.total.toFixed(2)}
+                  confirmingOrder.total.toFixed(2)}
               </button>
               <button
                 onClick={() => setConfirmingOrder(null)}
@@ -676,13 +709,13 @@ export default function BuyerOrdersPage() {
                   onClick={() => setReviewRating(star)}
                   className={`p-2 transition-transform hover:scale-110 active:scale-90`}
                 >
-                  <Star 
-                    className={`h-8 w-8 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-300"}`} 
+                  <Star
+                    className={`h-8 w-8 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-300"}`}
                   />
                 </button>
               ))}
             </div>
-            
+
             <div>
               <textarea
                 value={reviewComment}
@@ -715,12 +748,16 @@ export default function BuyerOrdersPage() {
       {chattingOrder && (
         <ChatDrawer
           isOpen={true}
-          onClose={() => setChattingOrder(null)}
+          onClose={() => {
+            setChattingOrder(null);
+            fetchOrders();
+          }}
           orderId={chattingOrder.id}
-          recipientId={chattingOrder.farmerId}
+          currentUserId={currentUserId}
           recipientName={chattingOrder.farmer}
         />
       )}
     </div>
   );
 }
+
