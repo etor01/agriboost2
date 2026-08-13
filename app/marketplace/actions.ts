@@ -44,20 +44,8 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
     return { success: false, error: "You must be signed in to place an order." };
   }
 
-  // ── 1. Fetch buyer's wallet balance ────────────────────────────────────────
-  const { data: profileData, error: profileErr } = await supabase
-    .from("profiles")
-    .select("wallet_balance")
-    .eq("id", user.id)
-    .single();
-
-  if (profileErr || !profileData) {
-    return { success: false, error: "Could not fetch your wallet balance." };
-  }
-
-  const walletBalance = Number(profileData.wallet_balance ?? 0);
-
-  // ── 2. Calculate grand total ────────────────────────────────────────────────
+  // ── 1. Calculate grand total ────────────────────────────────────────────────
+  //      (totals computed before the RPC so we can pass grandTotal atomically)
   const subtotal = payload.items.reduce((s, i) => s + i.price * i.qty, 0);
   const deliveryFeeTotal = payload.deliveryFee;
   const platformFeeTotal = Number(
@@ -67,25 +55,34 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
     (subtotal + deliveryFeeTotal + platformFeeTotal).toFixed(2)
   );
 
-  if (walletBalance < grandTotal) {
+  // ── 2. Atomic wallet deduction via row-locked RPC ───────────────────────────
+  //      The SQL function acquires a FOR UPDATE lock on the profiles row,
+  //      checks the balance, deducts, and returns the result — all inside a
+  //      single DB transaction.  Two concurrent checkouts will serialize here;
+  //      the second will see the already-deducted balance and fail gracefully.
+  const { data: rpcRows, error: rpcErr } = await supabase.rpc(
+    "deduct_wallet_balance",
+    { user_id: user.id, deduct_amount: grandTotal }
+  );
+
+  if (rpcErr) {
+    console.error("[createOrderWithEscrow] RPC error:", rpcErr);
+    return { success: false, error: "Failed to process wallet deduction. Please try again." };
+  }
+
+  // rpc() with a RETURNS TABLE function returns an array; grab the first row.
+  const rpcResult = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+
+  if (!rpcResult?.success) {
     return {
       success: false,
-      error: `Insufficient wallet balance. Available: GH₵ ${walletBalance.toFixed(
-        2
-      )}, Required: GH₵ ${grandTotal.toFixed(2)}. Please top up your wallet.`,
+      error: rpcResult?.error_message ?? "Insufficient wallet balance. Please top up your wallet.",
     };
   }
 
-  // ── 3. Deduct from wallet (optimistic deduction before inserts) ────────────
-  const newWalletBalance = Number((walletBalance - grandTotal).toFixed(2));
-  const { error: walletDeductErr } = await supabase
-    .from("profiles")
-    .update({ wallet_balance: newWalletBalance })
-    .eq("id", user.id);
-
-  if (walletDeductErr) {
-    return { success: false, error: "Failed to deduct from wallet. Please try again." };
-  }
+  // Capture the pre-deduction balance for rollback use (new_balance + grandTotal)
+  const newWalletBalance = Number(rpcResult.new_balance);
+  const walletBalance = Number((newWalletBalance + grandTotal).toFixed(2));
 
   // ── 4. Ensure buyer record exists ──────────────────────────────────────────
   await supabase
@@ -349,6 +346,12 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
   };
 }
 
+// ── OTP Rate Limiter (Module Level) ───────────────────────────────────────────
+type OtpAttemptRecord = { count: number; resetAt: number };
+const otpAttemptMap = new Map<string, OtpAttemptRecord>();
+const MAX_OTP_ATTEMPTS = 5;
+const OTP_LOCKOUT_MS = 30 * 60 * 1000; // 30 minutes
+
 /**
  * Farmer verifies the buyer's 4-digit Delivery OTP to complete delivery and release escrow.
  */
@@ -365,6 +368,25 @@ export async function verifyDeliveryOtpAndReleaseEscrow(
     return { success: false, error: "Not authenticated." };
   }
 
+  const rateLimitKey = `${user.id}-${orderId}`;
+  const now = Date.now();
+  let record = otpAttemptMap.get(rateLimitKey);
+
+  // Clear expired lockout record
+  if (record && now > record.resetAt) {
+    otpAttemptMap.delete(rateLimitKey);
+    record = undefined;
+  }
+
+  // Enforce lockout if max failed attempts reached
+  if (record && record.count >= MAX_OTP_ATTEMPTS) {
+    const mins = Math.ceil((record.resetAt - now) / 60000);
+    return {
+      success: false,
+      error: `Too many attempts. Try again in ${mins} minute${mins === 1 ? "" : "s"}.`,
+    };
+  }
+
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select("id, status, delivery_otp")
@@ -375,14 +397,33 @@ export async function verifyDeliveryOtpAndReleaseEscrow(
     return { success: false, error: "Order not found." };
   }
 
-  if (!order.delivery_otp || order.delivery_otp !== inputOtp.trim()) {
+  const trimmedOtp = inputOtp.trim();
+  if (!order.delivery_otp || order.delivery_otp !== trimmedOtp) {
+    // Record failed attempt
+    if (!record) {
+      record = { count: 1, resetAt: now + OTP_LOCKOUT_MS };
+    } else {
+      record.count += 1;
+    }
+    otpAttemptMap.set(rateLimitKey, record);
+
+    if (record.count >= MAX_OTP_ATTEMPTS) {
+      const mins = Math.ceil((record.resetAt - now) / 60000);
+      return {
+        success: false,
+        error: `Too many attempts. Try again in ${mins} minute${mins === 1 ? "" : "s"}.`,
+      };
+    }
+
+    const remaining = MAX_OTP_ATTEMPTS - record.count;
     return {
       success: false,
-      error: "Invalid Delivery OTP. Please check the 4-digit code from the buyer.",
+      error: `Invalid Delivery OTP. Please check the 4-digit code from the buyer. (${remaining} attempt${remaining === 1 ? "" : "s"} remaining)`,
     };
   }
 
-  // OTP matched! Call release logic
+  // OTP matched! Reset rate limit counter and call release logic
+  otpAttemptMap.delete(rateLimitKey);
   return await confirmDeliveryAndReleaseEscrow(orderId);
 }
 
