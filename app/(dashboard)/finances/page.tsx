@@ -61,6 +61,8 @@ function WithdrawModal({
     reference: string;
   } | null>(null);
 
+  const hasBalance = availableBalance > 0;
+
   const handleWithdraw = async () => {
     const withdrawAmt = Number(amount);
     if (!withdrawAmt || withdrawAmt < 1) {
@@ -121,15 +123,19 @@ function WithdrawModal({
             </div>
             <div>
               <h3 className="text-2xl font-extrabold text-gray-900">
-                Withdrawal Successful!
+                Withdrawal Submitted!
               </h3>
               <p className="text-gray-600 text-sm mt-2">
                 <span className="font-bold text-emerald-700">
                   GH₵ {success.amount.toFixed(2)}
                 </span>{" "}
-                has been sent to your{" "}
-                {method === "momo" ? "Mobile Money" : "Bank"} account.
+                withdrawal to your{" "}
+                {method === "momo" ? "Mobile Money" : "Bank"} account has been logged.
               </p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-left">
+              <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Demo Mode</p>
+              <p className="text-xs text-amber-600">This is a simulated payout for demonstration purposes. No real funds were transferred.</p>
             </div>
             <div className="bg-gray-50 rounded-2xl p-4 text-left text-xs space-y-1.5">
               <p className="text-gray-500">
@@ -139,15 +145,12 @@ function WithdrawModal({
                 </span>
               </p>
               <p className="text-gray-500">
-                New balance:{" "}
+                New available balance:{" "}
                 <span className="font-bold text-gray-700">
                   GH₵ {availableBalance.toFixed(2)}
                 </span>
               </p>
             </div>
-            <p className="text-xs text-gray-400">
-              Funds typically arrive within 2 hours on business days.
-            </p>
             <button
               onClick={onClose}
               className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
@@ -155,6 +158,56 @@ function WithdrawModal({
               Done
             </button>
           </div>
+        ) : !hasBalance ? (
+          // ── No Balance State ────────────────────────────────────────────────
+          <>
+            <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Banknote className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-extrabold">Withdraw Funds</h2>
+                    <p className="text-gray-400 text-xs">Available Payout Balance</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-8 text-center space-y-5">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                <Wallet className="h-7 w-7 text-gray-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-gray-800">No Payout Balance Yet</h3>
+                <p className="text-sm text-gray-500 mt-2">
+                  Your available payout balance is <span className="font-bold text-gray-700">GH₵ 0.00</span>.
+                  Funds appear here once a buyer confirms delivery and escrow is released.
+                </p>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-left text-sm text-emerald-800">
+                <p className="font-bold mb-1">How to earn payouts:</p>
+                <ol className="list-decimal list-inside space-y-1 text-xs text-emerald-700">
+                  <li>List your produce in the Marketplace</li>
+                  <li>A buyer places an order &amp; pays into escrow</li>
+                  <li>Deliver the goods and share the 4-digit OTP</li>
+                  <li>Buyer enters OTP → escrow releases to your balance</li>
+                </ol>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </>
         ) : (
           // ── Form State ──────────────────────────────────────────────────────
           <>
@@ -177,6 +230,15 @@ function WithdrawModal({
                 >
                   <X className="h-5 w-5" />
                 </button>
+              </div>
+            </div>
+
+            {/* Demo Mode Banner */}
+            <div className="mx-6 mt-5 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-700">Demo Mode — Simulated Payout</p>
+                <p className="text-xs text-amber-600 mt-0.5">No real funds are transferred. This simulates the withdrawal flow for demonstration.</p>
               </div>
             </div>
 
@@ -422,12 +484,27 @@ export default function FinancesPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const onSubscriptionSuccess = async (reference: any) => {
-    await recordSuccessfulTransaction({
-      service_name: "5-Star Farmer Annual Subscription",
-      amount: 120.0,
-      payment_gateway_ref: reference.reference || `PAY-${Date.now()}`,
-    });
-    fetchData();
+    const ref = reference?.reference || `PAY-${Date.now()}`;
+    try {
+      const result = await recordSuccessfulTransaction({
+        service_name: "5-Star Farmer Annual Subscription",
+        amount: 120.0,
+        payment_gateway_ref: ref,
+      });
+
+      if (result.success) {
+        alert("🌟 5-Star Farmer plan activated! Welcome to premium.");
+      } else {
+        alert(
+          `⚠️ Payment received, but activation failed: ${(result as any).error ?? "Unknown error"}. Please contact support with ref: ${ref}`
+        );
+      }
+    } catch {
+      alert(`⚠️ An unexpected error occurred. Please contact support with ref: ${ref}`);
+    } finally {
+      // Always refresh the UI so any partial updates are reflected
+      fetchData();
+    }
   };
 
   const filteredTx = (summary?.transactions || []).filter((tx) => {
@@ -551,8 +628,7 @@ export default function FinancesPage() {
             {isFarmer && (
               <button
                 onClick={() => setShowWithdraw(true)}
-                disabled={!summary || summary.availableBalance <= 0}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl font-bold text-sm transition-all"
               >
                 <Minus className="h-4 w-4" /> Withdraw Earnings
               </button>
@@ -616,8 +692,7 @@ export default function FinancesPage() {
             </p>
             <button
               onClick={() => setShowWithdraw(true)}
-              disabled={!summary || summary.availableBalance <= 0}
-              className="mt-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1 disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+              className="mt-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1"
             >
               Withdraw to MoMo / Bank →
             </button>
