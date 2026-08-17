@@ -41,3 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+
+# scratch / debug files — should not be in production repo
+test.txt
+*.scratch.txt
+*.scratch.md
