@@ -12,7 +12,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AgriBoost",
+  title: {
+    default: "AgriBoost",
+    template: "%s | AgriBoost",
+  },
   description: "Agriculture SaaS Web App",
 };
 
