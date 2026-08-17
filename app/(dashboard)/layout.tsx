@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
 import { AgriBoostToaster } from "@/components/ui/Toast";
+import type { Profile } from "@/lib/database.types";
 import {
   type LucideIcon,
   Crown,
@@ -64,17 +65,15 @@ function Sidebar({
 }: {
   isOpen: boolean;
   setIsOpen: (v: boolean) => void;
-  profile: any;
+  profile: Profile | null;
   profileLoading: boolean;
-  user: any;
+  user: { id: string; email?: string } | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
 
-  useEffect(() => {
-    // This is now fetched in DashboardLayout
-  }, []);
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -285,12 +284,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [supabase]);
 
+  const mobileAvatarLetter = profile?.firstname
+    ? profile.firstname.charAt(0).toUpperCase()
+    : (user?.email?.charAt(0).toUpperCase() || "F");
+
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <div
-        className="fixed inset-0 bg-cover bg-center -z-10"
-        style={{ backgroundImage: "url('/features.jpg')" }}
-      />
+      {/* Background image via Tailwind arbitrary value — avoids inline style purge bypass */}
+      <div className="fixed inset-0 bg-[url('/features.jpg')] bg-cover bg-center -z-10" />
       <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
 
       <Sidebar
@@ -324,9 +325,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell userId={user?.id} />
-            <Link href="/profile" className="flex-shrink-0">
+            <Link href="/profile" className="flex items-center gap-2 flex-shrink-0">
+              {profile?.firstname && (
+                <span className="hidden sm:block text-sm font-medium text-gray-700">
+                  {profile.firstname}
+                </span>
+              )}
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
-                {user?.email?.charAt(0).toUpperCase() || "F"}
+                {mobileAvatarLetter}
               </div>
             </Link>
           </div>
