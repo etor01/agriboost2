@@ -7,6 +7,7 @@ import { addFarm } from "../farm/new/actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "@/components/ui/Toast";
 
 type FarmItem = {
   id: string;
@@ -306,6 +307,7 @@ export default function FarmsClientPage({
                 ...prev,
               ]);
               setShowAddModal(false);
+              toast({ title: "Farm Added!", description: "Your farm has been registered successfully.", type: "success" });
             } else {
               alert("Failed to add farm: " + res.message);
             }
