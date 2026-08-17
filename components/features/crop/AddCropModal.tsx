@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import Modal from '@/components/ui/Modal';
+import { toast } from '@/components/ui/Toast';
 
 export default function AddCropModal({ isOpen, setIsOpen, onAddCrop }) {
   const [cropType, setCropType] = useState('');
@@ -24,6 +25,7 @@ export default function AddCropModal({ isOpen, setIsOpen, onAddCrop }) {
     });
     setIsSaving(false);
     setIsOpen(false); // Close modal on success
+    toast({ title: "Crop Registered!", description: "Your crop has been added to the farm.", type: "success" });
     // Reset form
     setCropType('');
     setPlantingDate('');
