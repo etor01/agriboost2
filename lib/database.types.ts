@@ -122,7 +122,14 @@ export interface Order {
   created_at: string;
   updated_at: string;
 }
-
+export interface Message {
+  id: string;
+  order_id: string;
+  sender_id: string;
+  content: string;
+  read: boolean;
+  created_at: string;
+}
 export interface Transaction {
   id: string;
   order_id: string | null;
@@ -205,13 +212,13 @@ export interface Activity {
   id: string;
   profile_id: string | null;
   activity_type:
-    | 'crop_created'
-    | 'farm_created'
-    | 'listing_created'
-    | 'scan_performed'
-    | 'task_completed'
-    | 'payment_received'
-    | string;
+  | 'crop_created'
+  | 'farm_created'
+  | 'listing_created'
+  | 'scan_performed'
+  | 'task_completed'
+  | 'payment_received'
+  | string;
   title: string;
   description: string | null;
   created_at: string;
@@ -252,13 +259,13 @@ export type TaskWithCrop = Task & {
 export interface WeeklyTask {
   task: string;
   category:
-    | 'watering'
-    | 'fertilizer'
-    | 'weeding'
-    | 'pest_control'
-    | 'disease_prevention'
-    | 'observation'
-    | 'harvest';
+  | 'watering'
+  | 'fertilizer'
+  | 'weeding'
+  | 'pest_control'
+  | 'disease_prevention'
+  | 'observation'
+  | 'harvest';
   priority: 'low' | 'medium' | 'high';
   notes: string | null; // Ghanaian context tip (product name, market, etc.)
 }
