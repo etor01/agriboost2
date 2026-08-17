@@ -116,10 +116,12 @@ export default function TasksClientPage({ tasks, crops, farms, completions = [] 
 
     if (!res.success) {
       toast.error(res.message || "Failed to update task");
-    } else {
-      toast.success(
-        !task.completed ? "Task marked complete" : "Task marked pending"
-      );
+    } else if (!task.completed) {
+      toast({
+        title: "Task completed! ✅",
+        description: "Keep up the good work.",
+        type: "success",
+      });
     }
     setToggling(null);
   };
