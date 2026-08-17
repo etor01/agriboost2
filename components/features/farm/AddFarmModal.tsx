@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import Modal from '@/components/ui/Modal';
+import { toast } from '@/components/ui/Toast';
 
 export default function AddFarmModal({ isOpen, setIsOpen, onAddFarm }) {
   const [farmName, setFarmName] = useState('');
@@ -20,6 +21,7 @@ export default function AddFarmModal({ isOpen, setIsOpen, onAddFarm }) {
     });
     setIsSaving(false);
     setIsOpen(false); // Close modal on success
+    toast({ title: "Farm Added!", description: "Your farm has been registered successfully.", type: "success" });
     // Reset form
     setFarmName('');
     setLocation('');
