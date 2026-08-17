@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   BadgeCheck,
@@ -95,10 +96,27 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 
 // ── Main Component ──────────────────────────────────────────────────
 export default function MarketplaceClient() {
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [region, setRegion] = useState("All Regions");
-  const [sort, setSort] = useState("featured");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const categoryParam = searchParams.get("category");
+  const regionParam = searchParams.get("region");
+  const search = searchParams.get("q") || "";
+  const sort = searchParams.get("sort") || "featured";
+
+  const category = categoryParam
+    ? ALL_CATEGORIES.find(
+        (c) => c.toLowerCase() === categoryParam.toLowerCase()
+      ) || categoryParam
+    : "All";
+
+  const region = regionParam
+    ? REGIONS_FILTER.find(
+        (r) => r.toLowerCase() === regionParam.toLowerCase()
+      ) || regionParam
+    : "All Regions";
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -107,6 +125,30 @@ export default function MarketplaceClient() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const setFilter = (key: string, value: string) => {
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    const valLower = value.trim().toLowerCase();
+    if (
+      !value ||
+      valLower === "all" ||
+      valLower === "all regions" ||
+      (key === "sort" && valLower === "featured")
+    ) {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchParams]);
 
   // ── Data fetch with server-side pagination & filtering ────────────
   useEffect(() => {
@@ -282,14 +324,11 @@ export default function MarketplaceClient() {
   };
 
   const hasActiveFilters =
-    Boolean(search.trim() || category !== "All" || region !== "All Regions");
+    Boolean(search.trim() || category !== "All" || region !== "All Regions" || sort !== "featured");
 
   const clearFilters = () => {
-    setSearch("");
-    setCategory("All");
-    setRegion("All Regions");
-    setSort("featured");
     setPage(1);
+    router.push(pathname, { scroll: false });
   };
 
   const hasMore = listings.length < totalCount;
@@ -369,10 +408,7 @@ export default function MarketplaceClient() {
       <CategoryBar
         categories={ALL_CATEGORIES}
         active={category}
-        onChange={(cat) => {
-          setCategory(cat);
-          setPage(1);
-        }}
+        onChange={(cat) => setFilter("category", cat)}
       />
 
       {/* ── Main Content ──────────────────────────────────────────── */}
@@ -386,18 +422,9 @@ export default function MarketplaceClient() {
           filteredCount={listings.length}
           totalCount={totalCount}
           hasActiveFilters={hasActiveFilters}
-          onSearchChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
-          onRegionChange={(v) => {
-            setRegion(v);
-            setPage(1);
-          }}
-          onSortChange={(v) => {
-            setSort(v);
-            setPage(1);
-          }}
+          onSearchChange={(v) => setFilter("q", v)}
+          onRegionChange={(v) => setFilter("region", v)}
+          onSortChange={(v) => setFilter("sort", v)}
           onClearFilters={clearFilters}
         />
 
