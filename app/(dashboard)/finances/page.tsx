@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { recordSuccessfulTransaction } from "./actions";
+import { toast } from "@/components/ui/Toast";
 import WalletTopUpModal from "@/components/wallet/WalletTopUpModal";
 import {
   Lock,
@@ -413,6 +415,7 @@ function getTxBadge(type: string | null, status: string) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function FinancesPage() {
+  const router = useRouter();
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
@@ -493,16 +496,23 @@ export default function FinancesPage() {
       });
 
       if (result.success) {
-        alert("🌟 5-Star Farmer plan activated! Welcome to premium.");
+        toast.success("🌟 5-Star Farmer plan activated! Welcome to premium.");
+        // Refresh the Next.js router so the sidebar's client-side profile
+        // state re-fetches and displays the Premium Member badge immediately.
+        router.refresh();
       } else {
-        alert(
-          `⚠️ Payment received, but activation failed: ${(result as any).error ?? "Unknown error"}. Please contact support with ref: ${ref}`
+        toast.error(
+          `Payment received but activation failed: ${
+            (result as any).error ?? "Unknown error"
+          }. Contact support with ref: ${ref}`
         );
       }
     } catch {
-      alert(`⚠️ An unexpected error occurred. Please contact support with ref: ${ref}`);
+      toast.error(
+        `An unexpected error occurred. Contact support with ref: ${ref}`
+      );
     } finally {
-      // Always refresh the UI so any partial updates are reflected
+      // Always refresh the finances data so any partial updates are reflected.
       fetchData();
     }
   };
