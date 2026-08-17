@@ -1,8 +1,14 @@
 // app/(dashboard)/profile/page.tsx
+import type { Metadata } from "next";
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ProfileClientPage from "./profile-client-page";
 import { getFarmerAverageRating } from '@/app/marketplace/actions';
+
+export const metadata: Metadata = {
+  title: "My Profile | AgriBoost",
+  description: "View and manage your AgriBoost farmer profile, farms, listings, and ratings.",
+};
 
 export default async function ProfilePage() {
   const supabase = await createClient();
