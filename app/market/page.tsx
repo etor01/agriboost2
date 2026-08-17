@@ -1,4 +1,4 @@
-// app/market/page.tsx
+import { Suspense } from "react";
 import Link from "next/link";
 import { BadgeCheck, ShieldCheck, Truck } from "lucide-react";
 import MarketplaceClient from "@/app/marketplace/MarketplaceClient";
@@ -49,7 +49,9 @@ export default function PublicMarketPage() {
 
       {/* ── Produce Listings (reused from internal marketplace) ─── */}
       <section className="pb-16">
-        <MarketplaceClient />
+        <Suspense fallback={<div className="min-h-96 animate-pulse bg-emerald-50/30" />}>
+          <MarketplaceClient />
+        </Suspense>
       </section>
 
       {/* ── Sign-Up CTA Banner ────────────────────────────────────── */}
