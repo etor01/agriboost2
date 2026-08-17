@@ -1,4 +1,4 @@
-// app/(dashboard)/marketplace/page.tsx
+import { Suspense } from "react";
 import MarketplaceClient from "@/app/marketplace/MarketplaceClient";
 
 export const metadata = {
@@ -10,7 +10,9 @@ export const metadata = {
 export default function DashboardMarketplacePage() {
   return (
     <div className="min-h-screen">
-      <MarketplaceClient />
+      <Suspense fallback={<div className="min-h-screen animate-pulse bg-emerald-50/30" />}>
+        <MarketplaceClient />
+      </Suspense>
     </div>
   );
 }
