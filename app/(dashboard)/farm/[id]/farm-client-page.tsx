@@ -146,6 +146,7 @@ export default function FarmDetailClient({
       setAddCropStatus(null);
       setCrops((prev) => [...prev, res.crop]);
       setShowAddCrop(false);
+      toast({ title: "Crop Registered!", description: "Your crop has been added to the farm.", type: "success" });
       router.refresh();
     } else {
       toast.error("Error adding crop: " + res.message);
