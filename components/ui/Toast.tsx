@@ -54,11 +54,15 @@ const CONFIGS: Record<Variant, ToastConfig> = {
 // ── Toast card component ───────────────────────────────────────────────────────
 function ToastCard({
   t,
+  title,
+  description,
   message,
   variant,
 }: {
   t: HotToast;
-  message: string;
+  title?: string;
+  description?: string;
+  message?: string;
   variant: Variant;
 }) {
   const { Icon, leftBorder, iconCls, bgCls } = CONFIGS[variant];
@@ -76,9 +80,18 @@ function ToastCard({
       `}
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${iconCls}`} />
-      <p className="text-sm font-semibold text-gray-800 flex-1 leading-snug">
-        {message}
-      </p>
+      <div className="flex-1 leading-snug">
+        {title ? (
+          <>
+            <p className="text-sm font-bold text-gray-800">{title}</p>
+            {description && (
+              <p className="text-xs text-gray-600 font-normal">{description}</p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm font-semibold text-gray-800">{message}</p>
+        )}
+      </div>
       <button
         onClick={() => hotToast.dismiss(t.id)}
         className="ml-1 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
@@ -91,19 +104,43 @@ function ToastCard({
 }
 
 // ── Internal show helper ───────────────────────────────────────────────────────
-const show = (message: string, variant: Variant) =>
-  hotToast.custom(
-    (t) => <ToastCard t={t} message={message} variant={variant} />,
+interface ToastOptions {
+  title?: string;
+  description?: string;
+  type?: Variant;
+  message?: string;
+}
+
+const showCard = (opts: ToastOptions) => {
+  const variant = opts.type || "info";
+  return hotToast.custom(
+    (t) => (
+      <ToastCard
+        t={t}
+        title={opts.title}
+        description={opts.description}
+        message={opts.message}
+        variant={variant}
+      />
+    ),
     { duration: variant === "error" ? 5000 : 3500 }
   );
+};
 
 // ── Public API ─────────────────────────────────────────────────────────────────
-export const toast = {
-  success: (message: string) => show(message, "success"),
-  error:   (message: string) => show(message, "error"),
-  warning: (message: string) => show(message, "warning"),
-  info:    (message: string) => show(message, "info"),
-};
+function toastFn(options: ToastOptions | string) {
+  if (typeof options === "string") {
+    return showCard({ message: options, type: "info" });
+  }
+  return showCard(options);
+}
+
+toastFn.success = (message: string) => showCard({ message, type: "success" });
+toastFn.error   = (message: string) => showCard({ message, type: "error" });
+toastFn.warning = (message: string) => showCard({ message, type: "warning" });
+toastFn.info    = (message: string) => showCard({ message, type: "info" });
+
+export const toast = toastFn;
 
 // ── Toaster mount — add once to dashboard layout ───────────────────────────────
 export function AgriBoostToaster() {
