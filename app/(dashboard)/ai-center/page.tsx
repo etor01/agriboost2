@@ -18,6 +18,12 @@ import {
   Clock,
   XCircle,
   Shield,
+  Sprout,
+  TrendingUp,
+  ShieldAlert,
+  Lock,
+  Crown,
+  ArrowRight,
 } from "lucide-react";
 
 const PAGE_SIZE = 5;
@@ -228,6 +234,8 @@ export default function AiCenterPage() {
     return matchStatus && matchDate;
   });
 
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
+
   // Fetch scans remaining and user id on mount
   useEffect(() => {
     const init = async () => {
@@ -238,10 +246,15 @@ export default function AiCenterPage() {
         setUserId(user.id);
         const { data: profile } = await supabase
           .from("profiles")
-          .select("ai_scans_remaining")
+          .select("ai_scans_remaining, subscription_tier")
           .eq("id", user.id)
           .single();
-        if (profile) setScansRemaining(profile.ai_scans_remaining);
+        if (profile) {
+          setScansRemaining(profile.ai_scans_remaining);
+          if (profile.subscription_tier) {
+            setSubscriptionTier(profile.subscription_tier);
+          }
+        }
       }
     };
     init();
@@ -353,6 +366,188 @@ export default function AiCenterPage() {
         <div className="flex items-center gap-2 text-sm font-semibold text-white bg-green-600 px-4 py-2.5 rounded-xl shadow-md">
           <Sparkles className="h-4 w-4" />
           {scansRemaining} Scan{scansRemaining !== 1 ? "s" : ""} Remaining
+        </div>
+      </div>
+
+      {/* ─── AI Suite Feature Cards ─────────────────────────────────────── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-emerald-600" />
+              AgriBoost AI Tools
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Intelligent farming tools designed to boost yield and market success.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* CARD 1 — AI Crop Disease Scanner (EXISTING — Active/Free) */}
+          <div className="bg-white/70 backdrop-blur-xl border-2 border-emerald-500 rounded-2xl p-5 shadow-md shadow-emerald-100/60 relative flex flex-col justify-between transition-all hover:shadow-lg">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                  <Microscope className="h-5 w-5" />
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Available
+                </span>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-base">
+                  AI Crop Disease Scanner
+                </h3>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  Upload a photo of your crop leaf for instant AI disease diagnosis.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs font-bold text-emerald-700">
+              <span>Active Tool</span>
+              <span className="flex items-center gap-1">
+                Scroll to Scan ↓
+              </span>
+            </div>
+          </div>
+
+          {/* CARD 2 — AI Growth Plan Generator (PREMIUM) */}
+          <div
+            className={`bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-5 relative flex flex-col justify-between transition-all hover:shadow-md ${
+              subscriptionTier !== "premium" ? "opacity-80" : ""
+            }`}
+          >
+            {subscriptionTier !== "premium" && (
+              <div
+                className="absolute top-4 right-4 p-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shadow-sm"
+                title="Premium Feature"
+              >
+                <Lock className="h-4 w-4" />
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between pr-8">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+                  <Sprout className="h-5 w-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                  <Crown className="h-3 w-3 text-amber-600" />
+                  Premium
+                </span>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-base">
+                  AI Growth Plan Generator
+                </h3>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  Generate a week-by-week care schedule for any crop, tailored to your Ghanaian region and planting date.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              {subscriptionTier !== "premium" ? (
+                <Link
+                  href="/upgrade"
+                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 hover:from-amber-300 hover:to-amber-400 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  Upgrade to Unlock
+                </Link>
+              ) : (
+                <Link
+                  href="/farms"
+                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  Go to My Farms <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* CARD 3 — AI Market Price Predictor (COMING SOON) */}
+          <div className="bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-5 relative flex flex-col justify-between opacity-80 transition-all">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                  Coming Soon
+                </span>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-base">
+                  AI Market Price Predictor
+                </h3>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  Get AI-predicted optimal selling prices for your produce based on current market trends across Ghanaian regions.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <button
+                disabled
+                className="w-full py-2 px-4 rounded-xl text-xs font-semibold bg-gray-100 text-gray-400 cursor-not-allowed text-center"
+              >
+                Notify Me When Available
+              </button>
+            </div>
+          </div>
+
+          {/* CARD 4 — AI Pest & Weather Risk Alert (PREMIUM) */}
+          <div
+            className={`bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-5 relative flex flex-col justify-between transition-all hover:shadow-md ${
+              subscriptionTier !== "premium" ? "opacity-80" : ""
+            }`}
+          >
+            {subscriptionTier !== "premium" && (
+              <div
+                className="absolute top-4 right-4 p-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shadow-sm"
+                title="Premium Feature"
+              >
+                <Lock className="h-4 w-4" />
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between pr-8">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+                  <ShieldAlert className="h-5 w-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                  <Crown className="h-3 w-3 text-amber-600" />
+                  Premium
+                </span>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-base">
+                  AI Pest & Weather Risk Alert
+                </h3>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  Receive proactive warnings about pest outbreaks and adverse weather patterns in your farming region.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              {subscriptionTier !== "premium" ? (
+                <Link
+                  href="/upgrade"
+                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 hover:from-amber-300 hover:to-amber-400 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  Upgrade to Unlock
+                </Link>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  View Dashboard Alerts <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
