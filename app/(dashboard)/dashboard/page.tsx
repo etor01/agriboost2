@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Farm, Crop, Activity, TaskWithCrop, CropGrowthPlan } from "@/lib/database.types";
+
+export const metadata: Metadata = {
+  title: "Farm Dashboard | AgriBoost",
+  description: "Your AgriBoost farm overview — crops, revenue, tasks, and weather at a glance.",
+};
 import Link from "next/link";
 import {
   type LucideIcon,
@@ -25,6 +31,7 @@ import {
 } from "lucide-react";
 import WeatherWidget from "@/components/WeatherWidget";
 import FarmingTipWidget from "@/components/FarmingTipWidget";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 // ── Ghana region / city → GPS coordinates ────────────────────────
 const GHANA_REGION_COORDS: Record<string, { lat: number; lon: number }> = {
@@ -204,36 +211,74 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, farmsRes] = await Promise.all([
+  // ── Batch 1: All queries that only need the user id ──────────────────────
+  const oneWeekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+
+  const [
+    profileRes,
+    farmsRes,
+    activeListingsRes,
+    newListingsRes,
+    txRes,
+    activitiesRes,
+  ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("farms").select("*").eq("profile_id", user.id),
+    supabase
+      .from("listings")
+      .select("*", { count: "exact", head: true })
+      .eq("profile_id", user.id)
+      .eq("status", "active"),
+    supabase
+      .from("listings")
+      .select("*", { count: "exact", head: true })
+      .eq("profile_id", user.id)
+      .gte("created_at", oneWeekAgo),
+    supabase
+      .from("transactions")
+      .select("amount")
+      .eq("profile_id", user.id)
+      .eq("status", "completed"),
+    supabase
+      .from("activities")
+      .select("*")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   const profile = profileRes.data;
   const farms = farmsRes.data ?? [];
+  const activeListingsCount = activeListingsRes.count;
+  const newListingsThisWeek = newListingsRes.count;
+  const totalRevenue = txRes.data?.reduce((sum, tx) => sum + Number(tx.amount), 0) ?? 0;
+  const recentActivities: Activity[] = activitiesRes.data ?? [];
 
-  // Resolve the first farm (or profile) region to GPS coords for accurate weather
+  // ── Resolve region → GPS coords for weather ───────────────────────────────
   const regionOrCity =
-    (farms[0] as any)?.region ??
-    (farms[0] as any)?.location ??
+    (farms[0] as Farm & { region?: string })?.region ??
+    (farms[0] as Farm)?.location ??
     profile?.region ??
     "Ashanti";
   const { lat, lon } = resolveCoords(regionOrCity);
-  const weatherData = await getWeatherData(lat, lon);
 
-  // Fetch crops (include ai_growth_data + planting_date via select *)
+  // ── Batch 2: Queries that depend on farm IDs + weather (all parallel) ─────
   const farmIds = farms.map((f: Farm) => f.id);
-  let crops: Crop[] = [];
-  if (farmIds.length > 0) {
-    const { data: cropsData } = await supabase
-      .from("crops")
-      .select("*")
-      .in("farm_id", farmIds)
-      .eq("status", "active");
-    crops = (cropsData as Crop[]) ?? [];
-  }
 
-  // Derive "This Week on Your Farm" tasks from ai_growth_data
+  const [cropsRes, weatherData] = await Promise.all([
+    farmIds.length > 0
+      ? supabase
+          .from("crops")
+          .select("*")
+          .in("farm_id", farmIds)
+          .eq("status", "active")
+      : Promise.resolve({ data: [] }),
+    getWeatherData(lat, lon),
+  ]);
+
+  const crops = (cropsRes.data as Crop[]) ?? [];
+
+  // ── Derive "This Week on Your Farm" tasks from ai_growth_data ─────────────
   const thisWeekTasks: ThisWeekTask[] = [];
   for (const crop of crops) {
     if (!crop.ai_growth_data || !crop.planting_date) continue;
@@ -256,7 +301,7 @@ export default async function DashboardPage() {
     }
   }
 
-  // Fallback: fetch regular tasks if no AI plan tasks
+  // ── Fallback: fetch regular tasks if no AI plan tasks ─────────────────────
   const cropIds = crops.map((c: Crop) => c.id);
   let tasks: TaskWithCrop[] = [];
   if (thisWeekTasks.length === 0 && cropIds.length > 0) {
@@ -267,38 +312,9 @@ export default async function DashboardPage() {
       .eq("completed", false)
       .order("due_date", { ascending: true })
       .limit(8);
-    tasks = (tasksData as any as TaskWithCrop[]) ?? [];
+    // Safe cast: the query selects exactly the fields TaskWithCrop expects
+    tasks = (tasksData as unknown as TaskWithCrop[]) ?? [];
   }
-
-  // Listings count + new listings this week
-  const { count: activeListingsCount } = await supabase
-    .from("listings")
-    .select("*", { count: "exact", head: true })
-    .eq("profile_id", user.id)
-    .eq("status", "active");
-
-  const oneWeekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const { count: newListingsThisWeek } = await supabase
-    .from("listings")
-    .select("*", { count: "exact", head: true })
-    .eq("profile_id", user.id)
-    .gte("created_at", oneWeekAgo);
-
-  const { data: txData } = await supabase
-    .from("transactions")
-    .select("amount")
-    .eq("profile_id", user.id)
-    .eq("status", "completed");
-  const totalRevenue = txData?.reduce((sum, tx) => sum + Number(tx.amount), 0) ?? 0;
-
-  // Recent activities
-  const { data: activitiesData } = await supabase
-    .from("activities")
-    .select("*")
-    .eq("profile_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
-  const recentActivities: Activity[] = activitiesData ?? [];
 
   const safeProfile = profile ?? {
     id: user.id,
@@ -310,7 +326,7 @@ export default async function DashboardPage() {
 
   // Crop types and region for the farming tip widget
   const cropTypes = [...new Set(crops.map((c: Crop) => c.crop_type))];
-  const primaryRegion = (farms[0] as any)?.region ?? (farms[0] as any)?.location ?? "Ghana";
+  const primaryRegion = (farms[0] as Farm & { region?: string })?.region ?? (farms[0] as Farm)?.location ?? "Ghana";
 
   return (
     <div className="space-y-6">
@@ -388,7 +404,9 @@ export default async function DashboardPage() {
       {/* Weather + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <WeatherWidget initialWeatherData={weatherData} />
+          <ErrorBoundary label="Weather Widget">
+            <WeatherWidget initialWeatherData={weatherData} />
+          </ErrorBoundary>
         </div>
 
         <GlassCard className="p-5">
@@ -414,7 +432,9 @@ export default async function DashboardPage() {
           </div>
 
           {/* AI Farming Tip — loads after page render */}
-          <FarmingTipWidget crops={cropTypes} region={primaryRegion} />
+          <ErrorBoundary label="Farming Tip">
+            <FarmingTipWidget crops={cropTypes} region={primaryRegion} />
+          </ErrorBoundary>
         </GlassCard>
       </div>
 
