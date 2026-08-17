@@ -11,9 +11,14 @@ export default async function UpgradePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("subscription_tier")
+    .select("subscription_tier, subscription_end_date")
     .eq("id", user.id)
     .single();
 
-  return <UpgradeClientPage initialTier={profile?.subscription_tier || "free"} />;
+  return (
+    <UpgradeClientPage
+      initialTier={profile?.subscription_tier || "free"}
+      subscriptionEndDate={profile?.subscription_end_date || null}
+    />
+  );
 }
