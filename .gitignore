@@ -46,3 +46,7 @@ next-env.d.ts
 test.txt
 *.scratch.txt
 *.scratch.md
+
+# agriboost system documentation
+/AGRIBOOST_SYSTEM_DOCUMENTATION.md
+
