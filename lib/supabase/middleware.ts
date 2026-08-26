@@ -20,7 +20,7 @@ export async function updateSession(request: NextRequest) {
     setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
       cookiesToSet.forEach(({ name, value, options }) => {
         request.cookies.set({ name, value, ...options })
-        response = NextResponse.next({ request: { headers: request.headers }})
+        response = NextResponse.next({ request: { headers: request.headers } })
         response.cookies.set({ name, value, ...options })
       })
     },
@@ -41,7 +41,7 @@ export async function updateSession(request: NextRequest) {
   const buyerProtectedRoutes = ['/buyer']
   const internalMarketplaceRoutes = ['/marketplace'] // farmer-only internal marketplace
   const adminRoutes = ['/admin']
-  const metricsRoutes = ['/metrics'] // investor/sponsor metrics — admin only
+  // const metricsRoutes = ['/metrics'] // investor/sponsor metrics — admin only
   const authRoutes = ['/login', '/signup', '/forgot-password']
 
   // /market is a PUBLIC route — no auth needed, skip all checks for it.
@@ -54,8 +54,8 @@ export async function updateSession(request: NextRequest) {
     farmerProtectedRoutes.some(path => pathname.startsWith(path)) ||
     buyerProtectedRoutes.some(path => pathname.startsWith(path)) ||
     internalMarketplaceRoutes.some(path => pathname.startsWith(path)) ||
-    adminRoutes.some(path => pathname.startsWith(path)) ||
-    metricsRoutes.some(path => pathname.startsWith(path));
+    adminRoutes.some(path => pathname.startsWith(path));
+  // metricsRoutes.some(path => pathname.startsWith(path))
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -91,7 +91,7 @@ export async function updateSession(request: NextRequest) {
     if (
       role === 'buyer' &&
       (farmerProtectedRoutes.some(path => pathname.startsWith(path)) ||
-       internalMarketplaceRoutes.some(path => pathname.startsWith(path)))
+        internalMarketplaceRoutes.some(path => pathname.startsWith(path)))
     ) {
       return NextResponse.redirect(new URL('/buyer/shop', request.url));
     }
@@ -133,9 +133,9 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Rule 5: /metrics is restricted to admin users only (investor/sponsor data)
-    if (metricsRoutes.some(path => pathname.startsWith(path)) && role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
+    // if (metricsRoutes.some(path => pathname.startsWith(path)) && role !== 'admin') {
+    //   return NextResponse.redirect(new URL('/dashboard', request.url));
+    // }
   }
 
   // If none of the rules match, allow the request to proceed
