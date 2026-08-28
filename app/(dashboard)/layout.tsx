@@ -26,6 +26,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import InstallPrompt from "@/components/ui/InstallPrompt";
+import { registerPushSubscription } from "@/lib/idb/pushSubscription";
 
 // ── Nav Items 
 const navItems: Array<{
@@ -288,11 +290,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     ? profile.firstname.charAt(0).toUpperCase()
     : (user?.email?.charAt(0).toUpperCase() || "F");
 
+  // ── Phase 4: Register Web Push subscription on dashboard load ──────────────
+  useEffect(() => {
+    // Attempt to register push silently — do not block UI or alert on failure
+    // The user will only see a permission dialog if they haven't granted it yet
+    registerPushSubscription().catch(() => {
+      // Silently ignore — push is a progressive enhancement, not a hard requirement
+    });
+  }, []);
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background image via Tailwind arbitrary value — avoids inline style purge bypass */}
       <div className="fixed inset-0 bg-[url('/features.jpg')] bg-cover bg-center -z-10" />
       <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
+
+      {/* Phase 6: PWA Install Prompt Banner */}
+      <InstallPrompt />
 
       <Sidebar
         isOpen={sidebarOpen}

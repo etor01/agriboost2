@@ -7,6 +7,12 @@ import { analyzeCropImage } from "./actions";
 import type { DiagnosisResult } from "./actions";
 import type { CropDiagnostic } from "@/lib/database.types";
 import Link from "next/link";
+// Phase 7: Live Camera Scanner (primary input)
+import LiveCameraScanner from "@/components/features/LiveCameraScanner";
+// Phase 3: IndexedDB offline cache
+import { cacheScan, getCachedScans, pruneOldScans } from "@/lib/idb/diseaseCache";
+// Phase 5: Background Sync queue for offline scans
+import { enqueueDiseaseScan, getPendingCount, removeSyncItem, getPendingScans } from "@/lib/idb/syncQueue";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -24,6 +30,8 @@ import {
   Lock,
   Crown,
   ArrowRight,
+  WifiOff,
+  RefreshCcw,
 } from "lucide-react";
 
 const PAGE_SIZE = 5;
@@ -212,6 +220,11 @@ export default function AiCenterPage() {
     "All" | "Healthy" | "Disease Detected"
   >("All");
 
+  // Phase 3: Track whether history is being shown from IndexedDB cache
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  // Phase 5: Count of pending offline scans in the sync queue
+  const [pendingOfflineScans, setPendingOfflineScans] = useState(0);
+
   const filteredHistory = history.filter((scan) => {
     let matchStatus = true;
     const result = scan.ai_result as DiagnosisResult | null;
@@ -258,6 +271,32 @@ export default function AiCenterPage() {
       }
     };
     init();
+
+    // Phase 5: Count pending offline scans on mount
+    getPendingCount().then(setPendingOfflineScans).catch(() => {});
+
+    // Phase 5: iOS Background Sync fallback — process queue when connectivity restores
+    // (SyncManager is not supported in Safari/iOS, so we use the `online` event)
+    const processSyncQueueOnline = async () => {
+      const pending = await getPendingScans().catch(() => []);
+      for (const item of pending) {
+        try {
+          const res = await fetch("/api/detectDisease", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.payload),
+          });
+          if (res.ok) {
+            await removeSyncItem(item.id);
+          }
+        } catch {
+          // Will retry on next online event
+        }
+      }
+      getPendingCount().then(setPendingOfflineScans).catch(() => {});
+    };
+    window.addEventListener("online", processSyncQueueOnline);
+    return () => window.removeEventListener("online", processSyncQueueOnline);
   }, [supabase]);
 
   // Fetch history
@@ -283,6 +322,50 @@ export default function AiCenterPage() {
           setHistory((prev) => [...prev, ...page]);
         }
         setHistoryOffset(offset + page.length);
+        setIsOfflineMode(false);
+
+        // Phase 3: Write fetched scans to IndexedDB cache for offline access
+        if (userId) {
+          for (const scan of page) {
+            const result = scan.ai_result as DiagnosisResult | null;
+            if (!result) continue;
+            cacheScan({
+              id: scan.id,
+              profileId: userId,
+              cropName: result.crop_name ?? "Unknown",
+              diseaseName: result.disease_name ?? null,
+              isHealthy: result.is_healthy ?? null,
+              confidence: result.confidence ?? null,
+              imageUrl: scan.image_url ?? null,
+              diagnosis: result.diagnosis ?? null,
+              healthyPractices: result.healthy_practices ?? [],
+              createdAt: scan.created_at,
+            }).catch(() => {}); // non-blocking
+          }
+          pruneOldScans(userId, 50).catch(() => {});
+        }
+      } else if (error && replace && userId) {
+        // Phase 3: Supabase unreachable — fall back to IndexedDB cache
+        const cached = await getCachedScans(userId, PAGE_SIZE);
+        if (cached.length > 0) {
+          // Map CachedDiseaseScan back to CropDiagnostic shape for ScanHistoryCard
+          const fakeRows: CropDiagnostic[] = cached.map((c) => ({
+            id: c.id,
+            profile_id: c.profileId,
+            image_url: c.imageUrl,
+            created_at: c.createdAt,
+            ai_result: {
+              crop_name: c.cropName,
+              disease_name: c.diseaseName,
+              is_healthy: c.isHealthy,
+              confidence: c.confidence,
+              diagnosis: c.diagnosis,
+              healthy_practices: c.healthyPractices,
+            } as DiagnosisResult,
+          } as CropDiagnostic));
+          setHistory(fakeRows);
+          setIsOfflineMode(true);
+        }
       }
 
       if (replace) setHistoryLoading(false);
@@ -310,7 +393,7 @@ export default function AiCenterPage() {
 
   const handleAnalyze = async () => {
     if (!imageFile) {
-      setError("Please select an image to analyze.");
+      setError("Please capture or select an image to analyze.");
       return;
     }
     setIsLoading(true);
@@ -321,25 +404,71 @@ export default function AiCenterPage() {
     const formData = new FormData();
     formData.append("image", imageFile);
 
-    const result = await analyzeCropImage(formData);
+    try {
+      const result = await analyzeCropImage(formData);
 
-    if (result.success && result.analysis) {
-      const aiResult = result.analysis.ai_result as DiagnosisResult;
-      setAnalysisResult(aiResult);
-      // Update scan count from server response
-      if (typeof result.scansRemaining === "number") {
-        setScansRemaining(result.scansRemaining);
-      }
-      // Refresh history to show new entry at top
-      fetchHistory(0, true);
-    } else {
-      if ((result as any).outOfScans) {
-        setShowUpgradeModal(true);
-      } else if ((result as any).invalidPlant) {
-        setInvalidPlant(true);
-        setError(result.message ?? "Not a valid plant image.");
+      if (result.success && result.analysis) {
+        const aiResult = result.analysis.ai_result as DiagnosisResult;
+        setAnalysisResult(aiResult);
+        // Update scan count from server response
+        if (typeof result.scansRemaining === "number") {
+          setScansRemaining(result.scansRemaining);
+        }
+        // Phase 3: Cache the new scan result in IndexedDB
+        if (userId && result.analysis.id) {
+          cacheScan({
+            id: result.analysis.id,
+            profileId: userId,
+            cropName: aiResult.crop_name ?? "Unknown",
+            diseaseName: aiResult.disease_name ?? null,
+            isHealthy: aiResult.is_healthy ?? null,
+            confidence: aiResult.confidence ?? null,
+            imageUrl: result.analysis.image_url ?? null,
+            diagnosis: aiResult.diagnosis ?? null,
+            healthyPractices: aiResult.healthy_practices ?? [],
+            createdAt: new Date().toISOString(),
+          }).catch(() => {});
+        }
+        // Refresh history to show new entry at top
+        fetchHistory(0, true);
       } else {
-        setError(result.message ?? "An unknown error occurred.");
+        if ((result as any).outOfScans) {
+          setShowUpgradeModal(true);
+        } else if ((result as any).invalidPlant) {
+          setInvalidPlant(true);
+          setError(result.message ?? "Not a valid plant image.");
+        } else {
+          setError(result.message ?? "An unknown error occurred.");
+        }
+      }
+    } catch {
+      // Phase 5: Network error — enqueue scan for Background Sync
+      if (imageFile) {
+        try {
+          // Convert File to base64 for queue storage
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve((reader.result as string).split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(imageFile);
+          });
+          await enqueueDiseaseScan({ imageBase64: base64 });
+          setPendingOfflineScans((n) => n + 1);
+          // Register Background Sync tag (Chrome/Android) for auto-retry
+          if ("serviceWorker" in navigator) {
+            const sw = await navigator.serviceWorker.ready;
+            if ("sync" in sw) {
+              await (sw as any).sync.register("sync-disease-scans");
+            }
+          }
+          setError(
+            "📡 No internet connection. Your scan has been queued and will upload automatically when you're back online."
+          );
+        } catch {
+          setError("Network error. Please check your connection and try again.");
+        }
+      } else {
+        setError("Network error. Please check your connection and try again.");
       }
     }
 
@@ -553,41 +682,43 @@ export default function AiCenterPage() {
 
       {/* Upload + Result Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upload Panel */}
+        {/* Upload / Camera Panel */}
         <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <UploadCloud className="h-5 w-5 text-green-600" />
-            Upload Crop Image
+          <h2 className="text-xl font-bold text-gray-800 mb-1 flex items-center gap-2">
+            <Microscope className="h-5 w-5 text-green-600" />
+            Scan Crop Leaf
           </h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Point your camera at a leaf or upload a photo. Our AI will diagnose any disease.
+          </p>
 
-          <label
-            htmlFor="file-upload"
-            className="flex flex-col items-center justify-center w-full h-52 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors"
-          >
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Crop preview"
-                className="h-full w-full object-contain rounded-xl p-1"
-              />
-            ) : (
-              <div className="text-center space-y-2 py-6">
-                <UploadCloud className="mx-auto h-12 w-12 text-gray-300" />
-                <p className="text-sm font-medium text-green-600">
-                  Click to choose a file
-                </p>
-                <p className="text-xs text-gray-400">PNG, JPG, WEBP up to 10MB</p>
-              </div>
-            )}
-            <input
-              id="file-upload"
-              type="file"
-              className="sr-only"
-              onChange={handleImageChange}
-              accept="image/*"
-              capture="environment"
-            />
-          </label>
+          {/* Phase 7: Live Camera Scanner (primary) */}
+          <LiveCameraScanner
+            onCapture={(file, previewUrl) => {
+              setAnalysisResult(null);
+              setError("");
+              setInvalidPlant(false);
+              setImageFile(file);
+              setImagePreview(previewUrl);
+            }}
+            existingPreview={imagePreview || undefined}
+            onReset={() => {
+              setImageFile(null);
+              setImagePreview("");
+              setAnalysisResult(null);
+              setError("");
+            }}
+          />
+
+          {/* Phase 5: Pending offline scans indicator */}
+          {pendingOfflineScans > 0 && (
+            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+              <WifiOff className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>
+                <strong>{pendingOfflineScans}</strong> scan{pendingOfflineScans > 1 ? "s" : ""} queued for upload when online.
+              </span>
+            </div>
+          )}
 
           {/* Error / invalid plant message */}
           {error && (
@@ -678,7 +809,7 @@ export default function AiCenterPage() {
             <div className="flex flex-col items-center justify-center h-48 text-center text-gray-400 gap-3">
               <Microscope className="h-12 w-12 text-gray-200" />
               <p className="text-sm text-gray-400">
-                Upload an image and click{" "}
+                Capture or upload a crop image and click{" "}
                 <span className="font-semibold text-gray-600">
                   &quot;Analyse Crop Health&quot;
                 </span>{" "}
@@ -689,15 +820,23 @@ export default function AiCenterPage() {
         </div>
       </div>
 
-      {/* ─── Scan History ─────────────────────────────────── */}
+      {/* ─── Scan History ─────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               Crop Scan History
+              {/* Phase 3: Offline cache badge */}
+              {isOfflineMode && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                  <WifiOff className="h-3 w-3" /> Cached
+                </span>
+              )}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Your recent AI diagnoses — most recent first.
+              {isOfflineMode
+                ? "Showing locally cached history — reconnect to sync."
+                : "Your recent AI diagnoses — most recent first."}
             </p>
           </div>
           <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
