@@ -52,6 +52,7 @@ const pwaConfig = withPWA({
   // next-pwa v5: custom service worker code goes in /worker/ directory.
   // It is bundled and merged into the generated sw.js automatically.
   customWorkerDir: "worker",
+  buildExcludes: [/middleware-manifest\.json$/],
   runtimeCaching: [
     {
       // Cache Next.js page navigations (stale-while-revalidate)
