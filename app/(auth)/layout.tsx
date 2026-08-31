@@ -2,23 +2,29 @@
 
 import React from "react";
 
-// This layout component will be shared by the login and signup pages.
-// The (auth) route group ensures this layout applies only to routes within it.
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
-      {/* subtle background image like on the landing page */}
+    <div className="min-h-screen relative flex flex-col justify-center items-center p-4 sm:p-6 bg-zinc-900 selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Background Image with Transparency & Soft Overlay */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-90"
+        className="absolute inset-0 bg-cover bg-center opacity-85"
         style={{ backgroundImage: "url('/features1.jpg')" }}
-      ></div>
+      />
+      <div className="absolute inset-0 bg-zinc-950/25 backdrop-blur-[2px]" />
 
-      {/* This div centers the content and sets a max width for the form container */}
-      <div className="relative w-full max-w-md">{children}</div>
+      {/* Auth Content Container */}
+      <div className="relative w-full max-w-md z-10">{children}</div>
+
+      {/* Footer Branding */}
+      <footer className="relative mt-6 text-center text-xs text-white/80 font-medium drop-shadow-xs z-10">
+        <p>
+          &copy; {new Date().getFullYear()} AgriBoost · Better Farming, Better Ghana
+        </p>
+      </footer>
     </div>
   );
 }
