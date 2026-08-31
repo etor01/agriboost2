@@ -1,5 +1,7 @@
+// components/marketplace/FilterBar.tsx
 "use client";
 
+import React from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 interface FilterBarProps {
@@ -30,45 +32,47 @@ export default function FilterBar({
   onClearFilters,
 }: FilterBarProps) {
   return (
-    <div className="space-y-3">
-      {/* Controls */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-white/60 flex flex-col sm:flex-row gap-3">
-        {/* Search */}
+    <div className="space-y-2.5">
+      {/* Controls Container */}
+      <div className="bg-white rounded-lg p-2 sm:p-2.5 border border-zinc-200 shadow-2xs flex flex-col sm:flex-row gap-2">
+        {/* Search Input */}
         <div className="relative flex-grow">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search maize, yams, tomatoes..."
-            className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-800 placeholder-gray-400 text-sm"
+            placeholder="Search crop produce (e.g. Maize, Yam, Tomatoes)..."
+            className="w-full pl-9 pr-8 py-1.5 rounded-md border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-zinc-900 placeholder-zinc-400 text-xs sm:text-sm"
           />
           {search && (
             <button
               onClick={() => onSearchChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
-        {/* Region + Sort */}
-        <div className="flex gap-2 flex-shrink-0">
+        {/* Region & Sort Selects */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <select
             value={region}
             onChange={(e) => onRegionChange(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-600 text-sm cursor-pointer"
+            className="px-2.5 py-1.5 rounded-md border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-zinc-800 text-xs cursor-pointer shadow-2xs font-medium"
           >
             {regions.map((r) => (
-              <option key={r}>{r}</option>
+              <option key={r} value={r}>
+                {r}
+              </option>
             ))}
           </select>
 
           <select
             value={sort}
             onChange={(e) => onSortChange(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-600 text-sm cursor-pointer"
+            className="px-2.5 py-1.5 rounded-md border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-zinc-800 text-xs cursor-pointer shadow-2xs font-medium"
           >
             <option value="featured">Featured First</option>
             <option value="newest">Newest Harvest</option>
@@ -79,23 +83,19 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* Results meta */}
-      <div className="flex items-center justify-between text-sm text-gray-500 px-1">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-3.5 w-3.5" />
+      {/* Results Meta Bar */}
+      <div className="flex items-center justify-between text-xs text-zinc-500 px-0.5">
+        <div className="flex items-center gap-1.5">
+          <SlidersHorizontal className="h-3 w-3 text-zinc-400" />
           <span>
-            <strong className="text-gray-800 font-semibold">
-              {filteredCount}
-            </strong>{" "}
-            of{" "}
-            <strong className="text-gray-800 font-semibold">{totalCount}</strong>{" "}
-            products
+            Showing <strong className="text-zinc-900 font-semibold">{filteredCount}</strong> of{" "}
+            <strong className="text-zinc-900 font-semibold">{totalCount}</strong> listings
           </span>
         </div>
         {hasActiveFilters && (
           <button
             onClick={onClearFilters}
-            className="inline-flex items-center gap-1 text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 hover:text-red-700 transition-colors"
           >
             <X className="h-3 w-3" />
             Clear filters
@@ -105,3 +105,4 @@ export default function FilterBar({
     </div>
   );
 }
+

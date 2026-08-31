@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// components/marketplace/CheckoutModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -19,10 +20,12 @@ import {
   AlertCircle,
   RefreshCw,
   Plus,
+  ArrowRight,
 } from "lucide-react";
 import { type Listing } from "@/lib/data/marketplaceData";
 import { createOrderWithEscrow } from "@/app/marketplace/actions";
 import { createClient } from "@/lib/supabase/client";
+import { FarmerBadge } from "@/components/farmer/ui";
 
 type CartItem = { listing: Listing; qty: number };
 
@@ -34,7 +37,7 @@ interface CheckoutModalProps {
 
 type DeliveryOption = "farm_pickup" | "standard_delivery" | "express_delivery";
 
-const PLATFORM_FEE_RATE = 0.05; // must match actions.ts
+const PLATFORM_FEE_RATE = 0.05;
 
 const DELIVERY_OPTIONS: Array<{
   id: DeliveryOption;
@@ -49,7 +52,7 @@ const DELIVERY_OPTIONS: Array<{
     label: "Standard Delivery",
     fee: 25.0,
     time: "24 – 48 Hours",
-    desc: "Delivered directly to your address by verified logistics.",
+    desc: "Direct delivery to your address by verified courier.",
     icon: Truck,
   },
   {
@@ -57,7 +60,7 @@ const DELIVERY_OPTIONS: Array<{
     label: "Express Priority",
     fee: 45.0,
     time: "Same Day",
-    desc: "Priority dispatch for urgent farm produce orders.",
+    desc: "Fast-track dispatch for urgent produce deliveries.",
     icon: Zap,
   },
   {
@@ -85,7 +88,7 @@ export default function CheckoutModal({
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [walletLoading, setWalletLoading] = useState(true);
 
-  // Success celebration state
+  // Success state
   const [createdOrders, setCreatedOrders] = useState<
     Array<{
       orderId: string;
@@ -101,7 +104,6 @@ export default function CheckoutModal({
     farmerEarns: number;
   } | null>(null);
 
-  // Pre-fill user profile info + fetch wallet balance
   useEffect(() => {
     const fetchUser = async () => {
       setWalletLoading(true);
@@ -163,9 +165,9 @@ export default function CheckoutModal({
     }
     if (walletBalance < grandTotal) {
       setError(
-        `Insufficient wallet balance. You need GH₵ ${grandTotal.toFixed(
+        `Insufficient wallet balance. Required: GH₵ ${grandTotal.toFixed(
           2
-        )} but have GH₵ ${walletBalance.toFixed(2)}. Please top up your wallet first.`
+        )}, Available: GH₵ ${walletBalance.toFixed(2)}. Please top up your wallet first.`
       );
       return;
     }
@@ -209,7 +211,7 @@ export default function CheckoutModal({
         deliveryFee: res.deliveryFee ?? deliveryFee,
         farmerEarns: res.farmerEarns ?? farmerEarns,
       });
-      // Update local wallet balance display
+
       if (walletBalance !== null) {
         setWalletBalance(
           Number((walletBalance - (res.grandTotal ?? grandTotal)).toFixed(2))
@@ -229,217 +231,169 @@ export default function CheckoutModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Card */}
-      <div className={`relative w-full ${createdOrders ? "max-w-4xl h-[90vh] lg:h-[80vh]" : "max-w-2xl max-h-[90vh]"} bg-white rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col`}>
+      {/* Modal Dialog Card */}
+      <div
+        className={`relative w-full ${
+          createdOrders ? "max-w-3xl" : "max-w-xl"
+        } max-h-[90vh] bg-white rounded-lg border border-zinc-200 shadow-xl overflow-hidden z-10 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 bg-gradient-to-r from-emerald-50 via-white to-green-50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-md">
-              <ShieldCheck className="h-5 w-5 text-white" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 bg-zinc-50/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
+              <ShieldCheck className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
-                Escrow Checkout
+              <h2 className="text-sm font-bold text-zinc-900">
+                Escrow Order Checkout
               </h2>
-              <p className="text-xs text-gray-500 font-medium">
-                100% Secure · Protected by AgriBoost Escrow
+              <p className="text-[11px] text-zinc-500 font-medium">
+                AgriBoost Buyer Escrow Protection
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-7 space-y-6">
-          {/* ── SUCCESS SCREEN ────────────────────────────────────────────────── */}
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* SUCCESS STATE */}
           {createdOrders ? (
-            <div className="flex flex-col lg:flex-row gap-8 py-4 h-full">
-              {/* Left Column: Success Message & Breakdown */}
-              <div className="flex-1 space-y-6 lg:border-r lg:border-gray-100 lg:pr-8 flex flex-col justify-center">
-                <div className="text-center lg:text-left">
-                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center shadow-inner mb-6 mx-auto lg:mx-0">
-                    <CheckCircle2 className="h-11 w-11 text-emerald-600 animate-bounce" />
-                  </div>
-                  
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 mb-3">
-                    <Lock className="h-3 w-3" />
-                    AgriBoost Escrow Protected
-                  </span>
-                  <h3 className="text-3xl lg:text-4xl font-black text-gray-900 mb-3">
-                    Order Placed Successfully!
-                  </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed max-w-md mx-auto lg:mx-0">
-                    <strong>GH₵ {(checkoutSummary?.grandTotal ?? grandTotal).toFixed(2)}</strong> deducted from your wallet and securely held in escrow. It will only be released to the farmer after you inspect and confirm your delivery.
-                  </p>
+            <div className="space-y-5 py-2">
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto text-emerald-600">
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
-
-                {checkoutSummary && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-3xl p-5 text-sm space-y-3 mt-4">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Payment Breakdown</p>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Products subtotal</span>
-                      <span className="font-semibold">GH₵ {subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Delivery fee</span>
-                      <span className="font-semibold">{checkoutSummary.deliveryFee === 0 ? "FREE" : `GH₵ ${checkoutSummary.deliveryFee.toFixed(2)}`}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Platform fee (5%)</span>
-                      <span className="font-semibold text-red-600">GH₵ {checkoutSummary.platformFee.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-extrabold text-gray-900 pt-3 border-t border-gray-200 text-lg">
-                      <span>Total Charged</span>
-                      <span className="text-emerald-700">GH₵ {checkoutSummary.grandTotal.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
+                <h3 className="text-base font-bold text-zinc-900">
+                  Order Successfully Placed
+                </h3>
+                <p className="text-xs text-zinc-600 max-w-md mx-auto leading-relaxed">
+                  <strong>GH₵ {(checkoutSummary?.grandTotal ?? grandTotal).toFixed(2)}</strong> has been deducted and held safely in escrow. Funds are released to farmers only after you confirm delivery.
+                </p>
               </div>
 
-              {/* Right Column: OTPs & Actions */}
-              <div className="flex-1 space-y-6 flex flex-col justify-center">
-                <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-950 text-white rounded-3xl p-7 text-left shadow-2xl relative overflow-hidden">
-                  {/* Decorative Elements */}
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl" />
-                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
-                  
-                  <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-4 mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Sparkles className="h-5 w-5 text-emerald-400" />
+              {/* Delivery OTP Security Card */}
+              <div className="bg-zinc-900 text-white rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-zinc-200 uppercase tracking-wider">
+                      Delivery Release OTPs
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-zinc-400">
+                    Hand to driver upon inspection
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {createdOrders.map((order) => (
+                    <div
+                      key={order.orderId}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-xs"
+                    >
+                      <div className="truncate">
+                        <p className="font-semibold text-zinc-100 truncate">
+                          {order.title}
+                        </p>
+                        <p className="text-[10px] text-zinc-400">
+                          Order #{order.orderId.slice(0, 8).toUpperCase()} · GH₵ {order.total.toFixed(2)}
+                        </p>
                       </div>
-                      <div>
-                        <span className="text-sm font-bold uppercase tracking-widest text-emerald-300 block mb-0.5">
-                          Delivery OTPs
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="font-mono text-sm font-bold tracking-wider bg-zinc-950 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/30">
+                          {order.otp}
                         </span>
-                        <span className="text-xs text-gray-400 font-medium">
-                          Hand to farmer upon delivery
-                        </span>
+                        <button
+                          onClick={() => handleCopyOtp(order.otp)}
+                          className="p-1.5 rounded-md bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
+                          title="Copy OTP"
+                        >
+                          {copiedOtp === order.otp ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="relative z-10 space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                    {createdOrders.map((order) => (
-                      <div
-                        key={order.orderId}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/5 hover:bg-white/10 transition-colors rounded-2xl p-4 border border-white/10"
-                      >
-                        <div>
-                          <p className="text-sm font-bold text-white mb-1">
-                            {order.title}
-                          </p>
-                          <p className="text-xs text-emerald-200/80 font-medium">
-                            Order #{order.orderId.slice(0, 8).toUpperCase()} · GH₵ {order.total.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-2xl font-black tracking-widest bg-black/40 text-emerald-400 px-4 py-2 rounded-xl border border-emerald-500/30 shadow-inner">
-                            {order.otp}
-                          </span>
-                          <button
-                            onClick={() => handleCopyOtp(order.otp)}
-                            className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-                            title="Copy OTP"
-                          >
-                            {copiedOtp === order.otp ? (
-                              <Check className="h-5 w-5 text-emerald-400" />
-                            ) : (
-                              <Copy className="h-5 w-5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
+              </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <a
-                    href="/buyer/orders"
-                    className="flex-1 py-4 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all text-center shadow-lg hover:shadow-xl text-sm"
-                  >
-                    View My Orders →
-                  </a>
-                  <button
-                    onClick={() => {
-                      onSuccess();
-                      onClose();
-                    }}
-                    className="flex-1 py-4 border-2 border-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    Continue Shopping
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <a
+                  href="/buyer/orders"
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md text-center text-xs transition-colors shadow-2xs"
+                >
+                  View My Orders
+                </a>
+                <button
+                  onClick={() => {
+                    onSuccess();
+                    onClose();
+                  }}
+                  className="flex-1 py-2 border border-zinc-200 text-zinc-700 font-medium rounded-md hover:bg-zinc-50 transition-colors text-xs"
+                >
+                  Continue Shopping
+                </button>
               </div>
             </div>
           ) : (
+            /* CHECKOUT FORM */
             <>
-              {/* ── CHECKOUT FORM ─────────────────────────────────────────────── */}
-
-              {/* Escrow Banner */}
-              <div className="bg-gradient-to-r from-emerald-600 to-green-600 text-white p-4 rounded-2xl shadow-md flex items-start gap-3.5">
-                <div className="p-2 bg-white/20 rounded-xl flex-shrink-0">
-                  <Lock className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-xs leading-relaxed">
-                  <p className="font-extrabold text-sm text-white mb-0.5">
-                    AgriBoost 100% Escrow Guarantee
-                  </p>
-                  Your payment is held in secure escrow and is{" "}
-                  <strong>NEVER released to the farmer</strong> until you
-                  confirm receipt of your produce via your Delivery OTP.
+              {/* Escrow Guarantee Banner */}
+              <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/70 text-emerald-950 flex items-start gap-2.5 text-xs">
+                <Lock className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="font-semibold block text-emerald-900">
+                    100% Escrow Guarantee
+                  </strong>
+                  Payment is locked securely and released to the farmer only when you provide your delivery verification OTP.
                 </div>
               </div>
 
-              {/* ── Wallet Balance Banner ─────────────────────────────────────── */}
+              {/* Wallet Balance Banner */}
               <div
-                className={`flex items-center justify-between p-4 rounded-2xl border-2 ${
+                className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs ${
                   walletLoading
-                    ? "border-gray-200 bg-gray-50"
+                    ? "border-zinc-200 bg-zinc-50"
                     : hasEnoughBalance
-                    ? "border-emerald-300 bg-emerald-50"
-                    : "border-red-300 bg-red-50"
+                    ? "border-zinc-200 bg-zinc-50"
+                    : "border-red-200 bg-red-50/60"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    className={`w-7 h-7 rounded-md flex items-center justify-center ${
                       walletLoading
-                        ? "bg-gray-200"
+                        ? "bg-zinc-200 text-zinc-600"
                         : hasEnoughBalance
-                        ? "bg-emerald-600"
-                        : "bg-red-500"
-                    } text-white`}
+                        ? "bg-emerald-600 text-white"
+                        : "bg-red-600 text-white"
+                    }`}
                   >
-                    <Wallet className="h-4 w-4" />
+                    <Wallet className="h-3.5 w-3.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Your Wallet Balance
-                    </p>
-                    <p
-                      className={`text-xl font-extrabold ${
-                        walletLoading
-                          ? "text-gray-400"
-                          : hasEnoughBalance
-                          ? "text-emerald-700"
-                          : "text-red-600"
-                      }`}
-                    >
+                    <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider block">
+                      Wallet Balance
+                    </span>
+                    <span className="font-bold text-xs sm:text-sm text-zinc-900">
                       {walletLoading
-                        ? "Loading..."
+                        ? "Loading…"
                         : `GH₵ ${(walletBalance ?? 0).toFixed(2)}`}
-                    </p>
+                    </span>
                   </div>
                 </div>
 
@@ -448,20 +402,19 @@ export default function CheckoutModal({
                     href="/buyer/wallet"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600 transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-medium transition-colors shadow-2xs"
                   >
-                    <Plus className="h-3.5 w-3.5" />
-                    Top Up
+                    <Plus className="h-3 w-3" /> Top Up
                   </a>
                 )}
               </div>
 
-              {/* Delivery Method */}
+              {/* Delivery Option Selector */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-3">
-                  1. Choose Delivery Method
+                <label className="block text-xs font-semibold text-zinc-900 mb-2">
+                  1. Delivery Method
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {DELIVERY_OPTIONS.map((opt) => {
                     const Icon = opt.icon;
                     const isSelected = deliveryOption === opt.id;
@@ -470,23 +423,23 @@ export default function CheckoutModal({
                         key={opt.id}
                         type="button"
                         onClick={() => setDeliveryOption(opt.id)}
-                        className={`text-left p-3.5 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                        className={`text-left p-2.5 rounded-lg border transition-colors flex flex-col justify-between ${
                           isSelected
-                            ? "border-emerald-600 bg-emerald-50/70 shadow-sm"
-                            : "border-gray-200 hover:border-gray-300 bg-white"
+                            ? "border-emerald-600 bg-emerald-600 text-white shadow-2xs"
+                            : "border-zinc-200 hover:border-zinc-300 bg-white text-zinc-900"
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-1.5">
                           <Icon
-                            className={`h-5 w-5 ${
-                              isSelected ? "text-emerald-600" : "text-gray-400"
+                            className={`h-4 w-4 ${
+                              isSelected ? "text-emerald-100" : "text-zinc-500"
                             }`}
                           />
                           <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                               isSelected
-                                ? "bg-emerald-600 text-white"
-                                : "bg-gray-100 text-gray-600"
+                                ? "bg-emerald-700/80 text-white"
+                                : "bg-zinc-100 text-zinc-700"
                             }`}
                           >
                             {opt.fee === 0
@@ -495,10 +448,12 @@ export default function CheckoutModal({
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900">
-                            {opt.label}
-                          </p>
-                          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                          <p className="text-xs font-bold">{opt.label}</p>
+                          <p
+                            className={`text-[10px] ${
+                              isSelected ? "text-emerald-100" : "text-zinc-400"
+                            }`}
+                          >
                             {opt.time}
                           </p>
                         </div>
@@ -508,113 +463,82 @@ export default function CheckoutModal({
                 </div>
               </div>
 
-              {/* Delivery Details */}
-              <div className="space-y-4">
-                <label className="block text-sm font-bold text-gray-900">
-                  2. Delivery & Contact Details
+              {/* Delivery Details Form */}
+              <div className="space-y-3">
+                <label className="block text-xs font-semibold text-zinc-900">
+                  2. Contact &amp; Delivery Destination
                 </label>
 
                 {deliveryOption !== "farm_pickup" && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    <label className="block text-[11px] font-medium text-zinc-600 mb-1">
                       Delivery Address
                     </label>
                     <div className="relative">
-                      <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+                      <MapPin className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-400" />
                       <input
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        placeholder="e.g. 14 Asafo Street, Kumasi / House Number"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-gray-900 placeholder:text-gray-400"
+                        placeholder="e.g. House No. 12, Asafo Road, Kumasi"
+                        className="w-full pl-8 pr-3 py-1.5 rounded-md border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                    Phone Number (for Courier / OTP verification)
+                  <label className="block text-[11px] font-medium text-zinc-600 mb-1">
+                    Phone Number (for Courier &amp; OTP verification)
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+                    <Phone className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-400" />
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. +233 24 123 4567"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="e.g. 024 123 4567"
+                      className="w-full pl-8 pr-3 py-1.5 rounded-md border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Order Summary */}
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200/80">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-                  3. Order Summary ({cart.length} item
-                  {cart.length !== 1 ? "s" : ""})
-                </h4>
-                <div className="space-y-2.5 max-h-36 overflow-y-auto pr-1">
-                  {cart.map((item) => (
-                    <div
-                      key={item.listing.id}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="font-bold text-gray-800">
-                          {item.qty}x
-                        </span>
-                        <span className="text-gray-700 truncate">
-                          {item.listing.title}
-                        </span>
-                      </div>
-                      <span className="font-semibold text-gray-900 flex-shrink-0">
-                        GH₵ {(item.listing.price * item.qty).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
+              {/* Order Cost Breakdown */}
+              <div className="rounded-lg p-3.5 bg-zinc-50 border border-zinc-200 text-xs space-y-2">
+                <div className="flex items-center justify-between text-zinc-500 font-medium">
+                  <span>Produce Subtotal ({cart.length} items)</span>
+                  <span className="font-semibold text-zinc-800">
+                    GH₵ {subtotal.toFixed(2)}
+                  </span>
                 </div>
-
-                <div className="border-t border-gray-200 mt-3 pt-3 space-y-1.5 text-sm">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Subtotal</span>
-                    <span className="font-medium">GH₵ {subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>{selectedDelivery.label}</span>
-                    <span className="font-medium">
-                      {deliveryFee === 0
-                        ? "FREE"
-                        : `GH₵ ${deliveryFee.toFixed(2)}`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span className="flex items-center gap-1">
-                      Platform fee
-                      <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
-                        5%
-                      </span>
-                    </span>
-                    <span className="font-medium text-red-600">
-                      GH₵ {platformFee.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-base font-extrabold text-gray-900 pt-1.5 border-t border-gray-200">
-                    <span>Total (from wallet)</span>
-                    <span className="text-emerald-700">
-                      GH₵ {grandTotal.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-emerald-600 pt-0.5">
-                    <span>Farmer earns (after fees)</span>
-                    <span className="font-bold">GH₵ {farmerEarns.toFixed(2)}</span>
-                  </div>
+                <div className="flex items-center justify-between text-zinc-500 font-medium">
+                  <span>{selectedDelivery.label}</span>
+                  <span className="font-semibold text-zinc-800">
+                    {deliveryFee === 0
+                      ? "FREE"
+                      : `GH₵ ${deliveryFee.toFixed(2)}`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-500 font-medium">
+                  <span className="flex items-center gap-1">
+                    Escrow Platform Fee
+                    <FarmerBadge variant="muted">5%</FarmerBadge>
+                  </span>
+                  <span className="font-semibold text-zinc-800">
+                    GH₵ {platformFee.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-bold text-zinc-900 border-t border-zinc-200 pt-2">
+                  <span>Grand Total</span>
+                  <span className="text-zinc-900">
+                    GH₵ {grandTotal.toFixed(2)}
+                  </span>
                 </div>
               </div>
 
               {error && (
-                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <div className="flex items-start gap-2 p-2.5 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs">
                   <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <p>{error}</p>
@@ -623,48 +547,35 @@ export default function CheckoutModal({
                         href="/buyer/wallet"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="underline font-bold text-red-700 mt-1 inline-block"
+                        className="underline font-semibold text-red-800 mt-1 inline-block"
                       >
-                        → Top up your wallet
+                        → Top up wallet here
                       </a>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Pay Button */}
-              <div className="space-y-2.5 pt-2">
+              {/* Payment Action */}
+              <div className="space-y-2 pt-1">
                 <button
                   type="button"
                   onClick={executeCheckout}
                   disabled={loading || walletLoading || !hasEnoughBalance}
-                  className="w-full py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-extrabold rounded-2xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-xl hover:shadow-2xl active:scale-[0.99] flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md transition-colors shadow-2xs flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Locking Funds in Escrow...
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>Locking Funds in Escrow…</span>
                     </>
                   ) : (
                     <>
-                      <Wallet className="h-4 w-4" />
-                      Pay GH₵ {grandTotal.toFixed(2)} from Wallet
+                      <Wallet className="h-3.5 w-3.5" />
+                      <span>Pay GH₵ {grandTotal.toFixed(2)} with Wallet</span>
                     </>
                   )}
                 </button>
-
-                {!walletLoading && !hasEnoughBalance && (
-                  <a
-                    href="/buyer/wallet"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-xs"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Load Wallet to Pay (need GH₵{" "}
-                    {(grandTotal - (walletBalance ?? 0)).toFixed(2)} more)
-                  </a>
-                )}
               </div>
             </>
           )}
@@ -673,3 +584,4 @@ export default function CheckoutModal({
     </div>
   );
 }
+
