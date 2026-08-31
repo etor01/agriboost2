@@ -1,3 +1,4 @@
+// app/page.tsx
 import type { Metadata } from "next";
 import React from "react";
 import Header from "../components/ui/Header";
@@ -21,10 +22,10 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <div className="bg-gray-50 text-gray-800 font-sans">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
       <Header />
 
-      <main className="bg-gray-300">
+      <main className="flex-1">
         <Hero />
         <FeatureSection />
         <CTA />
@@ -34,3 +35,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
