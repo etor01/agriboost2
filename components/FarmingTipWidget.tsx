@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 
 interface FarmingTipWidgetProps {
-  crops: string[];   // e.g. ["Maize", "Tomato"]
-  region: string;    // e.g. "Ashanti Region"
+  crops: string[];
+  region: string;
 }
 
 const SESSION_KEY = "agriboost_farming_tip";
@@ -17,7 +17,6 @@ export default function FarmingTipWidget({ crops, region }: FarmingTipWidgetProp
 
   useEffect(() => {
     const loadTip = async () => {
-      // Check sessionStorage cache first
       try {
         const cached = sessionStorage.getItem(SESSION_KEY);
         if (cached) {
@@ -37,7 +36,6 @@ export default function FarmingTipWidget({ crops, region }: FarmingTipWidgetProp
         // sessionStorage unavailable
       }
 
-      // Fetch from API route
       try {
         const params = new URLSearchParams({
           crops: crops.length > 0 ? crops.join(",") : "Maize",
@@ -73,22 +71,24 @@ export default function FarmingTipWidget({ crops, region }: FarmingTipWidgetProp
   }, [crops, region]);
 
   return (
-    <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-100 min-h-[62px]">
-      <p className="text-xs font-bold text-amber-800 mb-0.5 flex items-center gap-1">
-        <Sparkles className="h-3.5 w-3.5" /> AI Farming Tip
-      </p>
+    <div className="mt-4 p-3.5 rounded-md bg-amber-50/60 border border-amber-200/70">
+      <div className="flex items-center gap-1.5 text-amber-800 font-semibold text-xs mb-1">
+        <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+        <span>AI Farming Tip</span>
+      </div>
       {loading ? (
-        <div className="space-y-1.5 mt-1">
-          <div className="h-2.5 bg-amber-200/60 rounded animate-pulse w-full" />
-          <div className="h-2.5 bg-amber-200/60 rounded animate-pulse w-4/5" />
+        <div className="space-y-1.5 mt-1.5">
+          <div className="h-2.5 bg-amber-200/50 rounded animate-pulse w-full" />
+          <div className="h-2.5 bg-amber-200/50 rounded animate-pulse w-4/5" />
         </div>
       ) : tip ? (
-        <p className="text-[11px] text-amber-700 leading-relaxed">{tip}</p>
+        <p className="text-xs text-amber-900 leading-relaxed font-normal">{tip}</p>
       ) : (
-        <p className="text-[11px] text-amber-600 italic">
-          Add crops to your farm to receive personalised tips.
+        <p className="text-xs text-amber-700/80 italic font-normal">
+          Add crops to your farm to receive personalised AI agronomy tips.
         </p>
       )}
     </div>
   );
 }
+
