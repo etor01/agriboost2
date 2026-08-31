@@ -520,19 +520,19 @@ export default function CropGrowthPlanSection({
             )}
 
             {/* Plan meta */}
-            <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+            <div className="flex flex-wrap gap-2 text-xs text-zinc-600">
               {plan.variety_suggestion && (
-                <span className="bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-lg font-medium">
+                <span className="bg-emerald-50 border border-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-medium">
                   🌱 {plan.variety_suggestion}
                 </span>
               )}
-              <span className="bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg font-medium">
+              <span className="bg-zinc-50 border border-zinc-200 text-zinc-700 px-2.5 py-1 rounded-md font-medium">
                 📍 {plan.region}
               </span>
-              <span className="bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg font-medium">
+              <span className="bg-zinc-50 border border-zinc-200 text-zinc-700 px-2.5 py-1 rounded-md font-medium">
                 ⏱ {plan.total_growing_days} days total
               </span>
-              <span className="bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg font-medium text-amber-700">
+              <span className="bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-md font-medium">
                 🌾 Yield: {plan.estimated_yield_per_acre}
               </span>
             </div>
@@ -545,21 +545,21 @@ export default function CropGrowthPlanSection({
               const thisWeek = plan.weeks?.find((w) => w.week_number === currentWeek);
               if (!thisWeek) return null;
               return (
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 space-y-3">
+                <div className="bg-emerald-50/60 border border-emerald-200 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-green-700">
-                        This Week — Week {currentWeek}
+                      <span className="text-xs font-semibold text-emerald-800">
+                        Current Week — Week {currentWeek}
                       </span>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${getStageColor(thisWeek.growth_stage)}`}
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full text-white ${getStageColor(thisWeek.growth_stage)}`}
                       >
                         {thisWeek.growth_stage}
                       </span>
                     </div>
-                    <Tractor className="h-4 w-4 text-green-500" />
+                    <Tractor className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <p className="text-xs text-gray-600 italic">{thisWeek.stage_description}</p>
+                  <p className="text-xs text-zinc-600 italic">{thisWeek.stage_description}</p>
                   {thisWeek.tasks.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {thisWeek.tasks.map((task, i) => {
@@ -580,8 +580,8 @@ export default function CropGrowthPlanSection({
                     </div>
                   )}
                   {thisWeek.risks.length > 0 && (
-                    <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 rounded-lg p-2">
-                      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-500" />
+                    <div className="flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 rounded-md p-2 border border-amber-200/70">
+                      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
                       <span>{thisWeek.risks[0]}</span>
                     </div>
                   )}
@@ -591,7 +591,7 @@ export default function CropGrowthPlanSection({
 
             {/* Weekly accordion */}
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
                 Full Weekly Schedule
               </p>
               <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
@@ -617,13 +617,13 @@ export default function CropGrowthPlanSection({
 
             {/* Harvest indicators */}
             {plan.harvest_indicators?.length > 0 && (
-              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 space-y-1.5">
-                <p className="text-xs font-bold text-amber-700 flex items-center gap-1">
-                  <Wheat className="h-3.5 w-3.5" /> Harvest Indicators
+              <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-amber-800 flex items-center gap-1">
+                  <Wheat className="h-3.5 w-3.5 text-amber-600" /> Harvest Indicators
                 </p>
                 {plan.harvest_indicators.map((hint, i) => (
-                  <p key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
-                    <CheckCircle2 className="h-3 w-3 flex-shrink-0 mt-0.5 text-amber-500" />
+                  <p key={i} className="text-xs text-amber-800 flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 flex-shrink-0 mt-0.5 text-amber-600" />
                     {hint}
                   </p>
                 ))}
@@ -635,3 +635,4 @@ export default function CropGrowthPlanSection({
     </div>
   );
 }
+

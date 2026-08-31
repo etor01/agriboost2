@@ -5,6 +5,14 @@ import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  Mail,
+  ArrowRight,
+  ArrowLeft,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -12,7 +20,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
@@ -20,131 +28,123 @@ export default function ForgotPasswordPage() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/profile`, // Page to redirect to after password reset
+      redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
     });
 
     if (error) {
       setError(error.message);
     } else {
-      setMessage("Password reset link has been sent to your email address.");
+      setMessage(
+        "A password reset link has been dispatched to your email address. Please check your inbox and spam folders."
+      );
     }
     setIsLoading(false);
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] p-8 md:p-10 transition-all">
+    <div className="w-full">
+      <div className="bg-white/85 backdrop-blur-md border border-white/60 rounded-2xl p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.12)]">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <Link
             href="/"
-            className="inline-block mb-4 hover:scale-[1.05] transition-all"
+            className="inline-block mb-3 hover:scale-105 transition-transform"
+            aria-label="Go to Homepage"
           >
             <Image
               alt="leaf icon"
               src="/icons/logo.png"
-              width={60}
-              height={60}
+              width={56}
+              height={56}
+              className="drop-shadow-xs mx-auto"
             />
           </Link>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900">
             Forgot Password
           </h1>
-          <p className="text-sm text-slate-500 mt-2">
-            Enter your email to receive a reset link.
+          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+            Enter your email to receive a password reset link
           </p>
         </div>
 
+        {/* Success Alert */}
+        {message && (
+          <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs">
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5 text-emerald-600" />
+            <div className="leading-relaxed">
+              <span className="font-semibold block">Email sent</span>
+              {message}
+            </div>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-red-50/90 border border-red-200 text-red-700 text-xs">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <span className="font-semibold block">Reset failed</span>
+              {error}
+            </div>
+          </div>
+        )}
+
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-xs font-semibold text-zinc-700 mb-1.5"
             >
-              Email address
+              Email Address
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-xl bg-white/60 border border-white/20 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600/30 focus:border-green-600 transition-all"
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                disabled={isLoading}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200/90 bg-white/90 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs transition-colors"
+              />
+            </div>
           </div>
 
-          {/* Success Message */}
-          {message && (
-            <p className="text-sm text-green-700 bg-green-50/70 border border-green-200 rounded-xl px-4 py-3">
-              {message}
-            </p>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50/70 border border-red-200 rounded-xl px-4 py-3">
-              {error}
-            </p>
-          )}
-
-          {/* Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-4 rounded-full bg-green-600 text-white text-sm font-medium tracking-tight transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Sending..." : "Send Reset Link"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium transition-colors shadow-2xs flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                <span>Sending Link…</span>
+              </>
+            ) : (
+              <>
+                <span>Send Reset Link</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </>
+            )}
+          </button>
         </form>
 
         {/* Footer */}
-        <p className="mt-8 text-center text-sm text-slate-500">
-          Remembered your password?{" "}
+        <div className="mt-6 pt-5 border-t border-zinc-200/60 text-center">
           <Link
             href="/login"
-            className="text-green-600 hover:text-green-700 transition-all hover:scale-[1.02]"
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-emerald-700 font-medium transition-colors"
           >
-            Sign In
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Return to Sign In</span>
           </Link>
-        </p>
+        </div>
       </div>
     </div>
-
-    // <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl w-full">
-    //   <div className="text-center mb-8">
-    //     <Link href="/" className="inline-block mb-4">
-    //       <Image alt="leaf icon" src="/icons/logo.png" width={60} height={60} />
-    //     </Link>
-    //     <h1 className="text-3xl font-bold text-gray-900">Forgot Password</h1>
-    //     <p className="text-gray-500 mt-2">Enter your email to receive a reset link.</p>
-    //   </div>
-
-    //   <form onSubmit={handleSubmit} className="space-y-6">
-    //     <div>
-    //       <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
-    //       <input id="email" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="you@example.com" />
-    //     </div>
-
-    //     {message && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">{message}</p>}
-    //     {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
-
-    //     <div>
-    //       <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400">
-    //         {isLoading ? 'Sending...' : 'Send Reset Link'}
-    //       </button>
-    //     </div>
-    //   </form>
-    //   <p className="mt-8 text-center text-sm text-gray-500">
-    //     Remembered your password?{' '}
-    //     <Link href="/login" className="font-medium text-green-600 hover:text-green-500">Sign In</Link>
-    //   </p>
-    // </div>
   );
 }
