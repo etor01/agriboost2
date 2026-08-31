@@ -1,3 +1,4 @@
+// app/marketplace/MarketplaceClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import {
   RefreshCw,
   ShoppingCart,
   Sprout,
+  Search,
 } from "lucide-react";
 import {
   ALL_CATEGORIES,
@@ -22,6 +24,7 @@ import CheckoutModal from "@/components/marketplace/CheckoutModal";
 import CategoryBar from "@/components/marketplace/CategoryBar";
 import FilterBar from "@/components/marketplace/FilterBar";
 import ProductCard from "@/components/marketplace/ProductCard";
+import { FarmerBadge, FarmerEmptyState } from "@/components/farmer/ui";
 
 const supabase = createClient();
 
@@ -43,7 +46,6 @@ type SupabaseListingRow = {
   delivery_available?: boolean | null;
   description?: string | null;
   created_at?: string | null;
-  // profile_id FK → farmers → profiles (nested join)
   farmers?: {
     profiles?: {
       location?: string | null;
@@ -63,33 +65,14 @@ const PER_PAGE = 24;
 // ── Loading Skeleton ────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
-      <div className="h-48 bg-gray-200" />
-      <div className="p-4 space-y-3">
-        <div className="h-2.5 bg-gray-200 rounded w-1/3" />
-        <div className="h-3.5 bg-gray-200 rounded w-4/5" />
-        <div className="h-3.5 bg-gray-200 rounded w-2/3" />
-        <div className="h-8 bg-gray-200 rounded-xl mt-4" />
+    <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white animate-pulse">
+      <div className="aspect-[4/3] bg-zinc-100" />
+      <div className="p-3.5 space-y-2.5">
+        <div className="h-2.5 bg-zinc-100 rounded w-1/4" />
+        <div className="h-4 bg-zinc-100 rounded w-4/5" />
+        <div className="h-3 bg-zinc-100 rounded w-1/2" />
+        <div className="h-7 bg-zinc-100 rounded mt-3" />
       </div>
-    </div>
-  );
-}
-
-// ── Empty State ─────────────────────────────────────────────────────
-function EmptyState({ onClear }: { onClear: () => void }) {
-  return (
-    <div className="text-center py-24 bg-white/70 rounded-2xl border-2 border-dashed border-gray-200">
-      <Sprout className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-gray-700">No products found</h3>
-      <p className="text-sm text-gray-400 mt-1">
-        Try adjusting your search or filters.
-      </p>
-      <button
-        onClick={onClear}
-        className="mt-4 px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
-      >
-        Clear filters
-      </button>
     </div>
   );
 }
@@ -217,7 +200,6 @@ export default function MarketplaceClient() {
       } else if (sort === "newest") {
         query = query.order("created_at", { ascending: false });
       } else {
-        // "featured" default
         query = query
           .order("is_featured", { ascending: false })
           .order("created_at", { ascending: false });
@@ -323,8 +305,12 @@ export default function MarketplaceClient() {
     setCart([]);
   };
 
-  const hasActiveFilters =
-    Boolean(search.trim() || category !== "All" || region !== "All Regions" || sort !== "featured");
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+      category !== "All" ||
+      region !== "All Regions" ||
+      sort !== "featured"
+  );
 
   const clearFilters = () => {
     setPage(1);
@@ -335,7 +321,7 @@ export default function MarketplaceClient() {
   const verifiedCount = listings.filter((l) => l.is_verified).length;
 
   return (
-    <>
+    <div className="min-h-screen bg-zinc-50/50">
       {/* Cart Drawer */}
       {cartOpen && (
         <CartDrawer
@@ -364,42 +350,45 @@ export default function MarketplaceClient() {
       {cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2.5 font-semibold text-sm"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-xs sm:text-sm border border-emerald-500"
         >
-          <ShoppingCart className="h-4.5 w-4.5" />
-          Cart
-          <span className="bg-white text-emerald-700 text-xs font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
+          <ShoppingCart className="h-4 w-4" />
+          <span>Cart</span>
+          <span className="bg-white text-emerald-800 text-[11px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
             {cartCount}
           </span>
         </button>
       )}
 
-      {/* ── Stats Bar ─────────────────────────────────────────────── */}
-      <div className="bg-white/70 backdrop-blur-sm border-b border-white/50 py-2.5 px-4">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <Sprout className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">{totalCount}</strong>
-              &nbsp;listings
+      {/* ── Stats Sub-header ─────────────────────────────────────── */}
+      <div className="bg-white border-b border-zinc-200 py-2 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-4 text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+              <strong className="text-zinc-900 font-semibold">{totalCount}</strong>{" "}
+              listings
             </span>
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <MapPin className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">10</strong>&nbsp;regions
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+              <strong className="text-zinc-900 font-semibold">10</strong> regions
             </span>
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">{verifiedCount}</strong>
-              &nbsp;verified loaded
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
+              <strong className="text-zinc-900 font-semibold">{verifiedCount}</strong>{" "}
+              verified
             </span>
           </div>
 
           <button
             onClick={() => setCartOpen(true)}
-            className="flex items-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 transition-colors text-sm"
+            className="flex items-center gap-1.5 text-zinc-700 font-semibold hover:text-zinc-900 transition-colors"
           >
-            <ShoppingCart className="h-4 w-4" />
-            Cart ({cartCount})
+            <ShoppingCart className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Cart</span>
+            {cartCount > 0 && (
+              <span className="text-emerald-700 font-bold">({cartCount})</span>
+            )}
           </button>
         </div>
       </div>
@@ -411,8 +400,8 @@ export default function MarketplaceClient() {
         onChange={(cat) => setFilter("category", cat)}
       />
 
-      {/* ── Main Content ──────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 py-5">
+      {/* ── Main Listings Area ─────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         {/* Filter bar */}
         <FilterBar
           search={search}
@@ -428,19 +417,27 @@ export default function MarketplaceClient() {
           onClearFilters={clearFilters}
         />
 
-        {/* Grid */}
-        <div className="mt-5">
+        {/* Product Grid */}
+        <div className="mt-4">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))}
             </div>
           ) : listings.length === 0 ? (
-            <EmptyState onClear={clearFilters} />
+            <FarmerEmptyState
+              icon={Search}
+              title="No produce listings found"
+              description="Try adjusting your search criteria, crop category, or selected region."
+              action={{
+                label: "Clear All Filters",
+                onClick: clearFilters,
+              }}
+            />
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {listings.map((listing) => (
                   <ProductCard
                     key={listing.id}
@@ -453,19 +450,19 @@ export default function MarketplaceClient() {
               </div>
 
               {hasMore && (
-                <div className="text-center mt-10">
+                <div className="text-center mt-8">
                   <button
                     onClick={() => setPage((p) => p + 1)}
                     disabled={loadingMore}
-                    className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm disabled:opacity-50 inline-flex items-center gap-2"
+                    className="px-5 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium rounded-md hover:bg-zinc-50 transition-colors shadow-2xs text-xs disabled:opacity-50 inline-flex items-center gap-2"
                   >
                     {loadingMore ? (
                       <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Loading...
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-zinc-500" />
+                        <span>Loading more listings…</span>
                       </>
                     ) : (
-                      `Load more · ${totalCount - listings.length} remaining`
+                      <span>Load More ({totalCount - listings.length} remaining)</span>
                     )}
                   </button>
                 </div>
@@ -474,7 +471,8 @@ export default function MarketplaceClient() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
+
 

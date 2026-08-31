@@ -1,9 +1,16 @@
-// app/(buyer)/shop/page.tsx
+// app/buyer/shop/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { BadgeCheck, MapPin, ShoppingCart, Sprout } from "lucide-react";
+import {
+  BadgeCheck,
+  MapPin,
+  ShoppingCart,
+  Sprout,
+  Search,
+  RefreshCw,
+} from "lucide-react";
 import {
   ALL_CATEGORIES,
   REGIONS_FILTER,
@@ -15,6 +22,7 @@ import CheckoutModal from "@/components/marketplace/CheckoutModal";
 import CategoryBar from "@/components/marketplace/CategoryBar";
 import FilterBar from "@/components/marketplace/FilterBar";
 import ProductCard from "@/components/marketplace/ProductCard";
+import { FarmerPageHeader, FarmerEmptyState } from "@/components/farmer/ui";
 
 const supabase = createClient();
 
@@ -56,30 +64,14 @@ const PER_PAGE = 24;
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
-      <div className="h-48 bg-gray-200" />
-      <div className="p-4 space-y-3">
-        <div className="h-2.5 bg-gray-200 rounded w-1/3" />
-        <div className="h-3.5 bg-gray-200 rounded w-4/5" />
-        <div className="h-3.5 bg-gray-200 rounded w-2/3" />
-        <div className="h-8 bg-gray-200 rounded-xl mt-4" />
+    <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white animate-pulse">
+      <div className="aspect-[4/3] bg-zinc-100" />
+      <div className="p-3.5 space-y-2.5">
+        <div className="h-2.5 bg-zinc-100 rounded w-1/4" />
+        <div className="h-4 bg-zinc-100 rounded w-4/5" />
+        <div className="h-3 bg-zinc-100 rounded w-1/2" />
+        <div className="h-7 bg-zinc-100 rounded mt-3" />
       </div>
-    </div>
-  );
-}
-
-function EmptyState({ onClear }: { onClear: () => void }) {
-  return (
-    <div className="text-center py-24 bg-white/70 rounded-2xl border-2 border-dashed border-gray-200">
-      <Sprout className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-gray-700">No products found</h3>
-      <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filters.</p>
-      <button
-        onClick={onClear}
-        className="mt-4 px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
-      >
-        Clear filters
-      </button>
     </div>
   );
 }
@@ -187,7 +179,6 @@ export default function BuyerShopPage() {
   const persistCart = useCallback(
     async (updatedCart: CartItem[]) => {
       if (!userId) return;
-      // Delete all existing rows then re-insert
       await supabase.from("buyer_cart").delete().eq("buyer_id", userId);
       if (updatedCart.length === 0) return;
       const rows = updatedCart.map((item) => ({
@@ -278,7 +269,7 @@ export default function BuyerShopPage() {
   };
 
   return (
-    <>
+    <div className="space-y-4">
       {/* Cart Drawer */}
       {cartOpen && (
         <CartDrawer
@@ -307,49 +298,49 @@ export default function BuyerShopPage() {
       {cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2.5 font-semibold text-sm"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-xs sm:text-sm border border-emerald-500"
         >
           <ShoppingCart className="h-4 w-4" />
-          Cart
-          <span className="bg-white text-emerald-700 text-xs font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
+          <span>Cart</span>
+          <span className="bg-white text-emerald-800 text-[11px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
             {cartCount}
           </span>
         </button>
       )}
 
       {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-          Fresh Produce
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Browse and order directly from verified local farmers.
-        </p>
-      </div>
+      <FarmerPageHeader
+        badge="Marketplace"
+        title="Fresh Produce Market"
+        description="Browse, filter, and order directly from verified local farmers with escrow payment protection."
+      />
 
-      {/* Stats Bar */}
-      <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl py-2.5 px-4 mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <Sprout className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">{listings.length}</strong>&nbsp;listings
+      {/* Stats Sub-strip */}
+      <div className="bg-white rounded-lg border border-zinc-200 py-2 px-3.5 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-4 text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+              <strong className="text-zinc-900 font-semibold">{listings.length}</strong> listings
             </span>
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <MapPin className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">10</strong>&nbsp;regions
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+              <strong className="text-zinc-900 font-semibold">10</strong> regions
             </span>
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
-              <strong className="text-gray-800">{verifiedCount}</strong>&nbsp;verified farmers
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
+              <strong className="text-zinc-900 font-semibold">{verifiedCount}</strong> verified farmers
             </span>
           </div>
           <button
             onClick={() => setCartOpen(true)}
-            className="flex items-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 transition-colors text-sm"
+            className="flex items-center gap-1.5 text-zinc-700 font-semibold hover:text-zinc-900 transition-colors"
           >
-            <ShoppingCart className="h-4 w-4" />
-            Cart ({cartCount})
+            <ShoppingCart className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Cart</span>
+            {cartCount > 0 && (
+              <span className="text-emerald-700 font-bold">({cartCount})</span>
+            )}
           </button>
         </div>
       </div>
@@ -358,59 +349,80 @@ export default function BuyerShopPage() {
       <CategoryBar
         categories={ALL_CATEGORIES}
         active={category}
-        onChange={(cat) => { setCategory(cat); setPage(1); }}
+        onChange={(cat) => {
+          setCategory(cat);
+          setPage(1);
+        }}
       />
 
-      {/* Main Content */}
-      <div className="mt-4">
-        <FilterBar
-          search={search}
-          region={region}
-          sort={sort}
-          regions={REGIONS_FILTER}
-          filteredCount={filtered.length}
-          totalCount={listings.length}
-          hasActiveFilters={hasActiveFilters}
-          onSearchChange={(v) => { setSearch(v); setPage(1); }}
-          onRegionChange={(v) => { setRegion(v); setPage(1); }}
-          onSortChange={(v) => { setSort(v); setPage(1); }}
-          onClearFilters={clearFilters}
-        />
+      {/* Filter Bar & Grid */}
+      <FilterBar
+        search={search}
+        region={region}
+        sort={sort}
+        regions={REGIONS_FILTER}
+        filteredCount={filtered.length}
+        totalCount={listings.length}
+        hasActiveFilters={hasActiveFilters}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setPage(1);
+        }}
+        onRegionChange={(v) => {
+          setRegion(v);
+          setPage(1);
+        }}
+        onSortChange={(v) => {
+          setSort(v);
+          setPage(1);
+        }}
+        onClearFilters={clearFilters}
+      />
 
-        <div className="mt-5">
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+      <div className="mt-4">
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <FarmerEmptyState
+            icon={Search}
+            title="No produce found"
+            description="Try adjusting your keyword search, category, or selected regional location."
+            action={{
+              label: "Clear All Filters",
+              onClick: clearFilters,
+            }}
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {paginated.map((listing) => (
+                <ProductCard
+                  key={listing.id}
+                  listing={listing}
+                  onAddToCart={addToCart}
+                  onRemoveFromCart={removeFromCart}
+                  inCart={cartIds.has(listing.id)}
+                />
+              ))}
             </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState onClear={clearFilters} />
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {paginated.map((listing) => (
-                  <ProductCard
-                    key={listing.id}
-                    listing={listing}
-                    onAddToCart={addToCart}
-                    onRemoveFromCart={removeFromCart}
-                    inCart={cartIds.has(listing.id)}
-                  />
-                ))}
+            {hasMore && (
+              <div className="text-center mt-8">
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-5 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium rounded-md hover:bg-zinc-50 transition-colors shadow-2xs text-xs"
+                >
+                  Load More ({filtered.length - paginated.length} remaining)
+                </button>
               </div>
-              {hasMore && (
-                <div className="text-center mt-10">
-                  <button
-                    onClick={() => setPage((p) => p + 1)}
-                    className="px-8 py-3 bg-white border-2 border-emerald-500 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm"
-                  >
-                    Load more · {filtered.length - paginated.length} remaining
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+            )}
+          </>
+        )}
       </div>
-    </>
+    </div>
   );
 }
+

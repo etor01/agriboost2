@@ -16,11 +16,16 @@ import {
   Star,
   Tractor,
   Truck,
+  Check,
+  Package,
+  Calendar,
+  Phone,
 } from "lucide-react";
 import { type Listing } from "@/lib/data/marketplaceData";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 import { useWishlist } from "@/lib/wishlist";
+import { FarmerBadge } from "@/components/farmer/ui";
 
 const supabase = createClient();
 
@@ -93,20 +98,6 @@ const mapListing = (item: SupabaseListingRow): Listing => {
   };
 };
 
-// ── Icons ──────────────────────────────────────────────────────────
-const MapPinIcon = (p: React.SVGProps<SVGSVGElement>) => <MapPin {...p} />;
-const ArrowLeftIcon = (p: React.SVGProps<SVGSVGElement>) => (
-  <ArrowLeft {...p} />
-);
-const StarIcon = (p: React.SVGProps<SVGSVGElement>) => (
-  <Star {...p} fill="currentColor" stroke="none" />
-);
-const TruckIcon = (p: React.SVGProps<SVGSVGElement>) => <Truck {...p} />;
-const CartIcon = (p: React.SVGProps<SVGSVGElement>) => <ShoppingCart {...p} />;
-const ShieldIcon = (p: React.SVGProps<SVGSVGElement>) => <ShieldCheck {...p} />;
-const LeafIcon = (p: React.SVGProps<SVGSVGElement>) => <Leaf {...p} />;
-
-// ── Star Rating ────────────────────────────────────────────────────
 const StarRating = ({
   rating,
   size = "sm",
@@ -114,13 +105,18 @@ const StarRating = ({
   rating: number;
   size?: "sm" | "md";
 }) => {
-  const cls = size === "md" ? "h-5 w-5" : "h-3.5 w-3.5";
+  const cls = size === "md" ? "h-4 w-4" : "h-3.5 w-3.5";
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <StarIcon
+        <Star
           key={s}
-          className={`${cls} ${s <= Math.round(rating) ? "text-amber-400" : "text-gray-200"}`}
+          className={`${cls} ${
+            s <= Math.round(rating)
+              ? "text-amber-500 fill-amber-500"
+              : "text-zinc-200 fill-zinc-200"
+          }`}
+          strokeWidth={0}
         />
       ))}
     </div>
@@ -139,27 +135,27 @@ const RelatedCard = ({ listing }: { listing: Listing }) => {
   };
 
   return (
-    <div className="group relative flex items-center justify-between gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors border border-transparent hover:border-emerald-200">
+    <div className="group relative flex items-center justify-between gap-2.5 p-2 rounded-md hover:bg-zinc-50 transition-colors border border-transparent hover:border-zinc-200">
       <Link
         href={`/marketplace/${encodeURIComponent(listing.id)}`}
-        className="flex items-center gap-3 min-w-0 flex-1"
+        className="flex items-center gap-2.5 min-w-0 flex-1"
       >
-        <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+        <div className="relative h-12 w-12 rounded-md overflow-hidden flex-shrink-0 bg-zinc-100 border border-zinc-100">
           <Image
             src={listing.image_urls[0]}
             alt={listing.title}
             fill
-            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            className="object-cover group-hover:scale-105 transition-transform"
           />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-800 group-hover:text-emerald-700 truncate transition-colors">
+          <p className="text-xs font-semibold text-zinc-900 group-hover:text-emerald-700 truncate transition-colors">
             {listing.title}
           </p>
-          <p className="text-xs text-gray-500 truncate">{listing.location}</p>
-          <p className="text-sm font-bold text-emerald-600 mt-0.5">
+          <p className="text-[11px] text-zinc-400 truncate">{listing.location}</p>
+          <p className="text-xs font-bold text-zinc-900 mt-0.5">
             GH₵{listing.price.toFixed(2)}{" "}
-            <span className="text-xs font-normal text-gray-400">
+            <span className="text-[10px] font-normal text-zinc-400">
               /{listing.unit}
             </span>
           </p>
@@ -169,13 +165,13 @@ const RelatedCard = ({ listing }: { listing: Listing }) => {
       <button
         onClick={handleSave}
         title={saved ? "Remove from wishlist" : "Add to wishlist"}
-        className={`flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center transition-all z-10 ${
+        className={`flex-shrink-0 h-7 w-7 rounded-md flex items-center justify-center transition-colors shadow-2xs ${
           saved
-            ? "bg-rose-100 text-rose-600 border border-rose-200 shadow-sm"
-            : "bg-gray-100/80 hover:bg-rose-50 text-gray-400 hover:text-rose-500 border border-gray-200/60"
+            ? "bg-rose-50 text-rose-600 border border-rose-200"
+            : "bg-white text-zinc-400 hover:text-rose-600 border border-zinc-200"
         }`}
       >
-        <Heart className={`h-4 w-4 ${saved ? "fill-rose-600" : ""}`} />
+        <Heart className={`h-3.5 w-3.5 ${saved ? "fill-rose-600" : ""}`} />
       </button>
     </div>
   );
@@ -309,11 +305,11 @@ export default function ListingDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-zinc-50 flex flex-col">
         <Header />
         <main className="flex-grow flex items-center justify-center px-4 py-20">
-          <div className="text-emerald-600 font-bold text-xl animate-pulse">
-            Loading product details...
+          <div className="text-xs text-zinc-500 font-medium animate-pulse">
+            Loading produce details…
           </div>
         </main>
         <Footer />
@@ -323,25 +319,24 @@ export default function ListingDetailPage({
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-zinc-50 flex flex-col">
         <Header />
         <main className="flex-grow flex items-center justify-center px-4 py-20">
-          <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <Leaf className="h-6 w-6" />
+          <div className="max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-center shadow-2xs">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600">
+              <Leaf className="h-5 w-5" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">
-              Product not found
+            <h1 className="text-base font-bold text-zinc-900">
+              Produce Not Found
             </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              We couldn’t find that listing right now. Please try another
-              product or go back to the marketplace.
+            <p className="mt-1.5 text-xs text-zinc-500">
+              This listing might have been harvested, sold out, or removed by the farmer.
             </p>
             <Link
               href="/marketplace"
-              className="mt-5 inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              className="mt-4 inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-emerald-700 shadow-2xs"
             >
-              Back to marketplace
+              Back to Marketplace
             </Link>
           </div>
         </main>
@@ -362,31 +357,31 @@ export default function ListingDetailPage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-zinc-50/50 flex flex-col">
       <Header />
 
-      <main className="flex-grow container mx-auto px-4 sm:px-6 py-8 max-w-7xl mt-20">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mt-14">
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-1.5 text-xs text-zinc-500 mb-5">
           <Link
             href="/marketplace"
-            className="hover:text-emerald-600 flex items-center gap-1.5 font-medium"
+            className="hover:text-zinc-900 flex items-center gap-1 font-medium transition-colors"
           >
-            <ArrowLeftIcon className="h-4 w-4" /> Marketplace
+            <ArrowLeft className="h-3.5 w-3.5" /> Marketplace
           </Link>
-          <span>/</span>
-          <span className="text-emerald-600">{listing.category}</span>
-          <span>/</span>
-          <span className="text-gray-700 font-medium truncate">
+          <span className="text-zinc-300">/</span>
+          <span className="text-zinc-600">{listing.category}</span>
+          <span className="text-zinc-300">/</span>
+          <span className="text-zinc-900 font-semibold truncate">
             {listing.title}
           </span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* LEFT: Image + Farmer */}
-          <div className="lg:col-span-1 space-y-5">
-            {/* Image */}
-            <div className="relative rounded-2xl overflow-hidden aspect-square shadow-lg">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT: Image & Farmer Card */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Main Product Image Card */}
+            <div className="relative rounded-lg border border-zinc-200 overflow-hidden aspect-square bg-zinc-100 shadow-2xs">
               <Image
                 src={listing.image_urls[0]}
                 alt={listing.title}
@@ -394,27 +389,33 @@ export default function ListingDetailPage({
                 className="object-cover"
               />
 
-              {/* Wishlist Heart Button on Image */}
+              {/* Wishlist Floating Button */}
               <button
                 onClick={() => listing && toggleSave(listing)}
                 title={saved ? "Remove from wishlist" : "Add to wishlist"}
-                className={`absolute bottom-4 right-4 z-10 p-3 rounded-full backdrop-blur-md transition-all shadow-md hover:scale-105 ${
+                className={`absolute bottom-3 right-3 z-10 p-2.5 rounded-md backdrop-blur-xs transition-colors shadow-2xs ${
                   saved
-                    ? "bg-rose-500 text-white shadow-rose-500/20"
-                    : "bg-white/90 text-gray-600 hover:text-rose-500 hover:bg-white"
+                    ? "bg-rose-50 text-rose-600 border border-rose-200"
+                    : "bg-white/90 text-zinc-600 hover:text-rose-600 border border-zinc-200"
                 }`}
               >
-                <Heart className={`h-5 w-5 ${saved ? "fill-white" : ""}`} />
+                <Heart className={`h-4 w-4 ${saved ? "fill-rose-600" : ""}`} />
               </button>
             </div>
 
-            {/* Farmer Card */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
-                Sold By
-              </h3>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="relative h-14 w-14 rounded-full overflow-hidden ring-2 ring-emerald-200">
+            {/* Farmer Profile Card */}
+            <div className="bg-white rounded-lg p-4 shadow-2xs border border-zinc-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Verified Producer
+                </span>
+                {listing.is_verified && (
+                  <FarmerBadge variant="success">Verified Farmer</FarmerBadge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="relative h-11 w-11 rounded-full overflow-hidden border border-zinc-200 bg-zinc-100 flex-shrink-0">
                   <Image
                     src={listing.farmer_avatar}
                     alt={listing.farmer_name}
@@ -422,220 +423,207 @@ export default function ListingDetailPage({
                     className="object-cover"
                   />
                 </div>
-                <div>
-                  <p className="font-bold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-xs text-zinc-900 truncate">
                     {listing.farmer_name}
                   </p>
-                  {listing.is_verified && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mt-0.5">
-                      <ShieldIcon className="h-3 w-3" /> Verified Farmer
-                    </span>
-                  )}
+                  <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                    {listing.location}
+                  </p>
                 </div>
               </div>
-              <div className="space-y-2 text-sm text-gray-600 border-t pt-3">
+
+              <div className="space-y-1.5 text-xs text-zinc-600 pt-1">
                 <div className="flex items-center gap-2">
-                  <MapPinIcon className="h-4 w-4 text-gray-400" />{" "}
-                  {listing.location}
+                  <MapPin className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" />
+                  <span className="truncate">{listing.location}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <LeafIcon className="h-4 w-4 text-gray-400" /> Harvest:{" "}
-                  {listing.harvest_date}
+                  <Calendar className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" />
+                  <span>Harvested: {listing.harvest_date ? new Date(listing.harvest_date).toLocaleDateString() : "Recent"}</span>
                 </div>
                 {listing.delivery_available && (
-                  <div className="flex items-center gap-2 text-blue-600 font-medium">
-                    <TruckIcon className="h-4 w-4" /> Delivery Available
+                  <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                    <Truck className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>Courier Delivery Available</span>
                   </div>
                 )}
               </div>
-              <button className="w-full mt-4 py-2.5 border border-emerald-400 text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 transition-colors text-sm">
-                Contact Farmer
-              </button>
             </div>
 
-            {/* Trust Badges */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 grid grid-cols-3 gap-3 text-center text-xs text-gray-500">
-              <div className="flex flex-col items-center gap-1">
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                <span>Secure Payment</span>
+            {/* Trust Assurance Strip */}
+            <div className="bg-white rounded-lg p-3 shadow-2xs border border-zinc-200 grid grid-cols-3 gap-2 text-center text-[10px] text-zinc-600">
+              <div className="flex flex-col items-center gap-1 p-1">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                <span className="font-medium">Escrow Protected</span>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <BadgeCheck className="h-5 w-5 text-emerald-600" />
-                <span>Quality Assured</span>
+              <div className="flex flex-col items-center gap-1 p-1">
+                <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                <span className="font-medium">Quality Audited</span>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <Tractor className="h-5 w-5 text-emerald-600" />
-                <span>Farm Fresh</span>
+              <div className="flex flex-col items-center gap-1 p-1">
+                <Tractor className="h-4 w-4 text-emerald-600" />
+                <span className="font-medium">Farm Direct</span>
               </div>
             </div>
           </div>
 
-          {/* CENTER: Product Info + Buy */}
-          <div className="lg:col-span-1 space-y-5">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">
-                {listing.category}
-              </span>
-              <h1 className="text-2xl lg:text-3xl font-extrabold text-gray-900 mt-1 leading-tight">
-                {listing.title}
-              </h1>
+          {/* CENTER: Product Purchasing & Specs */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-white rounded-lg p-4 sm:p-5 shadow-2xs border border-zinc-200 space-y-4">
+              <div>
+                <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider block">
+                  {listing.category}
+                </span>
+                <h1 className="text-lg sm:text-xl font-bold text-zinc-900 mt-0.5">
+                  {listing.title}
+                </h1>
 
-              <div className="flex items-center gap-3 mt-3">
-                <StarRating rating={listing.rating} size="md" />
-                <span className="text-sm text-gray-500 font-medium">
-                  {listing.rating} ({listing.reviews} reviews)
+                <div className="flex items-center gap-2.5 mt-2">
+                  <StarRating rating={listing.rating} size="md" />
+                  <span className="text-xs text-zinc-500 font-medium">
+                    {listing.rating.toFixed(1)} ({listing.reviews} reviews)
+                  </span>
+                </div>
+              </div>
+
+              {/* Pricing Box */}
+              <div className="p-3.5 bg-zinc-50 rounded-lg border border-zinc-200">
+                {discountedPrice ? (
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-2xl font-bold text-zinc-900">
+                        GH₵{discountedPrice.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-zinc-400 line-through">
+                        GH₵{listing.price.toFixed(2)}
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                      per {listing.unit} ·{" "}
+                      <span className="text-red-600 font-semibold">
+                        -{listing.discount}% Discount
+                      </span>
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-2xl font-bold text-zinc-900">
+                      GH₵{listing.price.toFixed(2)}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                      per {listing.unit}
+                    </p>
+                  </div>
+                )}
+                <span className="text-[10px] text-zinc-400 block mt-1">
+                  {listing.quantity_available} {listing.unit}s currently available in stock
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
-                <MapPinIcon className="h-4 w-4" /> {listing.location}
-              </div>
-
-              {/* Price block */}
-              <div className="mt-5 p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
-                {discountedPrice ? (
-                  <>
-                    <p className="text-sm text-gray-400 line-through">
-                      GH₵{listing.price.toFixed(2)}
-                    </p>
-                    <p className="text-4xl font-extrabold text-emerald-700">
-                      GH₵{discountedPrice.toFixed(2)}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      per {listing.unit} ·{" "}
-                      <span className="text-red-500 font-semibold">
-                        {listing.discount}% savings
-                      </span>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-4xl font-extrabold text-gray-900">
-                      GH₵{listing.price.toFixed(2)}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      per {listing.unit}
-                    </p>
-                  </>
-                )}
-                <p className="text-xs text-gray-400 mt-1">
-                  {listing.quantity_available} {listing.unit}s available
-                </p>
-              </div>
-
-              {/* Quantity Selector */}
-              <div className="mt-5">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Quantity (min. {listing.min_order})
+              {/* Quantity Stepper */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-zinc-900">
+                  Order Quantity (min. {listing.min_order})
                 </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() =>
-                      setQty((q) => Math.max(listing.min_order, q - 1))
-                    }
-                    className="h-10 w-10 rounded-xl border border-gray-200 hover:border-emerald-400 flex items-center justify-center font-bold text-gray-600 hover:text-emerald-600 transition-colors"
-                  >
-                    -
-                  </button>
-                  <span className="text-xl font-extrabold text-gray-900 w-8 text-center">
-                    {qty}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setQty((q) => Math.min(listing.quantity_available, q + 1))
-                    }
-                    className="h-10 w-10 rounded-xl border border-gray-200 hover:border-emerald-400 flex items-center justify-center font-bold text-gray-600 hover:text-emerald-600 transition-colors"
-                  >
-                    +
-                  </button>
-                  <span className="ml-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-zinc-50 border border-zinc-200 rounded-md p-0.5">
+                    <button
+                      onClick={() =>
+                        setQty((q) => Math.max(listing.min_order, q - 1))
+                      }
+                      className="h-7 w-7 flex items-center justify-center font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="text-xs font-bold text-zinc-900 w-8 text-center">
+                      {qty}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setQty((q) =>
+                          Math.min(listing.quantity_available, q + 1)
+                        )
+                      }
+                      className="h-7 w-7 flex items-center justify-center font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-xs text-zinc-500 ml-1">
                     × GH₵{effectivePrice.toFixed(2)}
                   </span>
-                  <span className="ml-auto text-lg font-extrabold text-emerald-700">
-                    = GH₵{totalCost}
+                  <span className="ml-auto text-sm font-bold text-zinc-900">
+                    GH₵{totalCost}
                   </span>
                 </div>
               </div>
 
-              {/* CTAs */}
-              <div className="mt-5 space-y-3">
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddToCart}
-                    className={`flex-1 py-3.5 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98] ${
-                      added
-                        ? "bg-emerald-100 text-emerald-700 border-2 border-emerald-400"
-                        : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
-                    }`}
-                  >
-                    <CartIcon className="h-5 w-5" />
-                    {added ? "✓ Added to Cart!" : "Add to Cart"}
-                  </button>
-                  <button
-                    onClick={() => listing && toggleSave(listing)}
-                    title={saved ? "Remove from wishlist" : "Add to wishlist"}
-                    className={`px-5 py-3.5 rounded-xl font-bold text-sm border-2 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] ${
-                      saved
-                        ? "bg-rose-50 border-rose-300 text-rose-600 hover:bg-rose-100"
-                        : "bg-white border-gray-200 text-gray-700 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50"
-                    }`}
-                  >
-                    <Heart
-                      className={`h-5 w-5 ${
-                        saved ? "fill-rose-600 text-rose-600" : ""
-                      }`}
-                    />
-                    <span>{saved ? "Saved" : "Save"}</span>
-                  </button>
-                </div>
-                <button className="w-full py-3.5 rounded-xl font-bold text-base bg-gray-900 text-white hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl active:scale-[0.98]">
-                  Buy Now — GH₵{totalCost}
+              {/* Order Actions */}
+              <div className="space-y-2 pt-2 border-t border-zinc-100">
+                <button
+                  onClick={handleAddToCart}
+                  className={`w-full py-2.5 rounded-md font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 shadow-2xs ${
+                    added
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
+                >
+                  {added ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-700" />
+                      <span>Added to Your Cart!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Add to Cart (GH₵{totalCost})</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Description */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-base font-bold text-gray-800 mb-3">
-                Product Description
+            {/* Description & Technical Specs */}
+            <div className="bg-white rounded-lg p-4 sm:p-5 shadow-2xs border border-zinc-200 space-y-3">
+              <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Produce Specifications
               </h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <p className="text-xs text-zinc-600 leading-relaxed">
                 {listing.description}
               </p>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium uppercase">
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                <div className="p-2.5 rounded-md bg-zinc-50 border border-zinc-100">
+                  <span className="text-[10px] text-zinc-400 font-medium block">
                     Min Order
-                  </p>
-                  <p className="font-bold text-gray-800 mt-0.5">
+                  </span>
+                  <span className="font-semibold text-zinc-800">
                     {listing.min_order} {listing.unit}
-                  </p>
+                  </span>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium uppercase">
-                    In Stock
-                  </p>
-                  <p className="font-bold text-emerald-600 mt-0.5">
-                    {listing.quantity_available} units
-                  </p>
+                <div className="p-2.5 rounded-md bg-zinc-50 border border-zinc-100">
+                  <span className="text-[10px] text-zinc-400 font-medium block">
+                    Availability
+                  </span>
+                  <span className="font-semibold text-zinc-800">
+                    {listing.quantity_available} {listing.unit}
+                  </span>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium uppercase">
-                    Delivery
-                  </p>
-                  <p
-                    className={`font-bold mt-0.5 ${listing.delivery_available ? "text-blue-600" : "text-gray-400"}`}
-                  >
-                    {listing.delivery_available ? "Available" : "Pickup Only"}
-                  </p>
+                <div className="p-2.5 rounded-md bg-zinc-50 border border-zinc-100">
+                  <span className="text-[10px] text-zinc-400 font-medium block">
+                    Delivery Options
+                  </span>
+                  <span className="font-semibold text-zinc-800">
+                    {listing.delivery_available ? "Courier / Pickup" : "Farm Pickup"}
+                  </span>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium uppercase">
+                <div className="p-2.5 rounded-md bg-zinc-50 border border-zinc-100">
+                  <span className="text-[10px] text-zinc-400 font-medium block">
                     Harvest Date
-                  </p>
-                  <p className="font-bold text-gray-800 mt-0.5">
-                    {listing.harvest_date}
-                  </p>
+                  </span>
+                  <span className="font-semibold text-zinc-800 truncate">
+                    {listing.harvest_date ? new Date(listing.harvest_date).toLocaleDateString() : "Recent"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -643,24 +631,32 @@ export default function ListingDetailPage({
 
           {/* RIGHT: Related Products */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 sticky top-24">
-              <h2 className="text-base font-bold text-gray-800 mb-1">
-                More in {listing.category}
-              </h2>
-              <p className="text-xs text-gray-400 mb-4">
-                Similar products you may like
-              </p>
-              <div className="space-y-1">
-                {related.map((r) => (
-                  <RelatedCard key={r.id} listing={r} />
-                ))}
+            <div className="bg-white rounded-lg p-4 shadow-2xs border border-zinc-200 sticky top-20 space-y-3">
+              <div>
+                <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                  Similar in {listing.category}
+                </h2>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Other verified harvests from regional farmers
+                </p>
               </div>
-              <Link
-                href={`/marketplace?category=${encodeURIComponent(listing.category)}`}
-                className="block mt-4 text-center text-sm text-emerald-600 font-semibold hover:text-emerald-700 underline underline-offset-2"
-              >
-                View all in {listing.category} →
-              </Link>
+
+              <div className="space-y-1">
+                {related.length > 0 ? (
+                  related.map((r) => <RelatedCard key={r.id} listing={r} />)
+                ) : (
+                  <p className="text-xs text-zinc-400 py-3">No other listings in this category.</p>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-zinc-100">
+                <Link
+                  href={`/marketplace?category=${encodeURIComponent(listing.category)}`}
+                  className="block text-center text-xs text-zinc-700 font-medium hover:text-zinc-900 transition-colors"
+                >
+                  Browse all {listing.category} →
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -670,3 +666,4 @@ export default function ListingDetailPage({
     </div>
   );
 }
+
