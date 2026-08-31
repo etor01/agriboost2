@@ -1,3 +1,4 @@
+// app/(dashboard)/upgrade/upgrade-client-page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -11,10 +12,19 @@ import {
   AlertTriangle,
   Calendar,
   X,
+  Crown,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/Toast";
 import { upgradeToPremium, cancelSubscription } from "./actions";
+import {
+  FarmerPageHeader,
+  FarmerBadge,
+  FarmerCard,
+  FarmerCardHeader,
+  FarmerCardContent,
+} from "@/components/farmer/ui";
 
 interface UpgradeClientPageProps {
   initialTier: string;
@@ -34,7 +44,7 @@ export default function UpgradeClientPage({
   const isPremium = tier === "premium";
 
   const formattedDate = subscriptionEndDate
-    ? new Date(subscriptionEndDate).toLocaleDateString("en-US", {
+    ? new Date(subscriptionEndDate).toLocaleDateString("en-GH", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -49,7 +59,7 @@ export default function UpgradeClientPage({
         toast.error(res.error || "Upgrade failed.");
         return;
       }
-      toast.success("Success! You are now a Premium member.");
+      toast.success("Success! You are now a 5-Star Premium member.");
       setTier("premium");
       router.refresh();
     } catch (e: any) {
@@ -83,218 +93,238 @@ export default function UpgradeClientPage({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
-      <div className="text-center space-y-3">
-        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-          {isPremium ? "Manage Your Subscription" : "AgriBoost Premium"}
-        </h1>
-        <p className="text-gray-500 max-w-lg mx-auto">
-          {isPremium
-            ? "View your current 5-Star Premium membership details and manage your subscription."
-            : "Unlock advanced AI crop insights, priority marketplace listing, and premium analytics to supercharge your farming operations."}
-        </p>
-      </div>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Page Header */}
+      <FarmerPageHeader
+        badge="Membership & Growth"
+        badgeIcon={Crown}
+        title={isPremium ? "Manage Subscription" : "Subscription Plans"}
+        description={
+          isPremium
+            ? "Review your active 5-Star Farmer plan benefits and billing schedule."
+            : "Unlock unlimited AI disease diagnostics, automated growth schedules, and verified marketplace placement."
+        }
+      />
 
       {isPremium ? (
-        /* ── Premium Subscription Management Card ───────────────────── */
-        <div className="max-w-2xl mx-auto bg-white rounded-3xl p-8 border border-gray-200 shadow-xl space-y-6">
-          {/* Amber Gradient Sidebar-Matching Badge */}
-          <div className="rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 p-5 text-white shadow-lg shadow-amber-200/60 flex items-center justify-between">
+        /* Premium Active State Card */
+        <FarmerCard className="p-6 space-y-6">
+          <div className="rounded-lg bg-zinc-900 text-white p-6 border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
-                <BadgeCheck className="h-7 w-7 text-white" />
+              <div className="w-10 h-10 rounded-md bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Crown className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-lg font-extrabold tracking-tight">
-                  Premium Member ✓
-                </p>
-                <p className="text-xs text-white/90 font-medium mt-0.5">
-                  All 5-Star Farmer features active
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-white">
+                    5-Star Farmer Plan
+                  </h3>
+                  <FarmerBadge variant="success">Active</FarmerBadge>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  All premium farming intelligence and marketplace perks are enabled.
                 </p>
               </div>
             </div>
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-xs font-bold rounded-full uppercase tracking-wider text-white border border-white/30">
-              Active Plan
-            </span>
-          </div>
-
-          {/* Membership Details */}
-          <div className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-100/80 space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-emerald-600" />
-                Subscription End Date:
-              </span>
-              <strong className="text-gray-900 font-bold">
-                {formattedDate}
-              </strong>
-            </div>
-            <div className="flex items-center justify-between text-sm border-t border-emerald-100 pt-3">
-              <span className="text-gray-600 font-medium flex items-center gap-2">
-                <Zap className="h-4 w-4 text-amber-500" />
-                Plan Benefits:
-              </span>
-              <span className="text-emerald-700 font-semibold text-xs bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                Unlimited AI Scans & Priority Market
-              </span>
+            <div className="text-left sm:text-right">
+              <p className="text-xs text-zinc-400">Billing Cycle</p>
+              <p className="text-sm font-semibold text-white">Annual Membership</p>
             </div>
           </div>
 
-          {/* Cancel Subscription Action */}
-          <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-800">
-                Want to modify your plan?
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-lg bg-zinc-50 border border-zinc-200">
+              <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700 mb-1">
+                <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                Access Expiration
+              </div>
+              <p className="text-sm font-bold text-zinc-900">{formattedDate}</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Renews automatically unless cancelled before period end.
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                You can cancel at any time while retaining access until your end date.
+            </div>
+
+            <div className="p-4 rounded-lg bg-zinc-50 border border-zinc-200">
+              <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700 mb-1">
+                <Zap className="h-3.5 w-3.5 text-amber-600" />
+                Active Privileges
+              </div>
+              <p className="text-sm font-bold text-zinc-900">Unlimited AI &amp; Priority</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Full access to crop scanners, growth planners, and lower fees.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold text-zinc-900">
+                Cancel Membership
+              </p>
+              <p className="text-[11px] text-zinc-500">
+                You will maintain full access until {formattedDate}.
               </p>
             </div>
             <button
               onClick={() => setShowCancelModal(true)}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full sm:w-auto px-4 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-md transition-colors shadow-2xs"
             >
-              <AlertTriangle className="h-4 w-4" />
               Cancel Subscription
             </button>
           </div>
-        </div>
+        </FarmerCard>
       ) : (
-        /* ── Standard Pricing Cards for Free Users ───────────────────── */
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          {/* Free Plan */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm relative flex flex-col justify-between">
+        /* Plan Comparison Cards */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Free Tier */}
+          <FarmerCard className="p-6 flex flex-col justify-between space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Basic Plan
-              </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Perfect for getting started
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-bold text-zinc-900">Standard Plan</h3>
+                <FarmerBadge variant="muted">Current Tier</FarmerBadge>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Essential tools to manage your farm and post marketplace produce.
               </p>
-              <div className="text-3xl font-bold text-gray-900 mb-6">
-                Free
-                <span className="text-sm font-normal text-gray-400">
-                  {" "}
-                  / forever
-                </span>
+
+              <div className="mt-4 mb-6">
+                <span className="text-3xl font-extrabold text-zinc-900">GH₵ 0</span>
+                <span className="text-xs text-zinc-400"> / forever</span>
               </div>
 
-              <ul className="space-y-4 mb-8">
-                <li className="flex gap-3 text-sm text-gray-700">
-                  <Check className="h-5 w-5 text-emerald-500 shrink-0" />
-                  Standard Marketplace Listings
+              <ul className="space-y-2.5 text-xs text-zinc-700">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Standard Marketplace Listings</span>
                 </li>
-                <li className="flex gap-3 text-sm text-gray-700">
-                  <Check className="h-5 w-5 text-emerald-500 shrink-0" />
-                  Basic Farm Management
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Farm &amp; Crop Management</span>
                 </li>
-                <li className="flex gap-3 text-sm text-gray-700">
-                  <Check className="h-5 w-5 text-emerald-500 shrink-0" />
-                  Escrow Protection
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Escrow-Protected Payouts</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>3 AI Disease Scans per month</span>
                 </li>
               </ul>
             </div>
 
             <button
               disabled
-              className="w-full py-3 rounded-xl font-semibold bg-gray-100 text-gray-500 cursor-not-allowed text-center"
+              className="w-full py-2.5 rounded-md font-medium text-xs bg-zinc-100 text-zinc-400 cursor-not-allowed text-center"
             >
-              Current Plan
+              Your Active Plan
             </button>
-          </div>
+          </FarmerCard>
 
-          {/* Premium Plan */}
-          <div className="bg-gradient-to-b from-emerald-900 to-emerald-950 rounded-3xl p-8 border border-emerald-800 shadow-xl relative overflow-hidden text-white flex flex-col justify-between">
-            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-              <Star className="h-32 w-32" />
-            </div>
-
-            <div className="relative z-10">
-              <h3 className="text-xl font-bold mb-2 text-emerald-50">
-                Premium Plan
-              </h3>
-              <p className="text-sm text-emerald-200 mb-6">
-                For professional farmers
-              </p>
-              <div className="text-3xl font-bold mb-6">
-                GH₵ 49
-                <span className="text-sm font-normal text-emerald-300">
-                  {" "}
-                  / month
-                </span>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                <li className="flex gap-3 text-sm text-emerald-100">
-                  <Zap className="h-5 w-5 text-amber-400 shrink-0" />
-                  Advanced AI Crop Insights & Growth Plans
-                </li>
-                <li className="flex gap-3 text-sm text-emerald-100">
-                  <Star className="h-5 w-5 text-amber-400 shrink-0" />
-                  Priority Placement in Marketplace
-                </li>
-                <li className="flex gap-3 text-sm text-emerald-100">
-                  <Shield className="h-5 w-5 text-amber-400 shrink-0" />
-                  Premium Seller Badge
-                </li>
-                <li className="flex gap-3 text-sm text-emerald-100">
-                  <Check className="h-5 w-5 text-emerald-400 shrink-0" />
-                  Lower Platform Fees (2%)
-                </li>
-              </ul>
-
-              <button
-                onClick={handleUpgrade}
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-bold bg-amber-400 text-amber-950 hover:bg-amber-300 transition-colors flex items-center justify-center gap-2"
-              >
-                {loading ? "Processing..." : "Upgrade Now"}{" "}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Confirmation Modal ─────────────────────────────────────── */}
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-5 relative">
-            <button
-              onClick={() => setShowCancelModal(false)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 rounded-full p-1 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500">
-              <AlertTriangle className="h-6 w-6" />
+          {/* Premium Tier */}
+          <FarmerCard className="p-6 flex flex-col justify-between space-y-6 border-zinc-900 shadow-md relative">
+            <div className="absolute -top-2.5 right-6">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-900 text-white uppercase tracking-wider shadow-xs">
+                Recommended
+              </span>
             </div>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">
-                Cancel Premium Subscription?
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-bold text-zinc-900 flex items-center gap-1.5">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  5-Star Farmer Plan
+                </h3>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Full AI agronomy intelligence, growth schedules, and priority sales placement.
+              </p>
+
+              <div className="mt-4 mb-6">
+                <span className="text-3xl font-extrabold text-zinc-900">GH₵ 49</span>
+                <span className="text-xs text-zinc-400"> / month</span>
+              </div>
+
+              <ul className="space-y-2.5 text-xs text-zinc-700">
+                <li className="flex items-center gap-2 font-medium text-zinc-900">
+                  <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Unlimited AI Crop Diagnostics</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>AI Crop Growth Plans &amp; Weekly Schedules</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Priority Placement on Marketplace</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Verified 5-Star Seller Badge</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Reduced Platform Commission Fees</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={handleUpgrade}
+              disabled={loading}
+              className="w-full py-2.5 rounded-md font-medium text-xs bg-zinc-900 hover:bg-zinc-800 text-white transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              {loading ? (
+                <span>Activating Plan…</span>
+              ) : (
+                <>
+                  <span>Upgrade to 5-Star Farmer</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
+            </button>
+          </FarmerCard>
+        </div>
+      )}
+
+      {/* Cancel Subscription Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 shadow-xl border border-zinc-200 space-y-4 relative">
+            <button
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="w-10 h-10 rounded-md bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-zinc-900">
+                Cancel 5-Star Membership?
               </h3>
-              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                Are you sure? You will lose access to premium features on{" "}
-                <strong className="text-gray-800">{formattedDate}</strong>.
+              <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+                Are you sure you want to cancel? You will keep your premium features until{" "}
+                <strong className="text-zinc-800">{formattedDate}</strong>, after which your plan will revert to Free.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setShowCancelModal(false)}
                 disabled={cancelling}
-                className="flex-1 py-3 px-4 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-sm text-center"
+                className="flex-1 py-2 rounded-md font-medium bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors text-xs text-center"
               >
-                Keep Premium
+                Keep Plan
               </button>
               <button
                 onClick={handleConfirmCancel}
                 disabled={cancelling}
-                className="flex-1 py-3 px-4 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors text-sm text-center shadow-lg shadow-red-200 disabled:opacity-50"
+                className="flex-1 py-2 rounded-md font-medium bg-red-600 text-white hover:bg-red-700 transition-colors text-xs text-center shadow-2xs disabled:opacity-50"
               >
-                {cancelling ? "Cancelling..." : "Yes, Cancel Plan"}
+                {cancelling ? "Cancelling…" : "Confirm Cancel"}
               </button>
             </div>
           </div>
@@ -303,3 +333,4 @@ export default function UpgradeClientPage({
     </div>
   );
 }
+

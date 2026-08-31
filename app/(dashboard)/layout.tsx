@@ -12,8 +12,8 @@ import {
   type LucideIcon,
   Crown,
   BadgeCheck,
-  Home,
-  UserCircle2,
+  LayoutDashboard,
+  User,
   Wallet,
   Sparkles,
   ShoppingBag,
@@ -23,41 +23,50 @@ import {
   X,
   Tractor,
   Tag,
-  ClipboardList,
+  CheckSquare,
+  ChevronRight,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import InstallPrompt from "@/components/ui/InstallPrompt";
 import { registerPushSubscription } from "@/lib/idb/pushSubscription";
 
-// ── Nav Items 
-const navItems: Array<{
-  name: string;
-  href: string;
-  icon: LucideIcon;
-  desc: string;
+// ── Nav Items ─────────────────────────────────────────────────────────────
+const navSections: Array<{
+  title: string;
+  items: Array<{
+    name: string;
+    href: string;
+    icon: LucideIcon;
+    desc: string;
+  }>;
 }> = [
-    { name: "Dashboard", href: "/dashboard", icon: Home, desc: "Overview" },
-    { name: "My Profile", href: "/profile", icon: UserCircle2, desc: "Account" },
-    { name: "My Farms", href: "/farms", icon: Tractor, desc: "Manage Land" },
-    { name: "Tasks", href: "/tasks", icon: ClipboardList, desc: "To-do List" },
-    { name: "My Listings", href: "/my-listings", icon: Tag, desc: "Produce Ads" },
-    { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow OTPs" },
-    { name: "Finances", href: "/finances", icon: Wallet, desc: "Earnings" },
-    {
-      name: "AI Center",
-      href: "/ai-center",
-      icon: Sparkles,
-      desc: "Smart Tools",
-    },
-    {
-      name: "Marketplace",
-      href: "/marketplace",
-      icon: ShoppingBag,
-      desc: "Sell Produce",
-    },
-  ];
+  {
+    title: "OVERVIEW",
+    items: [
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, desc: "Overview" },
+      { name: "My Farms", href: "/farms", icon: Tractor, desc: "Manage Land & Crops" },
+      { name: "Tasks", href: "/tasks", icon: CheckSquare, desc: "Care Schedule" },
+    ],
+  },
+  {
+    title: "MARKET & SALES",
+    items: [
+      { name: "My Listings", href: "/my-listings", icon: Tag, desc: "Produce Ads" },
+      { name: "Orders & Sales", href: "/orders", icon: Package, desc: "Escrow & Delivery" },
+      { name: "Marketplace", href: "/marketplace", icon: ShoppingBag, desc: "Sell Produce" },
+    ],
+  },
+  {
+    title: "TOOLS & FINANCE",
+    items: [
+      { name: "AI Center", href: "/ai-center", icon: Sparkles, desc: "Disease Diagnostics" },
+      { name: "Finances", href: "/finances", icon: Wallet, desc: "Wallet & Earnings" },
+      { name: "My Profile", href: "/profile", icon: User, desc: "Account Settings" },
+    ],
+  },
+];
 
-// ── Sidebar ────────────────────────────────────────────────────────
+// ── Sidebar Component ──────────────────────────────────────────────────────
 function Sidebar({
   isOpen,
   setIsOpen,
@@ -75,170 +84,154 @@ function Sidebar({
   const router = useRouter();
   const supabase = createClient();
 
-
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/");
   };
 
   const displayName = profileLoading
-    ? null
+    ? "Farmer"
     : profile?.firstname
-      ? `${profile.firstname}${profile.lastname ? ` ${profile.lastname}` : ''}`
-      : 'Farmer';
+      ? `${profile.firstname}${profile.lastname ? ` ${profile.lastname}` : ""}`
+      : "Farmer";
 
-  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : 'F';
-  const tierLabel =
-    !profileLoading && profile?.subscription_tier
-      ? profile.subscription_tier.charAt(0).toUpperCase() +
-      profile.subscription_tier.slice(1) +
-      ' Plan'
-      : 'Free Plan';
+  const initials = profileLoading
+    ? "F"
+    : profile?.firstname
+      ? `${profile.firstname.charAt(0)}${profile.lastname?.charAt(0) || ""}`.toUpperCase()
+      : (user?.email?.charAt(0).toUpperCase() || "F");
+
+  const isPremium = profile?.subscription_tier === "premium";
 
   return (
     <>
+      {/* Mobile backdrop */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden transition-all duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-          }`}
+        className={`fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
         onClick={() => setIsOpen(false)}
       />
 
+      {/* Sidebar navigation */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 z-40 transform transition-all duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        className={`fixed top-0 left-0 h-full w-64 z-40 flex flex-col
+          bg-zinc-950 border-r border-zinc-800
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
-        <div className="h-full flex flex-col bg-white/80 backdrop-blur-xl border-r border-white/60 shadow-2xl">
-          <div className="flex items-center justify-between px-5 pt-6 pb-5 border-b border-gray-100/80">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-200">
-                <Image
-                  src="/icons/logo.png"
-                  alt="AgriBoost"
-                  width={26}
-                  height={26}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <span className="text-base font-bold text-gray-900">
-                  AgriBoost
-                </span>
-                <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">
-                  Farm Dashboard
-                </p>
-              </div>
-            </Link>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="lg:hidden w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <nav className="flex-1 px-4 py-5 space-y-1 overflow-y-auto">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-3">
-              Main Menu
-            </p>
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href)) ||
-                (item.href === "/farms" && pathname.startsWith("/farm"));
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <div
-                    className={`group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer
-                    ${isActive
-                        ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-md shadow-emerald-200"
-                        : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
-                      }`}
-                  >
-                    <span
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${isActive
-                          ? "bg-white/20"
-                          : "bg-gray-100 group-hover:bg-emerald-100"
-                        }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{item.name}</p>
-                      <p
-                        className={`text-[10px] truncate ${isActive ? "text-white/70" : "text-gray-400"}`}
-                      >
-                        {item.desc}
-                      </p>
-                    </div>
-                    {isActive && (
-                      <span className="w-2 h-2 rounded-full bg-white/70 flex-shrink-0" />
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="px-4 pb-6 space-y-3 border-t border-gray-100/80 pt-4">
-            {!profileLoading && profile?.subscription_tier === 'premium' ? (
-              // Premium member badge
-              <div className="rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 p-4 text-white shadow-lg shadow-amber-200 flex items-center gap-3">
-                <BadgeCheck className="h-6 w-6 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-bold">Premium Member</p>
-                  <p className="text-[10px] text-white/80 mt-0.5">All features unlocked ✓</p>
-                </div>
-              </div>
-            ) : (
-              // Upgrade prompt for free users
-              <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 p-4 text-white shadow-lg shadow-emerald-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <Crown className="h-4 w-4" />
-                  <p className="text-xs font-bold">Upgrade to Pro</p>
-                </div>
-                <p className="text-[11px] text-white/80 mb-3">
-                  Unlock AI crop analysis &amp; premium market insights
-                </p>
-                <Link href="/upgrade" className="block w-full py-1.5 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors text-center">
-                  Upgrade Now
-                </Link>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
-                {avatarLetter}
-              </div>
-              <div className="flex-1 min-w-0">
-                {profileLoading ? (
-                  <>
-                    <div className="h-3.5 w-24 bg-gray-200 rounded animate-pulse mb-1.5" />
-                    <div className="h-2.5 w-16 bg-gray-100 rounded animate-pulse" />
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-semibold text-gray-800 truncate">
-                      {displayName}
-                    </p>
-                    <p className="text-xs text-gray-400 truncate">{tierLabel}</p>
-                  </>
-                )}
-              </div>
-              <NotificationBell userId={user?.id} />
-              <button
-                onClick={handleSignOut}
-                title="Sign Out"
-                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
+        {/* Brand header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+          <Link href="/dashboard" className="flex items-center gap-2.5" onClick={() => setIsOpen(false)}>
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
+              <Image
+                src="/icons/logo.png"
+                alt="AgriBoost"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
             </div>
+            <div>
+              <p className="text-sm font-semibold text-white tracking-tight">AgriBoost</p>
+              <p className="text-[10px] text-zinc-500 font-medium leading-none">Farmer Hub</p>
+            </div>
+          </Link>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="lg:hidden text-zinc-400 hover:text-white transition-colors p-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Navigation list */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+          {navSections.map((section) => (
+            <div key={section.title}>
+              <p className="px-3 mb-1.5 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+                {section.title}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(item.href)) ||
+                    (item.href === "/farms" && pathname.startsWith("/farm"));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors border-l-2 ${
+                        isActive
+                          ? "bg-zinc-900 text-white border-emerald-500 pl-[10px]"
+                          : "text-zinc-400 border-transparent hover:text-zinc-100 hover:bg-zinc-900/60"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-emerald-400" : "text-zinc-500"}`} />
+                      <span className="truncate flex-1">{item.name}</span>
+                      {isActive && <ChevronRight className="w-3 h-3 text-zinc-600" />}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Subscription callout + user footer */}
+        <div className="border-t border-zinc-800 p-3 space-y-3">
+          {isPremium ? (
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-2.5 flex items-center gap-2 text-amber-300">
+              <BadgeCheck className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold">5-Star Pro Member</p>
+                <p className="text-[10px] text-amber-400/80 truncate">All features unlocked</p>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md border border-zinc-800 bg-zinc-900/80 p-2.5">
+              <div className="flex items-center gap-1.5 text-zinc-200 mb-1">
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-xs font-semibold">Pro Farm Plan</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mb-2 leading-tight">
+                AI diagnosis &amp; priority market ads
+              </p>
+              <Link
+                href="/upgrade"
+                onClick={() => setIsOpen(false)}
+                className="block text-center py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
+              >
+                Upgrade Now
+              </Link>
+            </div>
+          )}
+
+          {/* User profile & sign-out */}
+          <div className="flex items-center gap-2.5 px-2 pt-1">
+            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-300 flex-shrink-0 overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span>{initials}</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-white truncate">{displayName}</p>
+              <p className="text-[10px] text-zinc-500 truncate">
+                {isPremium ? "Premium Farmer" : "Free Farmer"}
+              </p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              title="Sign Out"
+              className="p-1.5 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-900 transition-colors flex-shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
@@ -246,6 +239,7 @@ function Sidebar({
   );
 }
 
+// ── Main Dashboard Layout ──────────────────────────────────────────────────
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const supabase = createClient();
@@ -272,9 +266,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
 
       const { data } = await supabase
-        .from('profiles')
-        .select('id, firstname, lastname, subscription_tier')
-        .eq('id', authUser.id)
+        .from("profiles")
+        .select("id, firstname, lastname, subscription_tier, avatar_url")
+        .eq("id", authUser.id)
         .single();
 
       if (!cancelled) {
@@ -283,29 +277,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
     }
     loadProfile();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [supabase]);
 
   const mobileAvatarLetter = profile?.firstname
     ? profile.firstname.charAt(0).toUpperCase()
     : (user?.email?.charAt(0).toUpperCase() || "F");
 
-  // ── Phase 4: Register Web Push subscription on dashboard load ──────────────
+  // Push subscription registration
   useEffect(() => {
-    // Attempt to register push silently — do not block UI or alert on failure
-    // The user will only see a permission dialog if they haven't granted it yet
-    registerPushSubscription().catch(() => {
-      // Silently ignore — push is a progressive enhancement, not a hard requirement
-    });
+    registerPushSubscription().catch(() => {});
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background image via Tailwind arbitrary value — avoids inline style purge bypass */}
-      <div className="fixed inset-0 bg-[url('/features.jpg')] bg-cover bg-center -z-10" />
-      <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 via-white/60 to-green-900/20 -z-10" />
-
-      {/* Phase 6: PWA Install Prompt Banner */}
+    <div className="min-h-screen bg-zinc-50/50">
+      {/* PWA Install Prompt Banner */}
       <InstallPrompt />
 
       <Sidebar
@@ -317,43 +305,43 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       />
       <AgriBoostToaster />
 
-      <div className="lg:pl-72">
-        <header className="lg:hidden sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-white/60 shadow-sm px-4 py-3 flex items-center justify-between">
+      <div className="lg:pl-64 min-h-screen flex flex-col">
+        {/* Mobile top bar */}
+        <header className="lg:hidden sticky top-0 z-20 bg-zinc-950 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
           >
-            <Menu className="h-5 w-5 text-gray-600" />
+            <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <Image
-              src="/icons/logo.png"
-              alt="AgriBoost"
-              width={30}
-              height={30}
-              className="drop-shadow-md"
-            />
-            <span className="text-xl font-bold text-gray-900 tracking-tight">
-              AgriBoost
-            </span>
+            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center shadow-sm">
+              <Image
+                src="/icons/logo.png"
+                alt="AgriBoost"
+                width={16}
+                height={16}
+                className="object-contain"
+              />
+            </div>
+            <span className="text-sm font-semibold text-white tracking-tight">AgriBoost</span>
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell userId={user?.id} />
-            <Link href="/profile" className="flex items-center gap-2 flex-shrink-0">
-              {profile?.firstname && (
-                <span className="hidden sm:block text-sm font-medium text-gray-700">
-                  {profile.firstname}
-                </span>
-              )}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-sm font-bold shadow">
+            <Link href="/profile" className="flex items-center flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white text-xs font-semibold">
                 {mobileAvatarLetter}
               </div>
             </Link>
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8 min-h-screen">{children}</main>
+        {/* Page Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-20 sm:pb-12">
+          {children}
+        </main>
       </div>
     </div>
   );
 }
+

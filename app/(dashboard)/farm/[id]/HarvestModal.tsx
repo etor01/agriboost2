@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Wheat, Store } from "lucide-react";
+import { X, Wheat, Store, CheckCircle2 } from "lucide-react";
 import { markCropHarvested } from "./actions";
 import { toast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
@@ -31,7 +31,7 @@ export default function HarvestModal({
       toast.success(`${crop.crop_type} marked as harvested!`);
       onClose();
       if (listOnMarket) {
-        router.push(`/my-listings`);
+        router.push(`/marketplace/new?crop=${encodeURIComponent(crop.crop_type)}`);
       }
     } else {
       toast.error(res.message || "Failed to mark as harvested");
@@ -40,45 +40,50 @@ export default function HarvestModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-amber-50">
-          <h2 className="text-lg font-bold text-amber-900 flex items-center gap-2">
-            <Wheat className="h-5 w-5 text-amber-600" /> Harvest Complete
-          </h2>
+    <div className="fixed inset-0 z-50 bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl border border-zinc-200 w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+              <Wheat className="h-4 w-4" />
+            </div>
+            <h2 className="text-sm font-semibold text-zinc-900">Harvest Complete</h2>
+          </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-amber-700 hover:bg-amber-100 transition-colors"
+            className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="p-6 space-y-4 text-center">
-          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-2">
-            <Wheat className="h-8 w-8 text-amber-600" />
+          <div className="mx-auto w-12 h-12 bg-amber-50 border border-amber-200/70 rounded-full flex items-center justify-center text-amber-600 mb-1">
+            <CheckCircle2 className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900">
-            Congratulations!
-          </h3>
-          <p className="text-sm text-gray-600">
-            You are about to mark your <strong>{crop.crop_type}</strong> crop as harvested. What would you like to do next?
-          </p>
+          <div>
+            <h3 className="text-base font-semibold text-zinc-900">
+              Ready to Log Harvest?
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1 leading-relaxed max-w-xs mx-auto">
+              You are recording the harvest for your <strong>{crop.crop_type}</strong> crop. You can list the harvested produce on the marketplace immediately.
+            </p>
+          </div>
 
-          <div className="pt-4 grid gap-3">
+          <div className="pt-2 grid gap-2">
             <button
               onClick={() => handleHarvest(true)}
               disabled={loading}
-              className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-50"
             >
-              <Store className="h-4 w-4" /> List on Marketplace
+              <Store className="h-4 w-4" /> List Produce on Marketplace
             </button>
             <button
               onClick={() => handleHarvest(false)}
               disabled={loading}
-              className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-zinc-700 border border-zinc-200 hover:bg-zinc-50 rounded-md transition-colors disabled:opacity-50"
             >
-              Just mark as harvested
+              Record as Harvested Only
             </button>
           </div>
         </div>
@@ -86,3 +91,4 @@ export default function HarvestModal({
     </div>
   );
 }
+

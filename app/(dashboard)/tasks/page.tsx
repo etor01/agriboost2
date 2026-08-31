@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import TasksClientPage from "./tasks-client";
 import type { Task, Crop, Farm } from "@/lib/database.types";
+import { FarmerPageHeader } from "@/components/farmer/ui";
+import { ClipboardList } from "lucide-react";
 
 export const metadata = {
   title: "Tasks | AgriBoost",
@@ -26,7 +28,17 @@ export default async function TasksPage() {
   const farms = (farmsData as Farm[]) ?? [];
 
   if (farms.length === 0) {
-    return <TasksClientPage tasks={[]} crops={[]} farms={[]} />;
+    return (
+      <div className="space-y-6">
+        <FarmerPageHeader
+          badge="Field Operations"
+          badgeIcon={ClipboardList}
+          title="Task Management"
+          description="Manage your daily farm activities, scheduled field maintenance, and AI-generated growth plan tasks."
+        />
+        <TasksClientPage tasks={[]} crops={[]} farms={[]} />
+      </div>
+    );
   }
 
   const farmIds = farms.map((f) => f.id);
@@ -58,21 +70,17 @@ export default async function TasksPage() {
     completions = completionsData ?? [];
   }
 
-  // We will pass this data to the client component to handle AI tasks and filtering
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            Task Management
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your daily farm activities and AI-generated growth plan tasks.
-          </p>
-        </div>
-      </div>
+      <FarmerPageHeader
+        badge="Field Operations"
+        badgeIcon={ClipboardList}
+        title="Task Management"
+        description="Manage your daily farm activities, scheduled field maintenance, and AI-generated growth plan tasks."
+      />
 
       <TasksClientPage tasks={tasks} crops={crops} farms={farms} completions={completions} />
     </div>
   );
 }
+

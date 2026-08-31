@@ -16,6 +16,8 @@ import {
   AlertCircle,
   ArrowRight,
   MessageSquare,
+  X,
+  Store,
 } from "lucide-react";
 import {
   getFarmerOrdersWithEscrow,
@@ -23,6 +25,15 @@ import {
 } from "@/app/marketplace/actions";
 import { createClient } from "@/lib/supabase/client";
 import ChatDrawer from "@/components/messaging/ChatDrawer";
+import {
+  FarmerPageHeader,
+  FarmerStatCard,
+  FarmerBadge,
+  FarmerCard,
+  FarmerCardHeader,
+  FarmerCardContent,
+  FarmerEmptyState,
+} from "@/components/farmer/ui";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface FarmerOrderDisplay {
@@ -41,61 +52,6 @@ interface FarmerOrderDisplay {
   image: string;
 }
 
-// ── Empty State ───────────────────────────────────────────────────────────────
-function EmptyOrdersState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-      {/* Icon with badge */}
-      <div className="relative mb-6">
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-50 to-green-100 border-2 border-dashed border-emerald-200 flex items-center justify-center shadow-inner">
-          <Package className="h-10 w-10 text-emerald-400" />
-        </div>
-        <div className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-amber-100 border-2 border-white flex items-center justify-center">
-          <Clock className="h-3.5 w-3.5 text-amber-500" />
-        </div>
-      </div>
-
-      {/* Text */}
-      <h3 className="text-lg font-bold text-gray-800">No orders yet</h3>
-      <p className="text-sm text-gray-500 mt-1.5 max-w-xs leading-relaxed">
-        Order summaries appear here once buyers purchase your marketplace listings.
-      </p>
-
-      {/* Info tiles */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm text-left">
-        <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
-          <Package className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-emerald-800">Create Listings</p>
-            <p className="text-[11px] text-emerald-600 mt-0.5 leading-snug">
-              Add your produce to the marketplace
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-          <ShieldCheck className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-blue-800">Escrow Protected</p>
-            <p className="text-[11px] text-blue-600 mt-0.5 leading-snug">
-              Payments held safely until delivery
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <Link
-        href="/my-listings"
-        className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-md shadow-emerald-200"
-      >
-        <Package className="h-4 w-4" />
-        Manage My Listings
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
-    </div>
-  );
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function FarmerOrdersPage() {
   const [orders, setOrders] = useState<FarmerOrderDisplay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +70,9 @@ export default function FarmerOrdersPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
         const { data: unreadMsgs } = await supabase
@@ -135,27 +93,27 @@ export default function FarmerOrdersPage() {
       const liveData = await getFarmerOrdersWithEscrow();
       if (liveData && liveData.length > 0) {
         const mapped: FarmerOrderDisplay[] = liveData.map((tx: any) => {
-          const order      = tx.orders     || {};
-          const listing    = order.listings || {};
-          const buyer      = order.buyers   || {};
-          const buyerProf  = buyer.profiles || {};
-          const buyerName  =
+          const order = tx.orders || {};
+          const listing = order.listings || {};
+          const buyer = order.buyers || {};
+          const buyerProf = buyer.profiles || {};
+          const buyerName =
             [buyerProf.firstname, buyerProf.lastname].filter(Boolean).join(" ") ||
             "Verified Buyer";
 
           return {
-            id:              tx.id,
-            orderId:         order.id || "ORD-" + tx.id.slice(0, 4),
-            product:         listing.name || "Farm Produce",
+            id: tx.id,
+            orderId: order.id || "ORD-" + tx.id.slice(0, 4),
+            product: listing.name || "Farm Produce",
             buyerName,
-            buyerPhone:      buyerProf.phone      || "+233 24 000 0000",
+            buyerPhone: buyerProf.phone || "+233 24 000 0000",
             deliveryAddress: buyer.delivery_address || "Standard Delivery",
-            qty:             order.quantity  || 1,
-            unit:            listing.unit_type || "unit",
-            amount:          Number(tx.amount) || 0,
-            status:          order.status    || "processing",
-            escrowHeld:      tx.escrow_held,
-            date:            tx.created_at   || new Date().toISOString(),
+            qty: order.quantity || 1,
+            unit: listing.unit_type || "unit",
+            amount: Number(tx.amount) || 0,
+            status: order.status || "processing",
+            escrowHeld: tx.escrow_held,
+            date: tx.created_at || new Date().toISOString(),
             image:
               (listing.image_urls && listing.image_urls[0]) ||
               "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=80&h=80&fit=crop",
@@ -173,7 +131,9 @@ export default function FarmerOrdersPage() {
     }
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   // ── OTP handler ───────────────────────────────────────────────────────────
   const handleVerifyOtp = async () => {
@@ -196,14 +156,14 @@ export default function FarmerOrdersPage() {
 
       setMessage({
         type: "success",
-        text: `Delivery verified! GH₵ ${selectedOrder.amount.toFixed(2)} released to your available payout balance.`,
+        text: `Delivery verified! GH₵ ${selectedOrder.amount.toFixed(2)} released to your available balance.`,
       });
       setTimeout(() => {
         setSelectedOrder(null);
         setOtpInput("");
         setMessage(null);
         fetchOrders();
-      }, 2000);
+      }, 1500);
     } catch (e: any) {
       setMessage({ type: "error", text: e.message || "Failed to verify OTP." });
     } finally {
@@ -212,100 +172,108 @@ export default function FarmerOrdersPage() {
   };
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const pendingOrders   = orders.filter((o) => o.escrowHeld && o.status !== "delivered");
+  const pendingOrders = orders.filter((o) => o.escrowHeld && o.status !== "delivered");
   const completedOrders = orders.filter((o) => !o.escrowHeld || o.status === "delivered");
-  const totalEscrowLocked     = pendingOrders.reduce((s, o) => s + o.amount, 0);
+  const totalEscrowLocked = pendingOrders.reduce((s, o) => s + o.amount, 0);
   const totalCompletedEarnings = completedOrders.reduce((s, o) => s + o.amount, 0);
 
   const filteredOrders = orders.filter((o) => {
-    if (filterTab === "pending")   return o.escrowHeld && o.status !== "delivered";
+    if (filterTab === "pending") return o.escrowHeld && o.status !== "delivered";
     if (filterTab === "completed") return !o.escrowHeld || o.status === "delivered";
     return true;
   });
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-8">
-
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Orders &amp; Escrow Deliveries
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your produce sales, verify buyer Delivery OTPs, and release your escrow payments.
-          </p>
-        </div>
+      <FarmerPageHeader
+        badge="Fulfillment & Escrow"
+        badgeIcon={Package}
+        title="Orders &amp; Sales"
+        description="Track incoming produce orders, verify buyer Delivery OTP codes, and release escrow funds directly to your wallet."
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">In Escrow</p>
-            <p className="text-xl font-extrabold text-amber-900 mt-0.5 flex items-center gap-1.5">
-              <Lock className="h-4 w-4" />
-              GH₵ {totalEscrowLocked.toFixed(2)}
-            </p>
-          </div>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3">
-            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Paid Out</p>
-            <p className="text-xl font-extrabold text-emerald-900 mt-0.5">
-              GH₵ {totalCompletedEarnings.toFixed(2)}
-            </p>
-          </div>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <FarmerStatCard
+          title="In Escrow Protection"
+          value={`GH₵ ${totalEscrowLocked.toFixed(2)}`}
+          icon={Lock}
+          iconColor="text-amber-600"
+          iconBg="bg-amber-50 border-amber-100"
+          sub="Locked until buyer OTP verification"
+        />
+        <FarmerStatCard
+          title="Paid Out Earnings"
+          value={`GH₵ ${totalCompletedEarnings.toFixed(2)}`}
+          icon={CheckCircle2}
+          iconColor="text-emerald-600"
+          sub="Successfully completed deliveries"
+          accent
+        />
+        <FarmerStatCard
+          title="Incoming Orders"
+          value={orders.length}
+          icon={Package}
+          iconColor="text-teal-600"
+          iconBg="bg-teal-50 border-teal-100"
+          sub="Total sales records"
+        />
       </div>
 
       {/* Escrow Guidance Banner */}
-      <div className="bg-gradient-to-r from-gray-900 via-emerald-950 to-gray-900 text-white rounded-2xl p-6 shadow-lg">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck className="h-6 w-6 text-emerald-400" />
+      <div className="rounded-lg border border-zinc-200 bg-zinc-900 text-white p-5 shadow-sm">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-md bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 text-emerald-400">
+            <ShieldCheck className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-extrabold text-white">
-              How AgriBoost Escrow Verification Works
+            <h3 className="text-sm font-semibold text-white">
+              AgriBoost Escrow Verification Flow
             </h3>
-            <p className="text-xs text-gray-300 max-w-2xl leading-relaxed">
-              1. Ship the produce to the buyer&apos;s delivery address.{" "}
-              2. When the buyer inspects and accepts, ask for their{" "}
-              <strong className="text-emerald-400">4-digit Delivery OTP</strong>.{" "}
-              3. Click <strong>&ldquo;Verify Delivery OTP&rdquo;</strong> to unlock and release funds to your account instantly!
+            <p className="text-xs text-zinc-300 leading-relaxed max-w-3xl">
+              1. Ship produce to the buyer&apos;s delivery address. 2. When the buyer inspects and accepts their delivery, request their <strong className="text-emerald-400">4-digit Delivery OTP</strong>. 3. Click <strong>&ldquo;Verify OTP&rdquo;</strong> to immediately release funds to your wallet.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Orders Table Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200/80 overflow-hidden">
-
+      {/* Orders Table Container */}
+      <FarmerCard className="p-0 overflow-hidden">
         {loading ? (
-          // ── Loading spinner ───────────────────────────────────────────────
-          <div className="flex items-center justify-center py-24 gap-3 text-gray-400">
-            <svg className="animate-spin h-7 w-7 text-emerald-500" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
-            </svg>
-            <span className="text-sm font-medium">Loading orders…</span>
+          <div className="flex items-center justify-center py-20 gap-2.5 text-zinc-400">
+            <div className="h-5 w-5 rounded-full border-2 border-zinc-200 border-t-zinc-900 animate-spin" />
+            <span className="text-xs font-medium">Loading sales orders…</span>
           </div>
-
         ) : orders.length === 0 ? (
-          // ── Empty state ───────────────────────────────────────────────────
-          <EmptyOrdersState />
-
+          <div className="p-8 text-center">
+            <FarmerEmptyState
+              icon={Package}
+              title="No orders yet"
+              description="Incoming sales orders will appear here once buyers purchase your produce on the marketplace."
+              action={
+                <Link
+                  href="/my-listings"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-md text-xs sm:text-sm transition-colors shadow-sm"
+                >
+                  <Store className="h-4 w-4" /> Manage Listings
+                </Link>
+              }
+            />
+          </div>
         ) : (
-          // ── Orders table ──────────────────────────────────────────────────
           <>
             {/* Toolbar */}
-            <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 border-b border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-zinc-50/50">
               <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-lg font-bold text-gray-900">
+                <Package className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-sm font-semibold text-zinc-900">
                   Incoming Orders ({orders.length})
                 </h2>
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-md">
                 {(["all", "pending", "completed"] as const).map((tab) => {
                   const count =
                     tab === "all"
@@ -313,19 +281,16 @@ export default function FarmerOrdersPage() {
                       : tab === "pending"
                       ? pendingOrders.length
                       : completedOrders.length;
-                  const icons = { all: null, pending: Lock, completed: CheckCircle2 };
-                  const IconEl = icons[tab];
                   return (
                     <button
                       key={tab}
                       onClick={() => setFilterTab(tab)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 capitalize ${
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
                         filterTab === tab
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
+                          : "text-zinc-500 hover:text-zinc-900"
                       }`}
                     >
-                      {IconEl && <IconEl className="h-3 w-3" />}
                       {tab === "all" ? "All" : tab === "pending" ? "In Escrow" : "Delivered"} ({count})
                     </button>
                   );
@@ -335,104 +300,93 @@ export default function FarmerOrdersPage() {
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-gray-50/80 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    <th className="p-4">Order ID &amp; Date</th>
-                    <th className="p-4">Produce</th>
-                    <th className="p-4">Buyer Details</th>
-                    <th className="p-4">Escrow Amount</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 text-right">Action</th>
+                  <tr className="bg-zinc-50/75 border-b border-zinc-100 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                    <th className="p-3.5">Order ID &amp; Date</th>
+                    <th className="p-3.5">Produce</th>
+                    <th className="p-3.5">Buyer</th>
+                    <th className="p-3.5">Escrow Amount</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-zinc-100 text-zinc-700">
                   {filteredOrders.map((order) => {
                     const isHeld = order.escrowHeld && order.status !== "delivered";
                     const unreadCount = unreadCounts[order.orderId] || 0;
 
                     return (
-                      <tr key={order.id} className="hover:bg-gray-50/70 transition-colors">
-
-                        <td className="p-4">
-                          <p className="font-mono text-xs font-bold text-gray-800">
+                      <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
+                        <td className="p-3.5">
+                          <p className="font-mono text-xs font-semibold text-zinc-900">
                             #{order.orderId.slice(0, 8).toUpperCase()}
                           </p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {new Date(order.date).toLocaleDateString("en-GH")}
+                          <p className="text-[11px] text-zinc-400 mt-0.5">
+                            {new Date(order.date).toLocaleDateString("en-GH", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </p>
                         </td>
 
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-2.5">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={order.image}
                               alt={order.product}
-                              className="w-11 h-11 rounded-xl object-cover border border-gray-100 flex-shrink-0"
+                              className="w-9 h-9 rounded-md object-cover border border-zinc-100 flex-shrink-0"
                             />
                             <div>
-                              <p className="font-bold text-gray-900">{order.product}</p>
-                              <p className="text-xs text-gray-500">
-                                Qty: {order.qty} {order.unit}
+                              <p className="font-semibold text-zinc-900 truncate max-w-[140px]">
+                                {order.product}
+                              </p>
+                              <p className="text-[11px] text-zinc-500">
+                                {order.qty} {order.unit}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="p-4">
-                          <p className="font-semibold text-gray-900">{order.buyerName}</p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                            <Phone className="h-3 w-3 text-gray-400" />
+                        <td className="p-3.5">
+                          <p className="font-medium text-zinc-900">{order.buyerName}</p>
+                          <p className="text-[11px] text-zinc-500 flex items-center gap-1 mt-0.5">
+                            <Phone className="h-3 w-3 text-zinc-400" />
                             {order.buyerPhone}
                           </p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 max-w-[180px] truncate">
-                            <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          <p className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5 max-w-[160px] truncate">
+                            <MapPin className="h-3 w-3 text-zinc-400 flex-shrink-0" />
                             {order.deliveryAddress}
                           </p>
                         </td>
 
-                        <td className="p-4">
-                          <p className="text-base font-extrabold text-gray-900">
+                        <td className="p-3.5">
+                          <p className="text-xs font-bold text-zinc-900">
                             GH₵ {order.amount.toFixed(2)}
                           </p>
-                          {isHeld ? (
-                            <span className="text-[11px] font-semibold text-amber-600 flex items-center gap-1">
-                              <Lock className="h-3 w-3" /> Escrow Protected
-                            </span>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Released to Account
-                            </span>
-                          )}
+                          <p className="text-[10px] text-zinc-400 mt-0.5">
+                            {isHeld ? "Escrow Protected" : "Released"}
+                          </p>
                         </td>
 
-                        <td className="p-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                              isHeld
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            {isHeld ? (
-                              <><Clock className="h-3.5 w-3.5" /> In Escrow</>
-                            ) : (
-                              <><CheckCircle2 className="h-3.5 w-3.5" /> Delivered</>
-                            )}
-                          </span>
+                        <td className="p-3.5">
+                          <FarmerBadge variant={isHeld ? "warn" : "success"}>
+                            {isHeld ? "In Escrow" : "Delivered"}
+                          </FarmerBadge>
                         </td>
 
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="p-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => setChattingOrder(order)}
-                              className="relative inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold rounded-xl text-xs transition-all shadow-sm"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-medium transition-colors"
                             >
-                              <MessageSquare className="h-3.5 w-3.5" />
+                              <MessageSquare className="h-3.5 w-3.5 text-zinc-500" />
                               Chat
                               {unreadCount > 0 && (
-                                <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                                <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 rounded-full">
                                   {unreadCount}
                                 </span>
                               )}
@@ -445,105 +399,105 @@ export default function FarmerOrdersPage() {
                                   setOtpInput("");
                                   setMessage(null);
                                 }}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-md text-xs transition-colors shadow-xs"
                               >
                                 <KeyRound className="h-3.5 w-3.5" />
                                 Verify OTP
                               </button>
                             ) : (
-                              <span className="text-xs font-semibold text-gray-400">Completed</span>
+                              <span className="text-xs text-zinc-400 font-medium px-2">
+                                Completed
+                              </span>
                             )}
                           </div>
                         </td>
                       </tr>
                     );
                   })}
-
-                  {filteredOrders.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="text-center py-10 text-gray-400 text-sm">
-                        No orders matching this filter.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
           </>
         )}
-      </div>
+      </FarmerCard>
 
       {/* OTP Verification Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSelectedOrder(null)}
-          />
-          <div className="relative bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl z-10 space-y-5">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
-              <KeyRound className="h-7 w-7" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm">
+          <div className="relative bg-white rounded-lg max-w-md w-full p-6 shadow-xl border border-zinc-200 z-10 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <KeyRound className="h-4 w-4" />
+                </div>
+                <h3 className="text-sm font-semibold text-zinc-900">
+                  Verify Buyer Delivery OTP
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="text-center">
-              <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 mb-2">
+            <div className="text-center space-y-1">
+              <FarmerBadge variant="muted">
                 Order #{selectedOrder.orderId.slice(0, 8).toUpperCase()}
-              </span>
-              <h3 className="text-xl font-extrabold text-gray-900">
-                Verify Buyer Delivery OTP
-              </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                Ask <strong>{selectedOrder.buyerName}</strong> for their 4-digit verification code
-                to release GH₵ {selectedOrder.amount.toFixed(2)} from escrow.
+              </FarmerBadge>
+              <p className="text-xs text-zinc-500 leading-relaxed pt-1">
+                Enter the 4-digit verification code from <strong>{selectedOrder.buyerName}</strong> to release <strong className="text-zinc-900">GH₵ {selectedOrder.amount.toFixed(2)}</strong> from escrow.
               </p>
             </div>
 
             {/* OTP Input */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider text-center">
-                Enter 4-Digit OTP Code
+            <div className="space-y-1.5 py-1">
+              <label className="block text-[11px] font-semibold text-zinc-600 uppercase tracking-wider text-center">
+                4-Digit Delivery Code
               </label>
               <input
                 type="text"
                 maxLength={4}
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
-                placeholder="0 0 0 0"
-                className="w-full text-center font-mono text-3xl font-extrabold tracking-[0.5em] py-3.5 rounded-2xl border-2 border-gray-300 focus:border-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 text-gray-900"
+                placeholder="• • • •"
+                className="w-full text-center font-mono text-2xl font-bold tracking-[0.4em] py-2.5 rounded-md border border-zinc-200 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 transition-colors"
               />
             </div>
 
             {/* Status message */}
             {message && (
               <div
-                className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                className={`p-3 rounded-md text-xs font-medium flex items-center gap-2 ${
                   message.type === "success"
                     ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
                     : "bg-red-50 border border-red-200 text-red-700"
                 }`}
               >
                 {message.type === "success" ? (
-                  <Check className="h-4 w-4 flex-shrink-0" />
+                  <Check className="h-3.5 w-3.5 flex-shrink-0" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
                 )}
                 <span>{message.text}</span>
               </div>
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="px-3.5 py-2 rounded-md border border-zinc-200 text-zinc-700 font-medium text-xs hover:bg-zinc-50 transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleVerifyOtp}
                 disabled={verifying || otpInput.length !== 4}
-                className="flex-1 py-3.5 bg-emerald-600 text-white font-extrabold rounded-xl hover:bg-emerald-700 transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="px-4 py-2 bg-zinc-900 text-white font-medium rounded-md hover:bg-zinc-800 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
                 {verifying ? "Verifying…" : "Verify & Release Escrow"}
-              </button>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="px-5 py-3.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 text-sm"
-              >
-                Cancel
               </button>
             </div>
           </div>
@@ -563,8 +517,8 @@ export default function FarmerOrdersPage() {
           recipientName={chattingOrder.buyerName}
         />
       )}
-
     </div>
   );
 }
+
 

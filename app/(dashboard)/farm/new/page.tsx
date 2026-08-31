@@ -1,6 +1,4 @@
 // app/(dashboard)/farm/new/page.tsx
-// Standalone "Add New Farm" page — MVP demo, no Supabase calls
-
 "use client";
 
 import { useState } from "react";
@@ -8,22 +6,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Sprout, Tractor } from "lucide-react";
 import { addFarm } from "./actions";
-
-function GlassCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`bg-white/70 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
+import {
+  FarmerPageHeader,
+  FarmerCard,
+  FarmerCardHeader,
+  FarmerCardContent,
+} from "@/components/farmer/ui";
 
 const REGIONS = [
   "Ashanti Region",
@@ -105,8 +93,8 @@ export default function AddFarmPage() {
     if (result.success) {
       setSubmitted(true);
       setTimeout(() => {
-        router.push("/dashboard");
-      }, 1800);
+        router.push("/farms");
+      }, 1500);
     } else {
       setError(result.message || "An error occurred while creating the farm.");
       setIsSubmitting(false);
@@ -116,24 +104,20 @@ export default function AddFarmPage() {
   if (submitted) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <GlassCard className="p-10 text-center max-w-sm w-full">
-          <div className="flex justify-center mb-4">
-            <div className="rounded-full bg-emerald-100 p-4">
-              <Sprout className="h-10 w-10 text-emerald-600" />
-            </div>
+        <div className="rounded-lg border border-zinc-200 bg-white p-8 text-center max-w-sm w-full shadow-sm space-y-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
+            <Sprout className="h-6 w-6" />
           </div>
-          <h2 className="text-xl font-extrabold text-gray-900">Farm Added!</h2>
-          <p className="text-gray-500 text-sm mt-2">
-            <strong>{name}</strong> has been registered. Redirecting to your
-            profile…
-          </p>
-          <div className="mt-4 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 animate-[grow_1.8s_ease-in-out_forwards]"
-              style={{ width: "100%" }}
-            />
+          <div>
+            <h2 className="text-base font-semibold text-zinc-900">Farm Registered!</h2>
+            <p className="text-xs text-zinc-500 mt-1">
+              <strong>{name}</strong> has been created. Redirecting to your farms overview…
+            </p>
           </div>
-        </GlassCard>
+          <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+            <div className="h-full rounded-full bg-emerald-600 animate-pulse w-full" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -143,24 +127,24 @@ export default function AddFarmPage() {
       {/* Header */}
       <div>
         <Link
-          href="/dashboard"
-          className="text-sm text-emerald-600 font-semibold hover:text-emerald-700 flex items-center gap-1 mb-2"
+          href="/farms"
+          className="text-xs text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1 font-medium transition-colors mb-2"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to My Farms
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 flex items-center gap-2">
-          <Tractor className="h-6 w-6 text-emerald-600" /> Add New Farm
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Register a new farm to start tracking crops, tasks, and yields.
-        </p>
+        <FarmerPageHeader
+          badge="Property Setup"
+          badgeIcon={Tractor}
+          title="Add New Farm"
+          description="Register a new agricultural plot to track crops, field operations, and market yields."
+        />
       </div>
 
-      <GlassCard className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <FarmerCard className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Farm Name */}
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+            <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
               Farm Name *
             </label>
             <input
@@ -169,14 +153,14 @@ export default function AddFarmPage() {
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="e.g. Asante North Farm"
-              className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+              className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
             />
           </div>
 
           {/* Location + Region */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
                 Town / City *
               </label>
               <input
@@ -185,17 +169,17 @@ export default function AddFarmPage() {
                 onChange={(e) => setLocation(e.target.value)}
                 required
                 placeholder="e.g. Ejisu"
-                className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
                 Region *
               </label>
               <select
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
-                className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
               >
                 {REGIONS.map((r) => (
                   <option key={r}>{r}</option>
@@ -205,9 +189,9 @@ export default function AddFarmPage() {
           </div>
 
           {/* Size + Primary Crop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
                 Farm Size (Acres) *
               </label>
               <input
@@ -218,17 +202,17 @@ export default function AddFarmPage() {
                 min="0.1"
                 step="0.1"
                 placeholder="e.g. 5"
-                className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
                 Primary Crop
               </label>
               <select
                 value={crop}
                 onChange={(e) => setCrop(e.target.value)}
-                className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
               >
                 {CROP_TYPES.map((c) => (
                   <option key={c}>{c}</option>
@@ -238,15 +222,15 @@ export default function AddFarmPage() {
           </div>
 
           {/* Soil + Irrigation */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
                 Soil Type
               </label>
               <select
                 value={soil}
                 onChange={(e) => setSoil(e.target.value)}
-                className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
               >
                 {SOIL_TYPES.map((s) => (
                   <option key={s}>{s}</option>
@@ -254,13 +238,13 @@ export default function AddFarmPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
                 Irrigation Method
               </label>
               <select
                 value={irrigation}
                 onChange={(e) => setIrrigation(e.target.value)}
-                className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+                className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
               >
                 {IRRIGATION_TYPES.map((i) => (
                   <option key={i}>{i}</option>
@@ -271,74 +255,71 @@ export default function AddFarmPage() {
 
           {/* Established Date */}
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+            <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
               Date Established
             </label>
             <input
               type="date"
               value={established}
               onChange={(e) => setEstablished(e.target.value)}
-              className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm"
+              className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+            <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
               Additional Notes
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Any extra details about this farm…"
-              className="mt-1.5 w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-800 text-sm resize-none"
+              placeholder="Any extra operational details regarding soil quality, topography, or access…"
+              className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm resize-none"
             />
           </div>
 
           {/* Actions */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-semibold rounded-xl">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">
               {error}
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100">
             <Link
-              href="/dashboard"
-              className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm text-center hover:bg-gray-50 transition-colors"
+              href="/farms"
+              className="px-3.5 py-2 rounded-md border border-zinc-200 text-zinc-700 font-medium text-xs hover:bg-zinc-50 transition-colors"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-md shadow-emerald-200 hover:from-emerald-600 hover:to-green-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <Sprout className="h-4 w-4" /> {isSubmitting ? "Adding..." : "Add Farm"}
+              <Sprout className="h-4 w-4" /> {isSubmitting ? "Adding..." : "Register Farm"}
             </button>
           </div>
         </form>
-      </GlassCard>
+      </FarmerCard>
 
       {/* Info box */}
-      <GlassCard className="p-4">
-        <div className="flex items-start gap-3">
-          <span className="rounded-full bg-amber-100 p-2">
-            <Sparkles className="h-5 w-5 text-amber-600" />
-          </span>
-          <div>
-            <p className="text-sm font-bold text-gray-800">
-              After adding your farm
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-              You can add crop records, assign tasks, run AI health scans, and
-              create marketplace listings linked to this farm from the Farm
-              Detail page.
-            </p>
-          </div>
+      <div className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-4 flex items-start gap-3">
+        <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0">
+          <Sparkles className="h-4 w-4" />
         </div>
-      </GlassCard>
+        <div>
+          <p className="text-xs font-semibold text-amber-900">
+            Next steps after registration
+          </p>
+          <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">
+            Once registered, you can log individual crop plantings, view AI-generated care timelines, run disease diagnostics, and post listings directly to the marketplace.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
+

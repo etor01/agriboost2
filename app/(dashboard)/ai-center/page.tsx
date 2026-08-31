@@ -7,17 +7,21 @@ import { analyzeCropImage } from "./actions";
 import type { DiagnosisResult } from "./actions";
 import type { CropDiagnostic } from "@/lib/database.types";
 import Link from "next/link";
-// Phase 7: Live Camera Scanner (primary input)
+// Live Camera Scanner (primary input)
 import LiveCameraScanner from "@/components/features/LiveCameraScanner";
-// Phase 3: IndexedDB offline cache
+// IndexedDB offline cache
 import { cacheScan, getCachedScans, pruneOldScans } from "@/lib/idb/diseaseCache";
-// Phase 5: Background Sync queue for offline scans
-import { enqueueDiseaseScan, getPendingCount, removeSyncItem, getPendingScans } from "@/lib/idb/syncQueue";
+// Background Sync queue for offline scans
+import {
+  enqueueDiseaseScan,
+  getPendingCount,
+  removeSyncItem,
+  getPendingScans,
+} from "@/lib/idb/syncQueue";
 import {
   AlertTriangle,
   CheckCircle2,
   Sparkles,
-  UploadCloud,
   Leaf,
   Microscope,
   ChevronDown,
@@ -31,40 +35,46 @@ import {
   Crown,
   ArrowRight,
   WifiOff,
-  RefreshCcw,
+  X,
 } from "lucide-react";
+import {
+  FarmerPageHeader,
+  FarmerBadge,
+  FarmerCard,
+  FarmerCardHeader,
+  FarmerCardContent,
+  FarmerEmptyState,
+} from "@/components/farmer/ui";
 
 const PAGE_SIZE = 5;
 
 function ConfidencePill({ confidence }: { confidence: string | null }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    high: { label: "High Confidence", cls: "bg-emerald-100 text-emerald-700" },
-    medium: { label: "Medium Confidence", cls: "bg-amber-100 text-amber-700" },
-    low: { label: "Low Confidence", cls: "bg-red-100 text-red-700" },
-  };
-  const entry = confidence ? map[confidence] : null;
-  if (!entry) return null;
+  if (!confidence) return null;
+  const variant =
+    confidence === "high"
+      ? ("success" as const)
+      : confidence === "medium"
+      ? ("warn" as const)
+      : ("danger" as const);
   return (
-    <span
-      className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full ${entry.cls}`}
-    >
-      {entry.label}
-    </span>
+    <FarmerBadge variant={variant}>
+      {confidence.charAt(0).toUpperCase() + confidence.slice(1)} Confidence
+    </FarmerBadge>
   );
 }
 
 function HealthBadge({ isHealthy }: { isHealthy: boolean | null }) {
   if (isHealthy === true)
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
-        <CheckCircle2 className="h-3 w-3" /> Healthy
-      </span>
+      <FarmerBadge variant="success">
+        <CheckCircle2 className="h-3 w-3 inline mr-1" /> Healthy
+      </FarmerBadge>
     );
   if (isHealthy === false)
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
-        <AlertTriangle className="h-3 w-3" /> Disease Detected
-      </span>
+      <FarmerBadge variant="danger">
+        <AlertTriangle className="h-3 w-3 inline mr-1" /> Disease Detected
+      </FarmerBadge>
     );
   return null;
 }
@@ -80,9 +90,9 @@ function ScanHistoryCard({ scan }: { scan: CropDiagnostic }) {
   });
 
   return (
-    <div className="flex gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div className="flex gap-3.5 p-3.5 bg-white rounded-lg border border-zinc-200 hover:border-zinc-300 transition-colors">
       {/* Thumbnail */}
-      <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gray-100">
+      <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-zinc-100 border border-zinc-100">
         {scan.image_url ? (
           <img
             src={scan.image_url}
@@ -91,19 +101,19 @@ function ScanHistoryCard({ scan }: { scan: CropDiagnostic }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Leaf className="h-8 w-8 text-gray-300" />
+            <Leaf className="h-6 w-6 text-zinc-300" />
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-bold text-gray-800 truncate">
+            <p className="font-semibold text-zinc-900 text-xs sm:text-sm truncate">
               {result.crop_name ?? "Unknown Crop"}
             </p>
-            <p className="text-sm text-gray-500 truncate">
+            <p className="text-xs text-zinc-500 truncate mt-0.5">
               {result.disease_name && result.disease_name !== "None"
                 ? result.disease_name
                 : "No disease detected"}
@@ -113,7 +123,7 @@ function ScanHistoryCard({ scan }: { scan: CropDiagnostic }) {
         </div>
         <div className="flex items-center gap-2 mt-2">
           <ConfidencePill confidence={result.confidence} />
-          <span className="flex items-center gap-1 text-xs text-gray-400">
+          <span className="flex items-center gap-1 text-[11px] text-zinc-400">
             <Clock className="h-3 w-3" />
             {date}
           </span>
@@ -125,29 +135,29 @@ function ScanHistoryCard({ scan }: { scan: CropDiagnostic }) {
 
 function AnalysisResultCard({ result }: { result: DiagnosisResult }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header banner */}
       <div
-        className={`flex items-start gap-3 p-4 rounded-xl ${
+        className={`flex items-start gap-3 p-3.5 rounded-lg border ${
           result.is_healthy
-            ? "bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200"
-            : "bg-gradient-to-r from-red-50 to-orange-50 border border-red-200"
+            ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+            : "bg-red-50/70 border-red-200 text-red-950"
         }`}
       >
         {result.is_healthy ? (
-          <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
         ) : (
-          <AlertTriangle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2">
-            <h3 className="font-bold text-gray-800 text-base">
+            <h3 className="font-bold text-sm">
               {result.crop_name ?? "Unknown Crop"}
             </h3>
             <ConfidencePill confidence={result.confidence} />
           </div>
           {result.disease_name && result.disease_name !== "None" && (
-            <p className="text-sm text-red-700 font-medium mt-0.5">
+            <p className="text-xs text-red-700 font-semibold mt-0.5">
               {result.disease_name}
             </p>
           )}
@@ -156,13 +166,13 @@ function AnalysisResultCard({ result }: { result: DiagnosisResult }) {
 
       {/* Diagnosis */}
       <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Microscope className="h-4 w-4 text-gray-500" />
-          <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Microscope className="h-3.5 w-3.5 text-zinc-500" />
+          <h4 className="font-semibold text-zinc-700 text-xs uppercase tracking-wider">
             Diagnosis
           </h4>
         </div>
-        <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 rounded-lg p-3">
+        <p className="text-zinc-600 text-xs leading-relaxed bg-zinc-50 rounded-md p-3 border border-zinc-100">
           {result.diagnosis}
         </p>
       </div>
@@ -170,16 +180,16 @@ function AnalysisResultCard({ result }: { result: DiagnosisResult }) {
       {/* Healthy Practices */}
       {result.healthy_practices.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Shield className="h-4 w-4 text-green-600" />
-            <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Shield className="h-3.5 w-3.5 text-emerald-600" />
+            <h4 className="font-semibold text-zinc-700 text-xs uppercase tracking-wider">
               Recommended Practices
             </h4>
           </div>
-          <ol className="space-y-2">
+          <ol className="space-y-1.5">
             {result.healthy_practices.map((practice, i) => (
-              <li key={i} className="flex gap-3 text-sm text-gray-700">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold text-xs flex items-center justify-center mt-0.5">
+              <li key={i} className="flex gap-2.5 text-xs text-zinc-700">
+                <span className="flex-shrink-0 w-4 h-4 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[10px] flex items-center justify-center mt-0.5 border border-zinc-200">
                   {i + 1}
                 </span>
                 <span className="leading-relaxed">{practice}</span>
@@ -220,10 +230,9 @@ export default function AiCenterPage() {
     "All" | "Healthy" | "Disease Detected"
   >("All");
 
-  // Phase 3: Track whether history is being shown from IndexedDB cache
   const [isOfflineMode, setIsOfflineMode] = useState(false);
-  // Phase 5: Count of pending offline scans in the sync queue
   const [pendingOfflineScans, setPendingOfflineScans] = useState(0);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
 
   const filteredHistory = history.filter((scan) => {
     let matchStatus = true;
@@ -246,8 +255,6 @@ export default function AiCenterPage() {
 
     return matchStatus && matchDate;
   });
-
-  const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
 
   // Fetch scans remaining and user id on mount
   useEffect(() => {
@@ -272,11 +279,8 @@ export default function AiCenterPage() {
     };
     init();
 
-    // Phase 5: Count pending offline scans on mount
     getPendingCount().then(setPendingOfflineScans).catch(() => {});
 
-    // Phase 5: iOS Background Sync fallback — process queue when connectivity restores
-    // (SyncManager is not supported in Safari/iOS, so we use the `online` event)
     const processSyncQueueOnline = async () => {
       const pending = await getPendingScans().catch(() => []);
       for (const item of pending) {
@@ -311,7 +315,7 @@ export default function AiCenterPage() {
         .select("*")
         .eq("profile_id", userId)
         .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE); // fetch PAGE_SIZE + 1 to detect if more exist
+        .range(offset, offset + PAGE_SIZE);
 
       if (!error && data) {
         const page = data.slice(0, PAGE_SIZE);
@@ -324,7 +328,6 @@ export default function AiCenterPage() {
         setHistoryOffset(offset + page.length);
         setIsOfflineMode(false);
 
-        // Phase 3: Write fetched scans to IndexedDB cache for offline access
         if (userId) {
           for (const scan of page) {
             const result = scan.ai_result as DiagnosisResult | null;
@@ -340,15 +343,13 @@ export default function AiCenterPage() {
               diagnosis: result.diagnosis ?? null,
               healthyPractices: result.healthy_practices ?? [],
               createdAt: scan.created_at,
-            }).catch(() => {}); // non-blocking
+            }).catch(() => {});
           }
           pruneOldScans(userId, 50).catch(() => {});
         }
       } else if (error && replace && userId) {
-        // Phase 3: Supabase unreachable — fall back to IndexedDB cache
         const cached = await getCachedScans(userId, PAGE_SIZE);
         if (cached.length > 0) {
-          // Map CachedDiseaseScan back to CropDiagnostic shape for ScanHistoryCard
           const fakeRows: CropDiagnostic[] = cached.map((c) => ({
             id: c.id,
             profile_id: c.profileId,
@@ -380,17 +381,6 @@ export default function AiCenterPage() {
     }
   }, [userId, fetchHistory]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAnalysisResult(null);
-      setError("");
-      setInvalidPlant(false);
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
   const handleAnalyze = async () => {
     if (!imageFile) {
       setError("Please capture or select an image to analyze.");
@@ -410,11 +400,9 @@ export default function AiCenterPage() {
       if (result.success && result.analysis) {
         const aiResult = result.analysis.ai_result as DiagnosisResult;
         setAnalysisResult(aiResult);
-        // Update scan count from server response
         if (typeof result.scansRemaining === "number") {
           setScansRemaining(result.scansRemaining);
         }
-        // Phase 3: Cache the new scan result in IndexedDB
         if (userId && result.analysis.id) {
           cacheScan({
             id: result.analysis.id,
@@ -429,7 +417,6 @@ export default function AiCenterPage() {
             createdAt: new Date().toISOString(),
           }).catch(() => {});
         }
-        // Refresh history to show new entry at top
         fetchHistory(0, true);
       } else {
         if ((result as any).outOfScans) {
@@ -442,10 +429,8 @@ export default function AiCenterPage() {
         }
       }
     } catch {
-      // Phase 5: Network error — enqueue scan for Background Sync
       if (imageFile) {
         try {
-          // Convert File to base64 for queue storage
           const reader = new FileReader();
           const base64 = await new Promise<string>((resolve, reject) => {
             reader.onload = () => resolve((reader.result as string).split(",")[1]);
@@ -454,7 +439,6 @@ export default function AiCenterPage() {
           });
           await enqueueDiseaseScan({ imageBase64: base64 });
           setPendingOfflineScans((n) => n + 1);
-          // Register Background Sync tag (Chrome/Android) for auto-retry
           if ("serviceWorker" in navigator) {
             const sw = await navigator.serviceWorker.ready;
             if ("sync" in sw) {
@@ -462,7 +446,7 @@ export default function AiCenterPage() {
             }
           }
           setError(
-            "📡 No internet connection. Your scan has been queued and will upload automatically when you're back online."
+            "No internet connection. Your scan has been queued and will upload automatically when you're back online."
           );
         } catch {
           setError("Network error. Please check your connection and try again.");
@@ -480,219 +464,170 @@ export default function AiCenterPage() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 p-4 rounded-2xl">
-          <h1 className="text-3xl font-bold text-gray-800">
-            AI Crop Diagnosis Center
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Upload a plant photo — our AI provides a diagnosis with
-            Ghana-specific farming advice.
+      <FarmerPageHeader
+        badge="Agronomy & AI Diagnostics"
+        badgeIcon={Sparkles}
+        title="AI Diagnostic Center"
+        description="Scan crop foliage for disease identification, disease mitigation advice, and growth optimization."
+        action={
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white rounded-md text-xs font-semibold shadow-sm">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{scansRemaining} Scan{scansRemaining !== 1 ? "s" : ""} Remaining</span>
+          </div>
+        }
+      />
+
+      {/* AI Suite Feature Cards */}
+      <div>
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-zinc-900">
+            Intelligent Farm Operations
+          </h2>
+          <p className="text-xs text-zinc-500">
+            AI-powered advisory tools tailored for Ghanaian farming conditions.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm font-semibold text-white bg-green-600 px-4 py-2.5 rounded-xl shadow-md">
-          <Sparkles className="h-4 w-4" />
-          {scansRemaining} Scan{scansRemaining !== 1 ? "s" : ""} Remaining
-        </div>
-      </div>
 
-      {/* ─── AI Suite Feature Cards ─────────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-emerald-600" />
-              AgriBoost AI Tools
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Intelligent farming tools designed to boost yield and market success.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* CARD 1 — AI Crop Disease Scanner (EXISTING — Active/Free) */}
-          <div className="bg-white/70 backdrop-blur-xl border-2 border-emerald-500 rounded-2xl p-5 shadow-md shadow-emerald-100/60 relative flex flex-col justify-between transition-all hover:shadow-lg">
-            <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* CARD 1 — AI Crop Disease Scanner */}
+          <FarmerCard className="p-5 flex flex-col justify-between border-zinc-300 shadow-xs">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
-                  <Microscope className="h-5 w-5" />
+                <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Microscope className="h-4 w-4" />
                 </div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Available
-                </span>
+                <FarmerBadge variant="success">Active Tool</FarmerBadge>
               </div>
               <div>
-                <h3 className="font-extrabold text-gray-900 text-base">
+                <h3 className="text-sm font-semibold text-zinc-900">
                   AI Crop Disease Scanner
                 </h3>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Upload a photo of your crop leaf for instant AI disease diagnosis.
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                  Capture or upload a crop leaf photo for instant disease diagnosis and treatment.
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs font-bold text-emerald-700">
-              <span>Active Tool</span>
-              <span className="flex items-center gap-1">
-                Scroll to Scan ↓
-              </span>
+            <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-medium text-zinc-900">
+              <span>Ready to scan below</span>
+              <span>↓</span>
             </div>
-          </div>
+          </FarmerCard>
 
-          {/* CARD 2 — AI Growth Plan Generator (PREMIUM) */}
-          <div
-            className={`bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-5 relative flex flex-col justify-between transition-all hover:shadow-md ${
-              subscriptionTier !== "premium" ? "opacity-80" : ""
-            }`}
-          >
-            {subscriptionTier !== "premium" && (
-              <div
-                className="absolute top-4 right-4 p-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shadow-sm"
-                title="Premium Feature"
-              >
-                <Lock className="h-4 w-4" />
-              </div>
-            )}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pr-8">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
-                  <Sprout className="h-5 w-5" />
+          {/* CARD 2 — AI Growth Plan Generator */}
+          <FarmerCard className="p-5 flex flex-col justify-between">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                  <Sprout className="h-4 w-4" />
                 </div>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                  <Crown className="h-3 w-3 text-amber-600" />
-                  Premium
-                </span>
+                <FarmerBadge variant="warn">
+                  <Crown className="h-3 w-3 inline mr-1" /> Pro Tier
+                </FarmerBadge>
               </div>
               <div>
-                <h3 className="font-extrabold text-gray-900 text-base">
+                <h3 className="text-sm font-semibold text-zinc-900">
                   AI Growth Plan Generator
                 </h3>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Generate a week-by-week care schedule for any crop, tailored to your Ghanaian region and planting date.
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                  Generate week-by-week crop care schedule tailored to your region and planting dates.
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-gray-100">
+            <div className="mt-3 pt-3 border-t border-zinc-100">
               {subscriptionTier !== "premium" ? (
                 <Link
                   href="/upgrade"
-                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 hover:from-amber-300 hover:to-amber-400 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  className="w-full py-1.5 px-3 rounded-md text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Crown className="h-3.5 w-3.5" />
-                  Upgrade to Unlock
+                  <Crown className="h-3 w-3 text-amber-400" /> Unlock with Pro
                 </Link>
               ) : (
                 <Link
                   href="/farms"
-                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  className="w-full py-1.5 px-3 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1"
                 >
-                  Go to My Farms <ArrowRight className="h-3.5 w-3.5" />
+                  Go to Farms <ArrowRight className="h-3 w-3" />
                 </Link>
               )}
             </div>
-          </div>
+          </FarmerCard>
 
-          {/* CARD 3 — AI Market Price Predictor (COMING SOON) */}
-          <div className="bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-5 relative flex flex-col justify-between opacity-80 transition-all">
-            <div className="space-y-3">
+          {/* CARD 3 — AI Market Price Predictor */}
+          <FarmerCard className="p-5 flex flex-col justify-between opacity-85">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
-                  <TrendingUp className="h-5 w-5" />
+                <div className="w-8 h-8 rounded-md bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+                  <TrendingUp className="h-4 w-4" />
                 </div>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">
-                  Coming Soon
-                </span>
+                <FarmerBadge variant="muted">Coming Soon</FarmerBadge>
               </div>
               <div>
-                <h3 className="font-extrabold text-gray-900 text-base">
-                  AI Market Price Predictor
+                <h3 className="text-sm font-semibold text-zinc-900">
+                  Market Price Predictor
                 </h3>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Get AI-predicted optimal selling prices for your produce based on current market trends across Ghanaian regions.
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                  Optimal selling price estimations based on historical market cycles in Ghana.
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-gray-100">
+            <div className="mt-3 pt-3 border-t border-zinc-100">
               <button
                 disabled
-                className="w-full py-2 px-4 rounded-xl text-xs font-semibold bg-gray-100 text-gray-400 cursor-not-allowed text-center"
+                className="w-full py-1.5 px-3 rounded-md text-xs font-medium bg-zinc-100 text-zinc-400 cursor-not-allowed text-center"
               >
-                Notify Me When Available
+                In Development
               </button>
             </div>
-          </div>
+          </FarmerCard>
 
-          {/* CARD 4 — AI Pest & Weather Risk Alert (PREMIUM) */}
-          <div
-            className={`bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-5 relative flex flex-col justify-between transition-all hover:shadow-md ${
-              subscriptionTier !== "premium" ? "opacity-80" : ""
-            }`}
-          >
-            {subscriptionTier !== "premium" && (
-              <div
-                className="absolute top-4 right-4 p-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shadow-sm"
-                title="Premium Feature"
-              >
-                <Lock className="h-4 w-4" />
-              </div>
-            )}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pr-8">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
-                  <ShieldAlert className="h-5 w-5" />
+          {/* CARD 4 — Pest & Weather Risk Alert */}
+          <FarmerCard className="p-5 flex flex-col justify-between">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-md bg-lime-50 border border-lime-100 flex items-center justify-center text-lime-700">
+                  <ShieldAlert className="h-4 w-4" />
                 </div>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                  <Crown className="h-3 w-3 text-amber-600" />
-                  Premium
-                </span>
+                <FarmerBadge variant="warn">
+                  <Crown className="h-3 w-3 inline mr-1" /> Pro Tier
+                </FarmerBadge>
               </div>
               <div>
-                <h3 className="font-extrabold text-gray-900 text-base">
-                  AI Pest & Weather Risk Alert
+                <h3 className="text-sm font-semibold text-zinc-900">
+                  Pest &amp; Weather Risk Alerts
                 </h3>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Receive proactive warnings about pest outbreaks and adverse weather patterns in your farming region.
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                  Proactive warnings for armyworms, blight outbreaks, and adverse rainfall anomalies.
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              {subscriptionTier !== "premium" ? (
-                <Link
-                  href="/upgrade"
-                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 hover:from-amber-300 hover:to-amber-400 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <Crown className="h-3.5 w-3.5" />
-                  Upgrade to Unlock
-                </Link>
-              ) : (
-                <Link
-                  href="/dashboard"
-                  className="w-full py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  View Dashboard Alerts <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              )}
+            <div className="mt-3 pt-3 border-t border-zinc-100">
+              <Link
+                href="/dashboard"
+                className="w-full py-1.5 px-3 rounded-md text-xs font-medium border border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition-colors flex items-center justify-center gap-1"
+              >
+                View Dashboard Alerts <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
-          </div>
+          </FarmerCard>
         </div>
       </div>
 
       {/* Upload + Result Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upload / Camera Panel */}
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800 mb-1 flex items-center gap-2">
-            <Microscope className="h-5 w-5 text-green-600" />
-            Scan Crop Leaf
-          </h2>
-          <p className="text-xs text-gray-500 mb-4">
-            Point your camera at a leaf or upload a photo. Our AI will diagnose any disease.
-          </p>
+        <FarmerCard className="p-5 space-y-4">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900 flex items-center gap-1.5">
+              <Microscope className="h-4 w-4 text-emerald-600" />
+              Scan Crop Foliage
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Point camera directly at the affected leaf surface or upload high-res image.
+            </p>
+          </div>
 
-          {/* Phase 7: Live Camera Scanner (primary) */}
           <LiveCameraScanner
             onCapture={(file, previewUrl) => {
               setAnalysisResult(null);
@@ -710,9 +645,8 @@ export default function AiCenterPage() {
             }}
           />
 
-          {/* Phase 5: Pending offline scans indicator */}
           {pendingOfflineScans > 0 && (
-            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+            <div className="flex items-center gap-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-700">
               <WifiOff className="h-3.5 w-3.5 flex-shrink-0" />
               <span>
                 <strong>{pendingOfflineScans}</strong> scan{pendingOfflineScans > 1 ? "s" : ""} queued for upload when online.
@@ -720,12 +654,11 @@ export default function AiCenterPage() {
             </div>
           )}
 
-          {/* Error / invalid plant message */}
           {error && (
             <div
-              className={`mt-3 flex items-start gap-2 p-3 rounded-lg text-sm ${
+              className={`flex items-start gap-2 p-2.5 rounded-md text-xs font-medium ${
                 invalidPlant
-                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  ? "bg-amber-50 text-amber-800 border border-amber-200"
                   : "bg-red-50 text-red-700 border border-red-200"
               }`}
             >
@@ -737,254 +670,184 @@ export default function AiCenterPage() {
           <button
             onClick={handleAnalyze}
             disabled={!imageFile || isLoading}
-            className="w-full mt-4 py-3 text-base font-semibold text-white bg-green-600 rounded-xl shadow-md hover:bg-green-700 active:scale-95 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 text-xs sm:text-sm font-medium text-white bg-zinc-900 rounded-md hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xs"
           >
             {isLoading ? (
               <>
-                <svg
-                  className="animate-spin h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                  />
-                </svg>
-                Analysing with AI...
+                <div className="h-4 w-4 rounded-full border-2 border-zinc-400 border-t-white animate-spin" />
+                <span>Analysing Crop Health…</span>
               </>
             ) : (
               <>
-                <Microscope className="h-5 w-5" />
-                Analyse Crop Health
+                <Microscope className="h-4 w-4" />
+                <span>Run AI Diagnosis</span>
               </>
             )}
           </button>
-        </div>
+        </FarmerCard>
 
         {/* Result Panel */}
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 min-h-[280px]">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Leaf className="h-5 w-5 text-green-600" />
-            Analysis Result
+        <FarmerCard className="p-5 min-h-[300px]">
+          <h2 className="text-sm font-semibold text-zinc-900 mb-3 flex items-center gap-1.5">
+            <Leaf className="h-4 w-4 text-emerald-600" />
+            Diagnosis Output
           </h2>
 
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
-              <svg
-                className="animate-spin h-10 w-10 text-green-500"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                />
-              </svg>
-              <p className="text-sm font-medium text-gray-500">
-                AI is analysing your crop, please wait...
+            <div className="flex flex-col items-center justify-center h-48 gap-2.5 text-zinc-400">
+              <div className="h-6 w-6 rounded-full border-2 border-zinc-200 border-t-zinc-900 animate-spin" />
+              <p className="text-xs font-medium text-zinc-500">
+                Processing crop imagery with agronomy model…
               </p>
             </div>
           ) : analysisResult ? (
             <AnalysisResultCard result={analysisResult} />
           ) : (
-            <div className="flex flex-col items-center justify-center h-48 text-center text-gray-400 gap-3">
-              <Microscope className="h-12 w-12 text-gray-200" />
-              <p className="text-sm text-gray-400">
-                Capture or upload a crop image and click{" "}
-                <span className="font-semibold text-gray-600">
-                  &quot;Analyse Crop Health&quot;
-                </span>{" "}
-                to see results here.
+            <div className="flex flex-col items-center justify-center h-48 text-center text-zinc-400 gap-2">
+              <Microscope className="h-8 w-8 text-zinc-300" />
+              <p className="text-xs text-zinc-400 max-w-xs">
+                Capture or upload an image and click{" "}
+                <strong className="text-zinc-700">&ldquo;Run AI Diagnosis&rdquo;</strong> to inspect disease findings.
               </p>
             </div>
           )}
-        </div>
+        </FarmerCard>
       </div>
 
-      {/* ─── Scan History ─────────────────── */}
-      <div>
-        <div className="flex items-center justify-between mb-5">
+      {/* Scan History */}
+      <FarmerCard className="p-0 overflow-hidden">
+        <div className="p-4 border-b border-zinc-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-zinc-50/50">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              Crop Scan History
-              {/* Phase 3: Offline cache badge */}
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-900">
+                Diagnostic Scan History
+              </h2>
               {isOfflineMode && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                  <WifiOff className="h-3 w-3" /> Cached
-                </span>
+                <FarmerBadge variant="warn">
+                  <WifiOff className="h-3 w-3 inline mr-1" /> Offline Cache
+                </FarmerBadge>
               )}
-            </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            </div>
+            <p className="text-[11px] text-zinc-500">
               {isOfflineMode
-                ? "Showing locally cached history — reconnect to sync."
-                : "Your recent AI diagnoses — most recent first."}
+                ? "Showing locally cached records — reconnect to sync."
+                : "Recent AI scan diagnostics logged for your crops"}
             </p>
           </div>
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
-            <Clock className="h-3.5 w-3.5" />
-            Last {PAGE_SIZE} shown
-          </span>
-        </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-500">Status:</span>
-            <div className="flex bg-gray-100 rounded-lg p-1">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-md text-xs">
               {["All", "Healthy", "Disease Detected"].map((status) => (
                 <button
                   key={status}
                   onClick={() => setHistoryStatusFilter(status as any)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                     historyStatusFilter === status
-                      ? "bg-white text-green-700 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
+                      : "text-zinc-500 hover:text-zinc-900"
                   }`}
                 >
                   {status}
                 </button>
               ))}
             </div>
-          </div>
-          
-          <div className="flex-1 w-full sm:w-auto h-px bg-gray-100 sm:h-8 sm:w-px sm:bg-gray-200" />
-          
-          <div className="flex items-center gap-3 text-sm">
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-gray-500 mb-1">From</span>
+
+            <div className="flex items-center gap-1.5">
               <input
                 type="date"
                 value={historyStartDate}
                 onChange={(e) => setHistoryStartDate(e.target.value)}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 bg-gray-50 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
+                className="px-2 py-1 border border-zinc-200 rounded-md text-zinc-700 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-gray-500 mb-1">To</span>
+              <span className="text-zinc-400 text-xs">to</span>
               <input
                 type="date"
                 value={historyEndDate}
                 onChange={(e) => setHistoryEndDate(e.target.value)}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 bg-gray-50 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
+                className="px-2 py-1 border border-zinc-200 rounded-md text-zinc-700 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
           </div>
         </div>
 
-        {historyLoading ? (
-          /* Skeleton */
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 animate-pulse"
-              >
-                <div className="w-20 h-20 rounded-xl bg-gray-200 flex-shrink-0" />
-                <div className="flex-1 space-y-2 py-1">
-                  <div className="h-4 bg-gray-200 rounded w-1/3" />
-                  <div className="h-3 bg-gray-100 rounded w-1/2" />
-                  <div className="h-3 bg-gray-100 rounded w-1/4 mt-2" />
+        <div className="p-4">
+          {historyLoading ? (
+            <div className="space-y-2.5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex gap-3.5 p-3.5 bg-white rounded-lg border border-zinc-100 animate-pulse"
+                >
+                  <div className="w-16 h-16 rounded-md bg-zinc-200 flex-shrink-0" />
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-3.5 bg-zinc-200 rounded w-1/3" />
+                    <div className="h-3 bg-zinc-100 rounded w-1/2" />
+                    <div className="h-3 bg-zinc-100 rounded w-1/4 mt-2" />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredHistory.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200">
-            <Leaf className="h-12 w-12 text-gray-200 mb-3" />
-            <p className="font-semibold text-gray-500">No scans yet</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Your scan history will appear here after your first analysis.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredHistory.map((scan) => (
-              <ScanHistoryCard key={scan.id} scan={scan} />
-            ))}
+              ))}
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="py-12 text-center">
+              <FarmerEmptyState
+                icon={Leaf}
+                title="No diagnostic scans recorded"
+                description="Your previous crop scans and disease records will appear here."
+              />
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredHistory.map((scan) => (
+                <ScanHistoryCard key={scan.id} scan={scan} />
+              ))}
 
-            {/* Load More */}
-            {hasMore && (
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-colors disabled:opacity-50"
-              >
-                {loadingMore ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                      />
-                    </svg>
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    Load More Scans
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+              {hasMore && (
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-md transition-colors disabled:opacity-50 mt-2"
+                >
+                  {loadingMore ? (
+                    <span>Loading…</span>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      Load More Scans
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </FarmerCard>
 
       {/* Upgrade Modal */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-sm w-full">
-            <div className="flex items-center justify-center w-14 h-14 bg-amber-100 rounded-full mx-auto mb-4">
-              <Sparkles className="h-7 w-7 text-amber-600" />
+        <div className="fixed inset-0 bg-zinc-950/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl border border-zinc-200 p-6 text-center max-w-sm w-full space-y-4">
+            <div className="flex items-center justify-center w-10 h-10 bg-amber-50 border border-amber-100 rounded-md mx-auto text-amber-600">
+              <Sparkles className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Out of Scans!</h2>
-            <p className="text-gray-600 mt-2 text-sm">
-              You&apos;ve used all your AI scans. Upgrade to a 5-Star Farmer
-              plan to get unlimited scans and premium features.
-            </p>
-            <div className="mt-6 space-y-2">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-900">
+                AI Diagnostic Limit Reached
+              </h2>
+              <p className="text-zinc-500 mt-1 text-xs leading-relaxed">
+                You have reached your free AI scans limit. Upgrade to a 5-Star Farmer plan to unlock unlimited scans and priority agronomy insights.
+              </p>
+            </div>
+            <div className="space-y-2 pt-2 border-t border-zinc-100">
               <Link
                 href="/finances"
-                className="block w-full px-6 py-3 text-base font-bold text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors"
+                className="block w-full py-2 text-xs font-medium text-white bg-zinc-900 rounded-md hover:bg-zinc-800 transition-colors shadow-xs"
               >
-                Upgrade Now
+                Upgrade Plan
               </Link>
               <button
                 onClick={() => setShowUpgradeModal(false)}
-                className="w-full px-6 py-3 text-base font-medium text-gray-500 hover:text-gray-700"
+                className="w-full py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
               >
                 Maybe Later
               </button>
@@ -995,3 +858,4 @@ export default function AiCenterPage() {
     </div>
   );
 }
+

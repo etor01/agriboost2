@@ -2,11 +2,6 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Farm, Crop, Activity, TaskWithCrop, CropGrowthPlan } from "@/lib/database.types";
-
-export const metadata: Metadata = {
-  title: "Farm Dashboard | AgriBoost",
-  description: "Your AgriBoost farm overview — crops, revenue, tasks, and weather at a glance.",
-};
 import Link from "next/link";
 import {
   type LucideIcon,
@@ -32,6 +27,12 @@ import {
 import WeatherWidget from "@/components/WeatherWidget";
 import FarmingTipWidget from "@/components/FarmingTipWidget";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { FarmerStatCard, FarmerBadge, FarmerCard, FarmerCardHeader, FarmerCardContent, FarmerEmptyState } from "@/components/farmer/ui";
+
+export const metadata: Metadata = {
+  title: "Farm Dashboard | AgriBoost",
+  description: "Your AgriBoost farm overview — crops, revenue, tasks, and weather at a glance.",
+};
 
 // ── Ghana region / city → GPS coordinates ────────────────────────
 const GHANA_REGION_COORDS: Record<string, { lat: number; lon: number }> = {
@@ -52,7 +53,6 @@ const GHANA_REGION_COORDS: Record<string, { lat: number; lon: number }> = {
   "Bono East":     { lat: 7.7,    lon: -1.2    },
   "North East":    { lat: 10.5,   lon: -0.35   },
   "Western North": { lat: 6.3,    lon: -2.8    },
-  // Common city shortcuts
   "Accra":         { lat: 5.6037, lon: -0.1870 },
   "Kumasi":        { lat: 6.6885, lon: -1.6244 },
   "Tamale":        { lat: 9.4008, lon: -0.8393 },
@@ -105,14 +105,14 @@ interface ThisWeekTask {
 }
 
 // ── Category label/color for dashboard pills ──────────────────────
-const TASK_CAT: Record<string, { cls: string; icon: LucideIcon }> = {
-  watering: { cls: "bg-blue-100 text-blue-700", icon: Droplets },
-  fertilizer: { cls: "bg-green-100 text-green-700", icon: Sprout },
-  weeding: { cls: "bg-lime-100 text-lime-700", icon: Leaf },
-  pest_control: { cls: "bg-orange-100 text-orange-700", icon: ShieldCheck },
-  disease_prevention: { cls: "bg-red-100 text-red-700", icon: AlertTriangle },
-  observation: { cls: "bg-purple-100 text-purple-700", icon: Eye },
-  harvest: { cls: "bg-amber-100 text-amber-700", icon: Leaf },
+const TASK_CAT: Record<string, { variant: 'blue' | 'success' | 'warn' | 'danger' | 'purple' | 'default'; icon: LucideIcon }> = {
+  watering: { variant: "blue", icon: Droplets },
+  fertilizer: { variant: "success", icon: Sprout },
+  weeding: { variant: "success", icon: Leaf },
+  pest_control: { variant: "warn", icon: ShieldCheck },
+  disease_prevention: { variant: "danger", icon: AlertTriangle },
+  observation: { variant: "purple", icon: Eye },
+  harvest: { variant: "warn", icon: Leaf },
 };
 
 const QUICK_ACTIONS: Array<{
@@ -120,78 +120,23 @@ const QUICK_ACTIONS: Array<{
   icon: LucideIcon;
   href: string;
   color: string;
+  bg: string;
 }> = [
-  { label: "Add New Farm", icon: Tractor, href: "/farm/new", color: "from-emerald-500 to-green-500" },
-  { label: "Create Listing", icon: Package, href: "/marketplace/new", color: "from-blue-500 to-cyan-500" },
-  { label: "AI Crop Scan", icon: Sparkles, href: "/ai-center", color: "from-purple-500 to-violet-500" },
-  { label: "View Finances", icon: Wallet, href: "/finances", color: "from-amber-500 to-orange-500" },
+  { label: "Add New Farm", icon: Tractor, href: "/farm/new", color: "text-emerald-600", bg: "bg-emerald-50 hover:bg-emerald-100/80 border-emerald-200" },
+  { label: "Create Listing", icon: Package, href: "/marketplace/new", color: "text-blue-600", bg: "bg-blue-50 hover:bg-blue-100/80 border-blue-200" },
+  { label: "AI Crop Scan", icon: Sparkles, href: "/ai-center", color: "text-purple-600", bg: "bg-purple-50 hover:bg-purple-100/80 border-purple-200" },
+  { label: "View Finances", icon: Wallet, href: "/finances", color: "text-amber-600", bg: "bg-amber-50 hover:bg-amber-100/80 border-amber-200" },
 ];
-
-function GlassCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`bg-white/70 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  trend,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  sub: string;
-  trend?: string;
-}) {
-  return (
-    <GlassCard className="p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
-      <div className="flex items-start justify-between">
-        <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-emerald-600" />
-        </div>
-        {trend && (
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              trend.startsWith("+")
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-red-100 text-red-600"
-            }`}
-          >
-            {trend}
-          </span>
-        )}
-      </div>
-      <p className="text-sm text-gray-500 font-medium mt-3">{label}</p>
-      <p className="text-2xl font-extrabold text-gray-900 mt-0.5 tracking-tight">
-        {value}
-      </p>
-      <p className="text-xs text-gray-400 mt-1">{sub}</p>
-    </GlassCard>
-  );
-}
 
 const getActivityMeta = (type: string) => {
   switch (type) {
-    case "crop_created": return { icon: Sprout, color: "bg-green-100 text-green-600" };
-    case "farm_created": return { icon: Tractor, color: "bg-emerald-100 text-emerald-600" };
-    case "listing_created": return { icon: Package, color: "bg-blue-100 text-blue-600" };
-    case "scan_performed": return { icon: Sparkles, color: "bg-purple-100 text-purple-600" };
-    case "task_completed": return { icon: CheckCircle2, color: "bg-teal-100 text-teal-600" };
-    case "payment_received": return { icon: Wallet, color: "bg-amber-100 text-amber-600" };
-    default: return { icon: Sprout, color: "bg-gray-100 text-gray-600" };
+    case "crop_created": return { icon: Sprout, color: "text-emerald-600", bg: "bg-emerald-50" };
+    case "farm_created": return { icon: Tractor, color: "text-teal-600", bg: "bg-teal-50" };
+    case "listing_created": return { icon: Package, color: "text-blue-600", bg: "bg-blue-50" };
+    case "scan_performed": return { icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50" };
+    case "task_completed": return { icon: CheckCircle2, color: "text-amber-600", bg: "bg-amber-50" };
+    case "payment_received": return { icon: Wallet, color: "text-green-600", bg: "bg-green-50" };
+    default: return { icon: Sprout, color: "text-zinc-600", bg: "bg-zinc-50" };
   }
 };
 
@@ -211,7 +156,6 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // ── Batch 1: All queries that only need the user id ──────────────────────
   const oneWeekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
   const [
@@ -254,7 +198,6 @@ export default async function DashboardPage() {
   const totalRevenue = txRes.data?.reduce((sum, tx) => sum + Number(tx.amount), 0) ?? 0;
   const recentActivities: Activity[] = activitiesRes.data ?? [];
 
-  // ── Resolve region → GPS coords for weather ───────────────────────────────
   const regionOrCity =
     (farms[0] as Farm & { region?: string })?.region ??
     (farms[0] as Farm)?.location ??
@@ -262,7 +205,6 @@ export default async function DashboardPage() {
     "Ashanti";
   const { lat, lon } = resolveCoords(regionOrCity);
 
-  // ── Batch 2: Queries that depend on farm IDs + weather (all parallel) ─────
   const farmIds = farms.map((f: Farm) => f.id);
 
   const [cropsRes, weatherData] = await Promise.all([
@@ -278,7 +220,6 @@ export default async function DashboardPage() {
 
   const crops = (cropsRes.data as Crop[]) ?? [];
 
-  // ── Derive "This Week on Your Farm" tasks from ai_growth_data ─────────────
   const thisWeekTasks: ThisWeekTask[] = [];
   for (const crop of crops) {
     if (!crop.ai_growth_data || !crop.planting_date) continue;
@@ -301,7 +242,6 @@ export default async function DashboardPage() {
     }
   }
 
-  // ── Fallback: fetch regular tasks if no AI plan tasks ─────────────────────
   const cropIds = crops.map((c: Crop) => c.id);
   let tasks: TaskWithCrop[] = [];
   if (thisWeekTasks.length === 0 && cropIds.length > 0) {
@@ -312,7 +252,6 @@ export default async function DashboardPage() {
       .eq("completed", false)
       .order("due_date", { ascending: true })
       .limit(8);
-    // Safe cast: the query selects exactly the fields TaskWithCrop expects
     tasks = (tasksData as unknown as TaskWithCrop[]) ?? [];
   }
 
@@ -324,16 +263,15 @@ export default async function DashboardPage() {
   const firstName = safeProfile.firstname as string;
   const today = new Date();
 
-  // Crop types and region for the farming tip widget
   const cropTypes = [...new Set(crops.map((c: Crop) => c.crop_type))];
   const primaryRegion = (farms[0] as Farm & { region?: string })?.region ?? (farms[0] as Farm)?.location ?? "Ghana";
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-4">
-          <p className="text-sm text-emerald-600 font-semibold">
+      {/* Header Greeting Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-lg border border-zinc-200 bg-white shadow-sm">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">
             {today.toLocaleDateString("en-GH", {
               weekday: "long",
               day: "numeric",
@@ -341,62 +279,69 @@ export default async function DashboardPage() {
               year: "numeric",
             })}
           </p>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900">
             Good{" "}
             {today.getHours() < 12
               ? "morning"
               : today.getHours() < 17
               ? "afternoon"
               : "evening"}
-            , {firstName}! 👋
+            , {firstName} 👋
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {"Here's what's happening on your farm today."}
+          <p className="text-xs sm:text-sm text-zinc-500">
+            {"Here's what's happening across your farms and listings today."}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <Link
             href="/marketplace"
-            className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 text-emerald-700 font-semibold text-sm bg-white/80 hover:bg-emerald-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 text-xs sm:text-sm font-medium transition-colors"
           >
-            <ShoppingBag className="h-4 w-4" /> Marketplace
+            <ShoppingBag className="h-4 w-4 text-zinc-500" /> Marketplace
           </Link>
           <Link
             href="/marketplace/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold text-sm rounded-xl shadow-md shadow-emerald-200 hover:from-emerald-600 hover:to-green-600 transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-medium transition-colors"
           >
             <Plus className="h-4 w-4" /> New Listing
           </Link>
         </div>
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          icon={Tractor}
-          label="Total Farms"
+        <FarmerStatCard
+          title="Total Farms"
           value={String(farms.length || 0)}
-          sub="Registered farms"
+          icon={Tractor}
+          iconColor="text-emerald-600"
+          sub="Registered properties"
           trend={`+${farms.filter((f) => new Date(f.created_at).getMonth() === today.getMonth()).length} this month`}
         />
-        <KpiCard
-          icon={Leaf}
-          label="Active Crops"
+        <FarmerStatCard
+          title="Active Crops"
           value={String(crops.length || 0)}
+          icon={Leaf}
+          iconColor="text-lime-600"
+          iconBg="bg-lime-50 border-lime-100"
           sub="Across all farms"
           trend={`${crops.filter((c: Crop) => c.ai_growth_data).length} with AI plan`}
         />
-        <KpiCard
+        <FarmerStatCard
+          title="Revenue (MTD)"
+          value={`GH₵ ${totalRevenue.toFixed(2)}`}
           icon={Wallet}
-          label="Revenue (MTD)"
-          value={`GH\u20B5 ${totalRevenue.toFixed(2)}`}
+          iconColor="text-emerald-600"
           sub="Total completed payouts"
+          accent
         />
-        <KpiCard
-          icon={Package}
-          label="Active Listings"
+        <FarmerStatCard
+          title="Active Listings"
           value={String(activeListingsCount || 0)}
-          sub="On marketplace"
+          icon={Package}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-50 border-blue-100"
+          sub="Live in marketplace"
           trend={newListingsThisWeek ? `+${newListingsThisWeek} this week` : undefined}
         />
       </div>
@@ -409,309 +354,237 @@ export default async function DashboardPage() {
           </ErrorBoundary>
         </div>
 
-        <GlassCard className="p-5">
-          <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-600" /> Quick Actions
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {QUICK_ACTIONS.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Link
-                  key={action.label}
-                  href={action.href}
-                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gradient-to-br ${action.color} text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 active:scale-95`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <p className="text-xs font-bold text-center leading-tight">
-                    {action.label}
-                  </p>
-                </Link>
-              );
-            })}
+        <FarmerCard className="p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              <h2 className="text-sm font-semibold text-zinc-900">Quick Actions</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {QUICK_ACTIONS.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-md border ${action.bg} transition-all text-center`}
+                  >
+                    <Icon className={`h-4 w-4 ${action.color}`} />
+                    <p className="text-xs font-semibold text-zinc-800 leading-tight">
+                      {action.label}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
-          {/* AI Farming Tip — loads after page render */}
           <ErrorBoundary label="Farming Tip">
             <FarmingTipWidget crops={cropTypes} region={primaryRegion} />
           </ErrorBoundary>
-        </GlassCard>
+        </FarmerCard>
       </div>
 
       {/* This Week + Activity + My Farms */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        {/* ── This Week on Your Farm ── */}
-        <GlassCard className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-emerald-600" /> This Week on Your Farm
-            </h2>
-            {thisWeekTasks.length > 0 && (
-              <Link
-                href="/tasks"
-                className="text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors px-2.5 py-1 rounded-full flex items-center gap-1"
-              >
-                {thisWeekTasks.length} task{thisWeekTasks.length !== 1 ? "s" : ""}
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            )}
-            {thisWeekTasks.length === 0 && tasks.length > 0 && (
-              <Link
-                href="/tasks"
-                className="text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors px-2.5 py-1 rounded-full flex items-center gap-1"
-              >
-                Manage All Tasks
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            )}
-          </div>
-
-          {/* AI-plan based this-week tasks */}
-          {thisWeekTasks.length > 0 ? (
-            <div className="space-y-3">
-              {/* Group by crop */}
-              {Array.from(new Set(thisWeekTasks.map((t) => t.cropType))).map(
-                (ct) => {
-                  const cropTasks = thisWeekTasks.filter(
-                    (t) => t.cropType === ct
-                  );
+        {/* This Week on Your Farm */}
+        <FarmerCard>
+          <FarmerCardHeader
+            title="This Week on Your Farm"
+            icon={Calendar}
+            action={
+              thisWeekTasks.length > 0 ? (
+                <Link
+                  href="/tasks"
+                  className="text-xs font-medium text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
+                >
+                  {thisWeekTasks.length} task{thisWeekTasks.length !== 1 ? "s" : ""}
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              ) : null
+            }
+          />
+          <FarmerCardContent>
+            {thisWeekTasks.length > 0 ? (
+              <div className="space-y-3">
+                {Array.from(new Set(thisWeekTasks.map((t) => t.cropType))).map((ct) => {
+                  const cropTasks = thisWeekTasks.filter((t) => t.cropType === ct);
                   const first = cropTasks[0];
                   return (
-                    <div key={ct}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                    <div key={ct} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-zinc-700 uppercase tracking-wide">
                           {ct}
-                        </p>
-                        <span className="text-[10px] text-gray-400 font-medium">
+                        </span>
+                        <span className="text-[11px] text-zinc-400">
                           Week {first.weekNumber} of {first.totalWeeks}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {cropTasks.map((t, i) => {
-                          const meta = TASK_CAT[t.category] ?? TASK_CAT.observation;
-                          const Icon = meta.icon;
+                          const meta = TASK_CAT[t.category] ?? { variant: "default", icon: Eye };
                           return (
-                            <span
-                              key={i}
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border ${meta.cls} border-current/20`}
-                              title={t.notes ?? undefined}
-                            >
-                              <Icon className="h-2.5 w-2.5 flex-shrink-0" />
+                            <FarmerBadge key={i} variant={meta.variant} icon={meta.icon}>
                               {t.task}
-                            </span>
+                            </FarmerBadge>
                           );
                         })}
                       </div>
                     </div>
                   );
-                }
-              )}
-              <Link
-                href="/farms"
-                className="block text-center text-xs text-emerald-600 font-semibold pt-2 hover:underline"
-              >
-                View full timeline →
-              </Link>
-            </div>
-          ) : crops.length === 0 ? (
-            /* No crops at all */
-            <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-              <Sprout className="h-10 w-10 text-emerald-500 animate-bounce" />
-              <div>
-                <p className="text-sm font-semibold text-gray-700">
-                  No crops registered yet
-                </p>
-                <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
-                  Add a crop to get a week-by-week AI care schedule.
-                </p>
-              </div>
-              <Link
-                href="/farms"
-                className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
-              >
-                + Register Crop
-              </Link>
-            </div>
-          ) : tasks.length === 0 ? (
-            /* Crops exist but no tasks */
-            <div className="text-center py-12 text-gray-400 space-y-2">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
-              <p className="text-sm font-semibold">All tasks done!</p>
-              <p className="text-xs text-gray-400">
-                No pending tasks. Visit your farm to generate an AI care plan.
-              </p>
-            </div>
-          ) : (
-            /* Fallback: regular tasks table */
-            <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-              <p className="text-[10px] text-gray-400 italic mb-2">
-                AI plan tasks shown here once a crop plan is generated.
-              </p>
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-white/60 hover:bg-white transition-colors"
+                })}
+                <Link
+                  href="/farms"
+                  className="block text-center text-xs text-emerald-600 font-medium pt-2 hover:underline"
                 >
-                  <Circle className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-300" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
-                      {task.description}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
-                      <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase">
-                        {(task as any).crops?.crop_type || "General"}
-                      </span>
-                      <span>
-                        Due:{" "}
-                        {task.due_date
-                          ? new Date(task.due_date).toLocaleDateString("en-GH", {
-                              day: "numeric",
-                              month: "short",
-                            })
-                          : "TBD"}
-                      </span>
-                    </p>
-                  </div>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 uppercase ${
-                      task.priority === "high"
-                        ? "bg-red-100 text-red-600"
-                        : task.priority === "medium"
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
+                  View full timeline →
+                </Link>
+              </div>
+            ) : crops.length === 0 ? (
+              <FarmerEmptyState
+                icon={Sprout}
+                title="No crops registered yet"
+                description="Add a crop to get an automated week-by-week AI care schedule."
+                action={
+                  <Link
+                    href="/farms"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium transition-colors"
                   >
-                    {task.priority || "medium"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </GlassCard>
+                    + Register Crop
+                  </Link>
+                }
+              />
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-10 text-zinc-400 space-y-1.5">
+                <CheckCircle2 className="h-7 w-7 text-emerald-500 mx-auto" />
+                <p className="text-xs font-semibold text-zinc-700">All tasks completed!</p>
+                <p className="text-[11px] text-zinc-400">No pending tasks for this week.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-start gap-2.5 p-2.5 rounded-md border border-zinc-100 bg-zinc-50/60 hover:bg-zinc-50 transition-colors"
+                  >
+                    <Circle className="mt-0.5 h-4 w-4 flex-shrink-0 text-zinc-400" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-zinc-800 truncate">{task.description}</p>
+                      <p className="text-[10px] text-zinc-400 mt-0.5">
+                        Due: {task.due_date ? new Date(task.due_date).toLocaleDateString("en-GH", { day: "numeric", month: "short" }) : "TBD"}
+                      </p>
+                    </div>
+                    <FarmerBadge variant={task.priority === "high" ? "danger" : "default"}>
+                      {task.priority || "normal"}
+                    </FarmerBadge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </FarmerCardContent>
+        </FarmerCard>
 
         {/* Recent Activity */}
-        <GlassCard className="p-5">
-          <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-600" /> Recent Activity
-          </h2>
-          {recentActivities.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <Sparkles className="h-8 w-8 text-purple-400 opacity-40 mx-auto mb-2 animate-pulse" />
-              <p className="text-sm font-semibold">No recent activities</p>
-              <p className="text-xs">Your actions will be logged here.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentActivities.map((a: Activity) => {
-                const meta = getActivityMeta(a.activity_type);
-                const Icon = meta.icon;
-                return (
-                  <div
-                    key={a.id}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-white/60 hover:bg-white transition-colors"
-                  >
+        <FarmerCard>
+          <FarmerCardHeader title="Recent Activity" icon={Sparkles} />
+          <FarmerCardContent>
+            {recentActivities.length === 0 ? (
+              <FarmerEmptyState
+                icon={Sparkles}
+                title="No recent activities"
+                description="Your farm events and updates will be logged here."
+              />
+            ) : (
+              <div className="space-y-2.5">
+                {recentActivities.map((a: Activity) => {
+                  const meta = getActivityMeta(a.activity_type);
+                  const Icon = meta.icon;
+                  return (
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${meta.color}`}
+                      key={a.id}
+                      className="flex items-start gap-3 p-2.5 rounded-md border border-zinc-100 hover:bg-zinc-50/60 transition-colors"
                     >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
-                        {a.title}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-                        {a.description}
-                      </p>
-                      <span className="text-[10px] text-gray-400 block mt-1">
-                        {formatRelativeTime(a.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </GlassCard>
-
-        {/* My Farms (market snapshot removed) */}
-        <GlassCard className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-              <Tractor className="h-4 w-4 text-emerald-600" /> My Farms
-            </h2>
-            <Link
-              href="/farms"
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-            >
-              Manage All <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-
-          {farms.length > 0 ? (
-            <div className="space-y-2">
-              {farms.slice(0, 4).map(
-                (farm: {
-                  id: string;
-                  name: string;
-                  location: string;
-                  size_in_acres: number;
-                }) => (
-                  <Link key={farm.id} href={`/farm/${farm.id}`}>
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/60 hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-emerald-100">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center flex-shrink-0">
-                        <Sprout className="h-5 w-5 text-emerald-600" />
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
+                        <Icon className={`h-3.5 w-3.5 ${meta.color}`} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 truncate">
-                          {farm.name}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
-                          <MapPin className="h-3 w-3" /> {farm.location}
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-xs font-bold text-gray-700">
-                          {farm.size_in_acres} ac
-                        </p>
-                        <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                          Active
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-zinc-800 truncate">{a.title}</p>
+                        {a.description && (
+                          <p className="text-[11px] text-zinc-500 truncate mt-0.5">{a.description}</p>
+                        )}
+                        <span className="text-[10px] text-zinc-400 block mt-1">
+                          {formatRelativeTime(a.created_at)}
                         </span>
                       </div>
                     </div>
-                  </Link>
-                )
-              )}
-              {farms.length > 4 && (
-                <Link
-                  href="/farms"
-                  className="block text-center text-xs text-emerald-600 font-semibold pt-1 hover:underline"
-                >
-                  +{farms.length - 4} more farms
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
-              <Sprout className="h-8 w-8 text-emerald-600" />
-              <div>
-                <p className="text-sm font-semibold text-gray-700">
-                  No farms yet
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Add your first farm to get started
-                </p>
+                  );
+                })}
               </div>
+            )}
+          </FarmerCardContent>
+        </FarmerCard>
+
+        {/* My Farms Overview */}
+        <FarmerCard>
+          <FarmerCardHeader
+            title="My Farms"
+            icon={Tractor}
+            action={
               <Link
-                href="/farm/new"
-                className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-md shadow-emerald-200"
+                href="/farms"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
               >
-                + Add Farm
+                Manage All <ArrowRight className="h-3 w-3" />
               </Link>
-            </div>
-          )}
-        </GlassCard>
+            }
+          />
+          <FarmerCardContent>
+            {farms.length > 0 ? (
+              <div className="space-y-2">
+                {farms.slice(0, 4).map((farm: { id: string; name: string; location: string; size_in_acres: number }) => (
+                  <Link key={farm.id} href={`/farm/${farm.id}`} className="block">
+                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-md border border-zinc-100 bg-white hover:bg-zinc-50/60 hover:border-zinc-200 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-zinc-800 truncate">{farm.name}</p>
+                        <p className="text-[11px] text-zinc-500 truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 text-zinc-400" /> {farm.location}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xs font-semibold text-zinc-900">{farm.size_in_acres} ac</span>
+                        <FarmerBadge variant="success">Active</FarmerBadge>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+                {farms.length > 4 && (
+                  <Link
+                    href="/farms"
+                    className="block text-center text-xs text-emerald-600 font-medium pt-1 hover:underline"
+                  >
+                    +{farms.length - 4} more farms
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <FarmerEmptyState
+                icon={Sprout}
+                title="No farms registered"
+                description="Add your first farm property to track crops and care plans."
+                action={
+                  <Link
+                    href="/farm/new"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium transition-colors"
+                  >
+                    + Add Farm
+                  </Link>
+                }
+              />
+            )}
+          </FarmerCardContent>
+        </FarmerCard>
       </div>
     </div>
   );
 }
+
