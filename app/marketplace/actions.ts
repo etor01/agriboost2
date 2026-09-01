@@ -143,6 +143,26 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
       };
     }
 
+    // ── Deduct Listing Inventory ──────────────────────────────────────────────
+    const { data: listingData } = await supabase
+      .from("listings")
+      .select("quantity")
+      .eq("id", item.listingId)
+      .single();
+
+    if (listingData) {
+      const currentQty = Number(listingData.quantity ?? 0);
+      const newQty = Math.max(0, currentQty - item.qty);
+      await supabase
+        .from("listings")
+        .update({
+          quantity: newQty,
+          status: newQty === 0 ? "sold" : "active",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.listingId);
+    }
+
     // ── Insert Escrow Transaction with full fee breakdown ─────────────────────
     const { error: txErr } = await supabase.from("transactions").insert({
       order_id: orderData.id,
@@ -208,6 +228,9 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
   }
 
   revalidatePath("/buyer/orders");
+  revalidatePath("/buyer/shop");
+  revalidatePath("/marketplace");
+  revalidatePath("/my-listings");
   revalidatePath("/finances");
   revalidatePath("/orders");
 

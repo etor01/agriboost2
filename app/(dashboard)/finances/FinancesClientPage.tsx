@@ -214,9 +214,19 @@ function WithdrawModal({
               </span>
             </div>
 
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-start gap-2.5 text-xs text-amber-900">
+              <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-amber-900">Demo Payout Simulation</p>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  AgriBoost is currently running in test mode. No real money will be transferred to your Mobile Money or bank account.
+                </p>
+              </div>
+            </div>
+
             {!hasBalance && (
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-start gap-2 text-xs text-amber-800">
-                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3 flex items-start gap-2 text-xs text-zinc-600">
+                <AlertCircle className="h-4 w-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                 <p>
                   You currently have no available balance. Escrow funds unlock
                   when buyers confirm delivery OTP.
@@ -314,28 +324,35 @@ function WithdrawModal({
               />
             </div>
 
-            <div className="pt-2 border-t border-zinc-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3.5 py-2 rounded-md border border-zinc-200 text-zinc-700 font-medium text-xs hover:bg-zinc-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleWithdraw}
-                disabled={loading || !hasBalance}
-                className="px-4 py-2 bg-zinc-900 text-white font-medium text-xs rounded-md hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-xs flex items-center gap-1.5"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />{" "}
-                    Processing…
-                  </>
-                ) : (
-                  "Confirm Payout"
-                )}
-              </button>
+            <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <span className="text-[11px] text-zinc-500 font-medium italic">
+                  * Note: Test mode simulation — no real money involved
+                </span>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-3.5 py-2 rounded-md border border-zinc-200 text-zinc-700 font-medium text-xs hover:bg-zinc-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={loading || !hasBalance || !amount || Number(amount) <= 0 || Number(amount) > availableBalance}
+                    className="px-4 py-2 bg-zinc-900 text-white font-medium text-xs rounded-md hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />{" "}
+                        Processing…
+                      </>
+                    ) : (
+                      "Confirm Payout"
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -536,12 +553,18 @@ export default function FinancesClientPage({
         action={
           <div className="flex items-center gap-2">
             {isFarmer && (
-              <button
-                onClick={() => setShowWithdraw(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-zinc-200 bg-white text-zinc-800 font-medium text-xs sm:text-sm hover:bg-zinc-50 transition-colors shadow-xs"
-              >
-                <Minus className="h-3.5 w-3.5" /> Withdraw
-              </button>
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={() => setShowWithdraw(true)}
+                  disabled={(summary?.availableBalance ?? 0) <= 0}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-zinc-200 bg-white text-zinc-800 font-medium text-xs sm:text-sm hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-xs"
+                >
+                  <Minus className="h-3.5 w-3.5" /> Withdraw
+                </button>
+                <span className="text-[10px] text-zinc-400 font-medium">
+                  * No real money involved
+                </span>
+              </div>
             )}
             <button
               onClick={() => setShowTopUp(true)}
@@ -583,12 +606,18 @@ export default function FinancesClientPage({
               <Plus className="h-3.5 w-3.5" /> Top Up Balance
             </button>
             {isFarmer && (
-              <button
-                onClick={() => setShowWithdraw(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-md font-medium text-xs transition-colors"
-              >
-                <Minus className="h-3.5 w-3.5" /> Payout Request
-              </button>
+              <div className="flex flex-col items-start sm:items-end gap-1">
+                <button
+                  onClick={() => setShowWithdraw(true)}
+                  disabled={(summary?.availableBalance ?? 0) <= 0}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-md font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Minus className="h-3.5 w-3.5" /> Payout Request
+                </button>
+                <span className="text-[10px] text-zinc-400 font-medium">
+                  * No real money involved
+                </span>
+              </div>
             )}
           </div>
         </div>
