@@ -107,7 +107,7 @@ function Sidebar({
     <>
       {/* Mobile backdrop */}
       <div
-        className={`fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-zinc-950/40 backdrop-blur-xs z-30 lg:hidden transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
@@ -116,14 +116,14 @@ function Sidebar({
       {/* Sidebar navigation */}
       <aside
         className={`fixed top-0 left-0 h-full w-64 z-40 flex flex-col
-          bg-zinc-950 border-r border-zinc-800
+          bg-white border-r border-zinc-200/90 shadow-xs
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         {/* Brand header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-          <Link href="/dashboard" className="flex items-center gap-2.5" onClick={() => setIsOpen(false)}>
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group" onClick={() => setIsOpen(false)}>
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-2xs group-hover:bg-emerald-700 transition-colors">
               <Image
                 src="/icons/logo.png"
                 alt="AgriBoost"
@@ -133,13 +133,13 @@ function Sidebar({
               />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white tracking-tight">AgriBoost</p>
-              <p className="text-[10px] text-zinc-500 font-medium leading-none">Farmer Hub</p>
+              <p className="text-sm font-bold text-zinc-900 tracking-tight">AgriBoost</p>
+              <p className="text-[10px] text-emerald-600 font-semibold leading-none">Farmer Hub</p>
             </div>
           </Link>
           <button
             onClick={() => setIsOpen(false)}
-            className="lg:hidden text-zinc-400 hover:text-white transition-colors p-1"
+            className="lg:hidden text-zinc-400 hover:text-zinc-800 transition-colors p-1"
           >
             <X className="w-4 h-4" />
           </button>
@@ -149,7 +149,7 @@ function Sidebar({
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {navSections.map((section) => (
             <div key={section.title}>
-              <p className="px-3 mb-1.5 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+              <p className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-zinc-400 uppercase">
                 {section.title}
               </p>
               <div className="space-y-0.5">
@@ -166,13 +166,17 @@ function Sidebar({
                       onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors border-l-2 ${
                         isActive
-                          ? "bg-zinc-900 text-white border-emerald-500 pl-[10px]"
-                          : "text-zinc-400 border-transparent hover:text-zinc-100 hover:bg-zinc-900/60"
+                          ? "bg-emerald-50 text-emerald-950 font-semibold border-emerald-600 pl-[10px] shadow-2xs"
+                          : "text-zinc-600 border-transparent hover:text-emerald-700 hover:bg-emerald-50/60"
                       }`}
                     >
-                      <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-emerald-400" : "text-zinc-500"}`} />
+                      <Icon
+                        className={`w-4 h-4 flex-shrink-0 transition-colors ${
+                          isActive ? "text-emerald-600" : "text-zinc-400 group-hover:text-emerald-600"
+                        }`}
+                      />
                       <span className="truncate flex-1">{item.name}</span>
-                      {isActive && <ChevronRight className="w-3 h-3 text-zinc-600" />}
+                      {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
                     </Link>
                   );
                 })}
@@ -182,28 +186,28 @@ function Sidebar({
         </nav>
 
         {/* Subscription callout + user footer */}
-        <div className="border-t border-zinc-800 p-3 space-y-3">
+        <div className="border-t border-zinc-100 p-3 space-y-3">
           {isPremium ? (
-            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-2.5 flex items-center gap-2 text-amber-300">
-              <BadgeCheck className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/90 p-2.5 flex items-center gap-2 text-emerald-900 shadow-2xs">
+              <BadgeCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold">5-Star Pro Member</p>
-                <p className="text-[10px] text-amber-400/80 truncate">All features unlocked</p>
+                <p className="text-xs font-bold text-emerald-950">5-Star Pro Member</p>
+                <p className="text-[10px] text-emerald-700 truncate">All features unlocked</p>
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-zinc-800 bg-zinc-900/80 p-2.5">
-              <div className="flex items-center gap-1.5 text-zinc-200 mb-1">
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs font-semibold">Pro Farm Plan</span>
+            <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/50 p-2.5 shadow-2xs">
+              <div className="flex items-center gap-1.5 text-zinc-900 mb-1">
+                <Crown className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-xs font-bold">Pro Farm Plan</span>
               </div>
-              <p className="text-[11px] text-zinc-400 mb-2 leading-tight">
+              <p className="text-[11px] text-zinc-500 mb-2 leading-tight">
                 AI diagnosis &amp; priority market ads
               </p>
               <Link
                 href="/upgrade"
                 onClick={() => setIsOpen(false)}
-                className="block text-center py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
+                className="block text-center py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium shadow-2xs transition-colors active:scale-95"
               >
                 Upgrade Now
               </Link>
@@ -212,7 +216,7 @@ function Sidebar({
 
           {/* User profile & sign-out */}
           <div className="flex items-center gap-2.5 px-2 pt-1">
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-300 flex-shrink-0 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-800 flex-shrink-0 overflow-hidden">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
               ) : (
@@ -220,15 +224,15 @@ function Sidebar({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-white truncate">{displayName}</p>
-              <p className="text-[10px] text-zinc-500 truncate">
+              <p className="text-xs font-bold text-zinc-900 truncate">{displayName}</p>
+              <p className="text-[10px] text-emerald-600 font-medium truncate">
                 {isPremium ? "Premium Farmer" : "Free Farmer"}
               </p>
             </div>
             <button
               onClick={handleSignOut}
               title="Sign Out"
-              className="p-1.5 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-900 transition-colors flex-shrink-0"
+              className="p-1.5 rounded-md text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex-shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -307,15 +311,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       <div className="lg:pl-64 min-h-screen flex flex-col">
         {/* Mobile top bar */}
-        <header className="lg:hidden sticky top-0 z-20 bg-zinc-950 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+        <header className="lg:hidden sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 py-3 flex items-center justify-between shadow-2xs">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
+            className="p-1.5 rounded-md text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center shadow-sm">
+            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center shadow-2xs">
               <Image
                 src="/icons/logo.png"
                 alt="AgriBoost"
@@ -324,12 +328,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 className="object-contain"
               />
             </div>
-            <span className="text-sm font-semibold text-white tracking-tight">AgriBoost</span>
+            <span className="text-sm font-bold text-zinc-900 tracking-tight">AgriBoost</span>
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell userId={user?.id} />
             <Link href="/profile" className="flex items-center flex-shrink-0">
-              <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white text-xs font-semibold">
+              <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 text-xs font-bold">
                 {mobileAvatarLetter}
               </div>
             </Link>
