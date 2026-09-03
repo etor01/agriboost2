@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   // Open Graph for social sharing
   openGraph: {
     title: "AgriBoost",
-    description: "AI-powered agriculture for Ghanaian farmers.",
+    description: "AI-powered agricultural toolkit for Ghanaian farmers.",
     type: "website",
     locale: "en_GH",
   },

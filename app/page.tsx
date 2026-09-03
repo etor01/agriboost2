@@ -8,9 +8,9 @@ import CTA from "@/components/CTA";
 import FeatureSection from "@/components/FeatureSection";
 
 export const metadata: Metadata = {
-  title: "AgriBoost — AI-Powered Farm Management for Ghanaian Farmers",
+  title: "AgriBoost - AI-Powered Agricultural Toolkit for Ghanaian Farmers",
   description:
-    "Manage your farms, sell produce directly, get AI crop disease detection, and track your earnings — all in one platform built for Ghana's agricultural sector.",
+    "AI-powered agriculture for Ghanaian farmers.",
   keywords: ["agriculture", "Ghana", "farming", "AI", "crop disease", "marketplace", "farmers"],
   openGraph: {
     title: "AgriBoost — Smart Farming Platform",

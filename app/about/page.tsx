@@ -17,9 +17,9 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "About Us | AgriBoost",
+  title: "About Us",
   description:
-    "Learn about AgriBoost — a KNUST final-year capstone project by Etornam and Doreen digitizing Ghanaian agriculture with AI.",
+    "Learn about AgriBoost — a KNUST final-year capstone project by Etornam Kordzo Ahiataku and Doreen Techie digitizing Ghanaian agriculture with AI.",
 };
 
 export default function AboutPage() {
@@ -55,8 +55,7 @@ export default function AboutPage() {
           <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 space-y-3 max-w-3xl">
             <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-800/80 px-2.5 py-0.5 rounded-full border border-emerald-700/80 shadow-2xs">
-              <Sparkles className="w-3 h-3 text-emerald-300" />
-              <span>Project Status &amp; Beta Research</span>
+              <span>Project Status: Beta </span>
             </span>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-white">
               A Student Prototype for Real-World Agricultural Impact
@@ -86,15 +85,15 @@ export default function AboutPage() {
                   E
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-zinc-900">Etornam</h3>
+                  <h3 className="text-base font-bold text-zinc-900">Etornam Kordzo Ahiataku</h3>
                   <p className="text-xs font-semibold text-emerald-700">
-                    Co-Creator &amp; Full-Stack Architect
+                    Co-Creator &amp; Full-Stack Developer
                   </p>
                   <p className="text-[11px] text-zinc-400">KNUST, Kumasi</p>
                 </div>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Spearheaded the full-stack architecture, Supabase cloud database models, offline PWA infrastructure, and integrated the deep learning models for crop disease scanning.
+                Spearheaded the full-stack architecture, Supabase cloud database models, offline PWA infrastructure, and integrated the disease detection and analysis models for crop disease scanning.
               </p>
               <div className="pt-2 border-t border-zinc-100 flex items-center gap-2 text-[11px] text-emerald-700 font-medium">
                 <Code2 className="w-3.5 h-3.5" />
@@ -109,9 +108,9 @@ export default function AboutPage() {
                   D
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-zinc-900">Doreen</h3>
+                  <h3 className="text-base font-bold text-zinc-900">Doreen Techie</h3>
                   <p className="text-xs font-semibold text-teal-700">
-                    Co-Creator &amp; Product Designer
+                    Co-Creator &amp; Experience Engineer
                   </p>
                   <p className="text-[11px] text-zinc-400">KNUST, Kumasi</p>
                 </div>
@@ -121,7 +120,7 @@ export default function AboutPage() {
               </p>
               <div className="pt-2 border-t border-zinc-100 flex items-center gap-2 text-[11px] text-teal-700 font-medium">
                 <HeartHandshake className="w-3.5 h-3.5" />
-                <span>Agricultural UX &amp; Trade Dynamics</span>
+                <span>Agricultural UX &amp; Interaction Design</span>
               </div>
             </div>
           </div>
@@ -143,9 +142,9 @@ export default function AboutPage() {
               <div className="p-2.5 w-fit rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 shadow-2xs">
                 <Sprout className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-zinc-900">Smart Farm Tracking</h3>
+              <h3 className="text-sm font-bold text-zinc-900">Smart Farm Management</h3>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Log crop schedules, track acreage, monitor weeding cycles, and keep yield records all in one intuitive interface.
+                Log crop schedules, track growth, monitor weeding cycles, and keep yield records all in one intuitive interface.
               </p>
             </div>
 
@@ -177,7 +176,7 @@ export default function AboutPage() {
             Explore the Beta Platform
           </h2>
           <p className="text-xs sm:text-sm text-zinc-600 max-w-lg mx-auto leading-relaxed">
-            Test out our features, view live metrics, or send us your feedback as we refine our final-year project.
+            Test out our features and send us your feedback as we refine our final-year project into a viable solution for Ghanaian farmers.
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <Link

@@ -60,7 +60,7 @@ export default function ContactPage() {
           </h1>
 
           <p className="text-xs sm:text-sm md:text-base text-zinc-600 leading-relaxed max-w-2xl mx-auto">
-            Have questions, feedback, or testing suggestions regarding our KNUST final-year capstone project? Reach out directly to Etornam and Doreen.
+            Have questions, feedback, or testing suggestions regarding our final-year capstone project? Kindly reach out to us and we would be happy to respond.
           </p>
         </section>
 
@@ -70,13 +70,10 @@ export default function ContactPage() {
             <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-emerald-600/20 rounded-full blur-2xl pointer-events-none" />
 
             <div className="space-y-2 relative z-10">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-800/80 px-2.5 py-0.5 rounded-full border border-emerald-700/80 shadow-2xs">
-                <Sparkles className="w-3 h-3 text-emerald-300" />
-                <span>Project Credentials</span>
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">KNUST Student Leads</h2>
+
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white text-center">KNUST Academic Project</h2>
               <p className="text-emerald-100 text-xs sm:text-sm leading-relaxed">
-                AgriBoost is an academic research platform focused on agritech in Ghana.
+                The student leads and supervisor of the AgriBoost project.
               </p>
             </div>
 
@@ -86,8 +83,8 @@ export default function ContactPage() {
                   <User className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-emerald-200">Creators &amp; Developers</h3>
-                  <p className="font-bold text-white mt-0.5">Etornam &amp; Doreen</p>
+                  <h3 className="text-xs font-semibold text-emerald-200">Student Developers</h3>
+                  <p className="font-bold text-white mt-0.5">Etornam Ahiataku &amp; Doreen Techie</p>
                   <p className="text-[11px] text-emerald-300">Final Year Students, KNUST</p>
                 </div>
               </div>
@@ -97,9 +94,9 @@ export default function ContactPage() {
                   <GraduationCap className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-emerald-200">Institution</h3>
-                  <p className="font-bold text-white mt-0.5">KNUST (Kwame Nkrumah University of Science &amp; Technology)</p>
-                  <p className="text-[11px] text-emerald-300">Kumasi, Ashanti Region, Ghana</p>
+                  <h3 className="text-xs font-semibold text-emerald-200">Suppervisor</h3>
+                  <p className="font-bold text-white mt-0.5">Dr. Benjamin Tie Partey</p>
+                  <p className="text-[11px] text-emerald-300">Computer Science Dept. College of Science, KNUST</p>
                 </div>
               </div>
 
@@ -108,15 +105,15 @@ export default function ContactPage() {
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-emerald-200">Target Community</h3>
-                  <p className="font-bold text-white mt-0.5">Ghana Agricultural Sector</p>
-                  <p className="text-[11px] text-emerald-300">Supporting farmers across all 10 regions</p>
+                  <h3 className="text-xs font-semibold text-emerald-200">Institution</h3>
+                  <p className="font-bold text-white mt-0.5">Kwame Nkrumah University of Science and Technology</p>
+                  <p className="text-[11px] text-emerald-300">Kumasi, Ashanti Region, Ghana</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-emerald-800/80 relative z-10 text-[11px] text-emerald-300/90 leading-relaxed">
-              Responses are typically reviewed within 24–48 hours during academic project evaluation periods.
+            <div className="pt-3 border-t border-emerald-800/80 relative z-10 text-[11px] text-emerald-300/90 leading-relaxed text-center">
+              Please be kind and constructive with your feedback. This is an academic project and we are always looking to improve.
             </div>
           </div>
 
