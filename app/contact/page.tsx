@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
+import emailjs from "@emailjs/browser";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 import {
@@ -36,11 +37,28 @@ export default function ContactPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-      toast.success("Thank you! Your message has been sent to Etornam & Doreen.");
-    }, 800);
+    emailjs
+      .send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          role: formData.role,
+          subject: formData.subject || "No subject",
+          message: formData.message,
+        },
+        { publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY! }
+      )
+      .then(() => {
+        setLoading(false);
+        setSubmitted(true);
+        toast.success("Thank you! Your message has been sent to Etornam & Doreen.");
+      })
+      .catch(() => {
+        setLoading(false);
+        toast.error("Failed to send message. Please try again.");
+      });
   };
 
   return (
