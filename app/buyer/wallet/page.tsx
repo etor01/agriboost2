@@ -121,7 +121,7 @@ export default function BuyerWalletPage() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 text-xs font-semibold border border-white/10">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>AgriBoost Buyer Escrow Balance</span>
+              <span>Secured</span>
             </div>
             <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
               {loading ? (
@@ -286,11 +286,10 @@ export default function BuyerWalletPage() {
                         GH₵ {Number(tx.amount).toFixed(2)}
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full border capitalize ${
-                          tx.status === "completed"
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                            : "bg-amber-50 text-amber-800 border-amber-200"
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full border capitalize ${tx.status === "completed"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-amber-50 text-amber-800 border-amber-200"
+                          }`}>
                           {tx.status === "completed" ? (
                             <>
                               <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Done
