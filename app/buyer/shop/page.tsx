@@ -298,7 +298,7 @@ export default function BuyerShopPage() {
       {cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-xs sm:text-sm border border-emerald-500"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl shadow-lg transition-colors flex items-center gap-2 font-semibold text-xs sm:text-sm border border-emerald-500/80 active:scale-95"
         >
           <ShoppingCart className="h-4 w-4" />
           <span>Cart</span>
@@ -316,7 +316,7 @@ export default function BuyerShopPage() {
       />
 
       {/* Stats Sub-strip */}
-      <div className="bg-white rounded-lg border border-zinc-200 py-2 px-3.5 shadow-2xs">
+      <div className="bg-white rounded-xl border border-zinc-200/90 py-2.5 px-4 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-4 text-zinc-500">
             <span className="flex items-center gap-1.5">
@@ -334,7 +334,7 @@ export default function BuyerShopPage() {
           </div>
           <button
             onClick={() => setCartOpen(true)}
-            className="flex items-center gap-1.5 text-zinc-700 font-semibold hover:text-zinc-900 transition-colors"
+            className="flex items-center gap-1.5 text-zinc-700 font-semibold hover:text-emerald-700 transition-colors"
           >
             <ShoppingCart className="h-3.5 w-3.5 text-zinc-500" />
             <span>Cart</span>
@@ -413,7 +413,7 @@ export default function BuyerShopPage() {
               <div className="text-center mt-8">
                 <button
                   onClick={() => setPage((p) => p + 1)}
-                  className="px-5 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium rounded-md hover:bg-zinc-50 transition-colors shadow-2xs text-xs"
+                  className="px-5 py-2 bg-white border border-zinc-200 text-zinc-700 font-semibold rounded-lg hover:bg-zinc-50 transition-colors shadow-2xs text-xs"
                 >
                   Load More ({filtered.length - paginated.length} remaining)
                 </button>

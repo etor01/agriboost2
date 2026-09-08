@@ -1,3 +1,4 @@
+// app/buyer/wallet/page.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -13,6 +14,7 @@ import {
   Lock,
   RefreshCw,
 } from "lucide-react";
+import { FarmerPageHeader, FarmerEmptyState } from "@/components/farmer/ui";
 
 interface Tx {
   id: string;
@@ -29,14 +31,14 @@ interface Tx {
 
 function getTxBadge(type: string | null, escrow: boolean) {
   if (type === "wallet_topup")
-    return { label: "💳 Wallet Top-up", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+    return { label: "Wallet Top-up", cls: "bg-blue-50 text-blue-800 border-blue-200" };
   if (type === "escrow_hold")
-    return { label: "🔒 Escrow Held", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: "Escrow Held", cls: "bg-amber-50 text-amber-800 border-amber-200" };
   if (type === "escrow_release")
-    return { label: "✅ Escrow Released", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+    return { label: "Escrow Released", cls: "bg-emerald-50 text-emerald-800 border-emerald-200" };
   if (escrow)
-    return { label: "🔒 In Escrow", cls: "bg-amber-50 text-amber-700 border-amber-200" };
-  return { label: "Purchase", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+    return { label: "In Escrow", cls: "bg-amber-50 text-amber-800 border-amber-200" };
+  return { label: "Purchase", cls: "bg-purple-50 text-purple-800 border-purple-200" };
 }
 
 export default function BuyerWalletPage() {
@@ -89,7 +91,7 @@ export default function BuyerWalletPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-6">
       {showTopUp && (
         <WalletTopUpModal
           userEmail={email}
@@ -99,164 +101,160 @@ export default function BuyerWalletPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            My Wallet
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Load your AgriBoost wallet and track your purchase activity.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowTopUp(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-md text-sm"
-        >
-          <Plus className="h-4 w-4" /> Add Money
-        </button>
-      </div>
-
-      {/* Balance Hero */}
-      <div className="bg-gradient-to-br from-emerald-600 via-green-600 to-green-700 rounded-3xl p-7 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-60 h-60 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-44 h-44 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/3" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-200" />
-            <span className="text-emerald-100 text-sm font-bold uppercase tracking-wider">
-              AgriBoost Buyer Wallet
-            </span>
-          </div>
-          <p className="text-5xl font-black tracking-tight mt-1">
-            {loading ? (
-              <span className="text-emerald-300 text-2xl">Loading…</span>
-            ) : (
-              `GH₵ ${balance.toLocaleString("en-GH", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}`
-            )}
-          </p>
-          <p className="text-emerald-200 text-sm mt-1">
-            Available to spend at checkout — 100% escrow-protected
-          </p>
+      <FarmerPageHeader
+        badge="Digital Payments"
+        title="My Wallet & Transactions"
+        description="Load your AgriBoost balance, view escrow holds, and inspect verified transaction logs."
+        action={
           <button
             onClick={() => setShowTopUp(true)}
-            className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-700 rounded-xl font-extrabold text-sm hover:bg-emerald-50 transition-all shadow-lg"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors shadow-2xs text-xs"
           >
             <Plus className="h-4 w-4" /> Add Money
+          </button>
+        }
+      />
+
+      {/* Balance Hero Card */}
+      <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 border border-emerald-800/80 rounded-2xl p-6 sm:p-8 text-white shadow-xs relative overflow-hidden">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 text-xs font-semibold border border-white/10">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              <span>AgriBoost Buyer Escrow Balance</span>
+            </div>
+            <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              {loading ? (
+                <span className="text-zinc-400 text-xl font-normal">Loading...</span>
+              ) : (
+                `GH₵ ${balance.toLocaleString("en-GH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`
+              )}
+            </p>
+            <p className="text-emerald-200/80 text-xs max-w-md">
+              Funds are instantly spendable during checkout and 100% protected until order delivery.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowTopUp(true)}
+            className="self-start sm:self-center inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-xs transition-colors active:scale-98"
+          >
+            <Plus className="h-4 w-4" /> Top-up Wallet
           </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Spent</span>
-            <div className="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center">
-              <CreditCard className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-gray-900">
-            GH₵ {totalSpent.toFixed(2)}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">Lifetime purchases</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">In Escrow</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center">
-              <Lock className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-gray-900">
-            GH₵ {inEscrow.toFixed(2)}
-          </p>
-          <p className="text-xs text-amber-700 mt-1 flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Released when delivery confirmed
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">Escrow Protected</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="text-sm font-bold text-blue-900">100% Guarantee</p>
-          <p className="text-xs text-blue-600 mt-1">
-            Funds held until you confirm delivery with your OTP
-          </p>
-        </div>
-      </div>
-
-      {/* Test Card Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-sm text-blue-700 space-y-2">
-        <p className="font-extrabold flex items-center gap-2">
-          <CreditCard className="h-4 w-4" /> Paystack Test Card Details
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="bg-white/80 rounded-xl p-3">
-            <p className="font-bold mb-0.5">Card Number</p>
-            <p className="font-mono font-bold text-blue-900">4084 0840 8408 4081</p>
-          </div>
-          <div className="bg-white/80 rounded-xl p-3">
-            <p className="font-bold mb-0.5">Expiry Date</p>
-            <p className="font-mono font-bold text-blue-900">Any future date</p>
-          </div>
-          <div className="bg-white/80 rounded-xl p-3">
-            <p className="font-bold mb-0.5">CVV</p>
-            <p className="font-mono font-bold text-blue-900">Any 3 digits</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Transaction History */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200/80 overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Transaction History</h2>
-            <p className="text-xs text-gray-500">Your wallet top-ups and order payments</p>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Spent</span>
+            <p className="text-xl font-bold text-zinc-900 mt-0.5">
+              GH₵ {totalSpent.toFixed(2)}
+            </p>
+            <p className="text-[11px] text-zinc-500">Lifetime purchases</p>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-700 flex items-center justify-center">
+            <CreditCard className="h-4 w-4" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">In Escrow</span>
+            <p className="text-xl font-bold text-zinc-900 mt-0.5">
+              GH₵ {inEscrow.toFixed(2)}
+            </p>
+            <p className="text-[11px] text-amber-700 flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Released upon confirmation
+            </p>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
+            <Lock className="h-4 w-4" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Escrow Protection</span>
+            <p className="text-sm font-bold text-zinc-900 mt-0.5">100% Protected</p>
+            <p className="text-[11px] text-zinc-500">Locked until OTP handoff</p>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
+
+      {/* Test Sandbox Info Card */}
+      <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-xs text-zinc-700 space-y-2 shadow-2xs">
+        <p className="font-bold flex items-center gap-2 text-zinc-900 text-xs">
+          <CreditCard className="h-4 w-4 text-emerald-600" /> Paystack Sandbox Testing Card Details
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+          <div className="bg-white border border-zinc-200 rounded-lg p-2.5">
+            <p className="font-semibold text-zinc-400">Card Number</p>
+            <p className="font-mono font-bold text-zinc-900">4084 0840 8408 4081</p>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg p-2.5">
+            <p className="font-semibold text-zinc-400">Expiry Date</p>
+            <p className="font-mono font-bold text-zinc-900">Any future date</p>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg p-2.5">
+            <p className="font-semibold text-zinc-400">CVV</p>
+            <p className="font-mono font-bold text-zinc-900">Any 3 digits (e.g. 123)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Transaction History Table */}
+      <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-2xs">
+        <div className="px-5 py-3.5 border-b border-zinc-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+              Transaction History
+            </h2>
+            <p className="text-[11px] text-zinc-500">Wallet credits and escrow order payments</p>
           </div>
           <button
             onClick={fetchData}
-            className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 transition-colors"
+            title="Refresh transactions"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                <th className="p-4">Date</th>
-                <th className="p-4">Description</th>
-                <th className="p-4">Type</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4">Status</th>
+              <tr className="bg-zinc-50/80 border-b border-zinc-100 text-zinc-500 font-semibold">
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Description</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-zinc-100">
               {loading ? (
                 [...Array(4)].map((_, i) => (
                   <tr key={i}>
                     {[...Array(5)].map((__, j) => (
-                      <td key={j} className="p-4">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                      <td key={j} className="px-4 py-3.5">
+                        <div className="h-3.5 bg-zinc-100 rounded animate-pulse" />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-gray-400">
-                    <Wallet className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                    No transactions yet. Load your wallet to get started!
+                  <td colSpan={5} className="text-center py-10 text-zinc-400">
+                    <Wallet className="h-6 w-6 mx-auto mb-1.5 text-zinc-300" />
+                    No transactions recorded yet. Load your wallet to get started!
                   </td>
                 </tr>
               ) : (
@@ -265,39 +263,41 @@ export default function BuyerWalletPage() {
                   const platFee = Number(tx.platform_fee ?? 0);
                   const delFee = Number(tx.delivery_fee ?? 0);
                   return (
-                    <tr key={tx.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="p-4 text-gray-500 text-xs whitespace-nowrap">
+                    <tr key={tx.id} className="hover:bg-zinc-50/60 transition-colors">
+                      <td className="px-4 py-3.5 text-zinc-500 text-[11px] whitespace-nowrap">
                         {new Date(tx.created_at).toLocaleDateString("en-GH", {
                           day: "numeric", month: "short", year: "numeric",
                         })}
                       </td>
-                      <td className="p-4 font-medium text-gray-900 max-w-xs">
+                      <td className="px-4 py-3.5 font-medium text-zinc-900 max-w-xs">
                         <span className="truncate block">{tx.service_name || "—"}</span>
                         {(platFee > 0 || delFee > 0) && (
-                          <span className="text-xs text-gray-400 mt-0.5 block">
-                            Fee: GH₵ {platFee.toFixed(2)} · Delivery: GH₵ {delFee.toFixed(2)}
+                          <span className="text-[10px] text-zinc-400 mt-0.5 block">
+                            Fee: GH₵ {platFee.toFixed(2)} &bull; Delivery: GH₵ {delFee.toFixed(2)}
                           </span>
                         )}
                       </td>
-                      <td className="p-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${badge.cls}`}>
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badge.cls}`}>
                           {badge.label}
                         </span>
                       </td>
-                      <td className="p-4 font-bold text-gray-900 whitespace-nowrap">
+                      <td className="px-4 py-3.5 font-bold text-zinc-900 whitespace-nowrap">
                         GH₵ {Number(tx.amount).toFixed(2)}
                       </td>
-                      <td className="p-4">
-                        <span className={`inline-flex px-2.5 py-1 text-xs font-bold rounded-full capitalize ${
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full border capitalize ${
                           tx.status === "completed"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            : "bg-amber-50 text-amber-800 border-amber-200"
                         }`}>
                           {tx.status === "completed" ? (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Done
-                            </span>
-                          ) : tx.status}
+                            <>
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Done
+                            </>
+                          ) : (
+                            tx.status
+                          )}
                         </span>
                       </td>
                     </tr>
@@ -311,3 +311,4 @@ export default function BuyerWalletPage() {
     </div>
   );
 }
+

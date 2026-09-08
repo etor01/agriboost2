@@ -64,11 +64,11 @@ export default function BuyerWalletWidget({
         <button
           onClick={() => setShowTopUp(true)}
           title={`Wallet: GH₵ ${balance?.toFixed(2) ?? "..."}`}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors text-emerald-700 text-xs font-bold"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
         >
-          <Wallet className="h-4 w-4 flex-shrink-0" />
+          <Wallet className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
           {loading ? (
-            <RefreshCw className="h-3 w-3 animate-spin" />
+            <RefreshCw className="h-3 w-3 animate-spin text-emerald-600" />
           ) : (
             <span>GH₵ {balance?.toFixed(2)}</span>
           )}
@@ -88,30 +88,30 @@ export default function BuyerWalletWidget({
       )}
 
       {/* Wallet card in sidebar */}
-      <div className="mx-4 mb-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white p-4 shadow-lg shadow-emerald-900/20">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
-              <Wallet className="h-3.5 w-3.5" />
+      <div className="mx-3 mb-3 rounded-lg border border-emerald-200/80 bg-emerald-50/50 p-3 shadow-2xs">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-emerald-100 border border-emerald-200 rounded flex items-center justify-center text-emerald-700">
+              <Wallet className="h-3 w-3" />
             </div>
-            <span className="text-xs font-bold text-emerald-100 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">
               My Wallet
             </span>
           </div>
           <button
             onClick={fetchBalance}
-            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            className="p-1 hover:bg-emerald-100/70 rounded text-emerald-700 transition-colors"
             title="Refresh balance"
           >
             <RefreshCw
-              className={`h-3 w-3 text-emerald-200 ${loading ? "animate-spin" : ""}`}
+              className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}
             />
           </button>
         </div>
 
-        <p className="text-2xl font-black tracking-tight mb-0.5">
+        <p className="text-xl font-bold tracking-tight text-zinc-900 mb-0.5">
           {loading ? (
-            <span className="text-emerald-300 text-base">Loading...</span>
+            <span className="text-zinc-400 text-sm font-normal">Loading...</span>
           ) : (
             `GH₵ ${(balance ?? 0).toLocaleString("en-GH", {
               minimumFractionDigits: 2,
@@ -119,13 +119,13 @@ export default function BuyerWalletWidget({
             })}`
           )}
         </p>
-        <p className="text-emerald-200 text-[11px] mb-3">
-          Available for checkout
+        <p className="text-zinc-500 text-[10px] mb-2.5">
+          Available for instant escrow checkout
         </p>
 
         <button
           onClick={() => setShowTopUp(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-2 bg-white text-emerald-700 rounded-xl font-extrabold text-xs hover:bg-emerald-50 transition-all shadow"
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-medium text-xs shadow-2xs transition-colors active:scale-98"
         >
           <Plus className="h-3.5 w-3.5" />
           Add Money
@@ -134,3 +134,4 @@ export default function BuyerWalletWidget({
     </>
   );
 }
+

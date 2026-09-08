@@ -1,4 +1,4 @@
-// app/(buyer)/account/page.tsx
+// app/buyer/account/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +11,10 @@ import {
   Lock,
   Save,
   CheckCircle2,
+  AlertCircle,
+  KeyRound,
 } from "lucide-react";
+import { FarmerPageHeader } from "@/components/farmer/ui";
 
 const supabase = createClient();
 
@@ -132,54 +135,55 @@ export default function BuyerAccountPage() {
   };
 
   const inputClass =
-    "w-full px-4 py-3 rounded-xl bg-white/60 border border-white/30 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition-all text-sm";
-  const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
+    "w-full px-3.5 py-2 rounded-lg bg-white border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors text-xs sm:text-sm shadow-2xs";
+  const labelClass = "block text-xs font-semibold text-zinc-700 mb-1.5";
 
   if (loading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 bg-white/40 rounded-xl w-48" />
-        <div className="h-64 bg-white/40 rounded-2xl" />
-        <div className="h-48 bg-white/40 rounded-2xl" />
+      <div className="space-y-4 max-w-2xl animate-pulse">
+        <div className="h-8 bg-zinc-200 rounded-lg w-48" />
+        <div className="h-64 bg-zinc-200 rounded-xl" />
+        <div className="h-48 bg-zinc-200 rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       {/* Header */}
-      <div className="mb-7">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Account Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your profile and security settings.</p>
-      </div>
+      <FarmerPageHeader
+        badge="Account & Security"
+        title="Buyer Account Settings"
+        description="Update your personal details, contact number, delivery address, and security credentials."
+      />
 
       {/* ── Profile Section ─────────────────────────────────────── */}
-      <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl p-6 mb-5">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <UserCircle2 className="h-5 w-5 text-emerald-600" />
+      <div className="bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-5">
+        <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700">
+            <UserCircle2 className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900">Personal Information</h2>
-            <p className="text-xs text-gray-400">Update your name, location, and bio.</p>
+            <h2 className="text-sm font-bold text-zinc-900">Personal Information</h2>
+            <p className="text-xs text-zinc-500">Update your name, location, and bio.</p>
           </div>
         </div>
 
         <form onSubmit={handleSaveProfile} className="space-y-4">
-          {/* Avatar placeholder */}
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center text-white text-2xl font-extrabold shadow-lg">
+          {/* Avatar and role */}
+          <div className="flex items-center gap-3.5 pb-2">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 text-lg font-bold shadow-2xs">
               {profile.firstname ? profile.firstname[0].toUpperCase() : "B"}
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-800">
-                {profile.firstname} {profile.lastname}
+              <p className="text-sm font-bold text-zinc-900">
+                {profile.firstname} {profile.lastname || ""}
               </p>
-              <p className="text-xs text-gray-400">Buyer Account</p>
+              <p className="text-xs text-emerald-700 font-medium">Buyer Account</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className={labelClass}>First Name</label>
               <input
@@ -204,23 +208,23 @@ export default function BuyerAccountPage() {
 
           <div>
             <label className={labelClass}>
-              <Mail className="inline h-3 w-3 mr-1" />
+              <Mail className="inline h-3.5 w-3.5 mr-1 text-zinc-400" />
               Email Address
             </label>
             <input
               type="email"
               value={profile.email}
               disabled
-              className={`${inputClass} opacity-60 cursor-not-allowed`}
+              className={`${inputClass} bg-zinc-50 text-zinc-500 cursor-not-allowed`}
             />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Email cannot be changed here.
+            <p className="text-[11px] text-zinc-400 mt-1">
+              Email is linked to your authentication account and cannot be modified here.
             </p>
           </div>
 
           <div>
             <label className={labelClass}>
-              <Phone className="inline h-3 w-3 mr-1" />
+              <Phone className="inline h-3.5 w-3.5 mr-1 text-zinc-400" />
               Phone Number
             </label>
             <input
@@ -234,61 +238,62 @@ export default function BuyerAccountPage() {
 
           <div>
             <label className={labelClass}>
-              <MapPin className="inline h-3 w-3 mr-1" />
-              Location
+              <MapPin className="inline h-3.5 w-3.5 mr-1 text-zinc-400" />
+              Default Delivery Location
             </label>
             <input
               type="text"
               value={profile.location}
               onChange={(e) => setProfile((p) => ({ ...p, location: e.target.value }))}
-              placeholder="e.g., Accra, Greater Accra"
+              placeholder="e.g., East Legon, Accra, Greater Accra"
               className={inputClass}
             />
           </div>
 
           <div>
-            <label className={labelClass}>Short Bio</label>
+            <label className={labelClass}>Bio / Special Notes</label>
             <textarea
               value={profile.bio}
               onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
-              placeholder="Tell us a little about yourself..."
+              placeholder="Delivery instructions, preferred produce types, or notes..."
               rows={3}
               className={inputClass}
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50/70 border border-red-200 rounded-xl px-4 py-3">
-              {error}
-            </p>
+            <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
           {success && (
-            <p className="text-sm text-emerald-700 bg-emerald-50/70 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Profile updated successfully!
-            </p>
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-medium">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+              <span>Profile updated successfully!</span>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-500 text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition-colors disabled:opacity-50"
           >
-            <Save className="h-4 w-4" />
+            <Save className="h-3.5 w-3.5" />
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </form>
       </div>
 
       {/* ── Password Section ────────────────────────────────────── */}
-      <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center">
-            <Lock className="h-5 w-5 text-rose-500" />
+      <div className="bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-5">
+        <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
+          <div className="w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-700">
+            <KeyRound className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900">Change Password</h2>
-            <p className="text-xs text-gray-400">Choose a strong password.</p>
+            <h2 className="text-sm font-bold text-zinc-900">Change Password</h2>
+            <p className="text-xs text-zinc-500">Update your account security password.</p>
           </div>
         </div>
 
@@ -315,23 +320,24 @@ export default function BuyerAccountPage() {
           </div>
 
           {pwError && (
-            <p className="text-sm text-red-600 bg-red-50/70 border border-red-200 rounded-xl px-4 py-3">
-              {pwError}
-            </p>
+            <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{pwError}</span>
+            </div>
           )}
           {pwSuccess && (
-            <p className="text-sm text-emerald-700 bg-emerald-50/70 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Password changed successfully!
-            </p>
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-medium">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+              <span>Password updated successfully!</span>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={pwSaving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold shadow-2xs transition-colors disabled:opacity-50"
           >
-            <Lock className="h-4 w-4" />
+            <Lock className="h-3.5 w-3.5" />
             {pwSaving ? "Updating..." : "Update Password"}
           </button>
         </form>
@@ -339,3 +345,4 @@ export default function BuyerAccountPage() {
     </div>
   );
 }
+
