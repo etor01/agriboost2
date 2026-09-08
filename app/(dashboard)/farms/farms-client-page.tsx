@@ -110,7 +110,7 @@ export default function FarmsClientPage({
           sub="Acres under management"
         />
         <FarmerStatCard
-          title="Crop Cultivars"
+          title="Crops Planted"
           value={uniqueCrops}
           icon={Sprout}
           iconColor="text-lime-600"

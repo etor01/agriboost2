@@ -30,38 +30,38 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { FarmerStatCard, FarmerBadge, FarmerCard, FarmerCardHeader, FarmerCardContent, FarmerEmptyState } from "@/components/farmer/ui";
 
 export const metadata: Metadata = {
-  title: "Farm Dashboard | AgriBoost",
+  title: "Farm Dashboard ",
   description: "Your AgriBoost farm overview — crops, revenue, tasks, and weather at a glance.",
 };
 
 // ── Ghana region / city → GPS coordinates ────────────────────────
 const GHANA_REGION_COORDS: Record<string, { lat: number; lon: number }> = {
   "Greater Accra": { lat: 5.6037, lon: -0.1870 },
-  "Ashanti":       { lat: 6.6885, lon: -1.6244 },
-  "Western":       { lat: 5.1186, lon: -1.7500 },
-  "Eastern":       { lat: 6.2638, lon: -0.2255 },
-  "Central":       { lat: 5.1135, lon: -1.2670 },
-  "Volta":         { lat: 6.5735, lon:  0.4514 },
-  "Northern":      { lat: 9.5583, lon: -0.9336 },
-  "Upper East":    { lat: 10.7866, lon: -0.9462 },
-  "Upper West":    { lat: 10.2552, lon: -2.3225 },
-  "Bono":          { lat: 7.3349, lon: -1.6891 },
-  "Brong-Ahafo":   { lat: 7.3349, lon: -1.6891 },
-  "Savannah":      { lat: 9.0820, lon: -1.7177 },
-  "Oti":           { lat: 7.9528, lon:  0.1779 },
-  "Ahafo":         { lat: 7.0,    lon: -2.3    },
-  "Bono East":     { lat: 7.7,    lon: -1.2    },
-  "North East":    { lat: 10.5,   lon: -0.35   },
-  "Western North": { lat: 6.3,    lon: -2.8    },
-  "Accra":         { lat: 5.6037, lon: -0.1870 },
-  "Kumasi":        { lat: 6.6885, lon: -1.6244 },
-  "Tamale":        { lat: 9.4008, lon: -0.8393 },
-  "Cape Coast":    { lat: 5.1037, lon: -1.2465 },
-  "Takoradi":      { lat: 4.8981, lon: -1.7557 },
-  "Ho":            { lat: 6.6011, lon:  0.4712 },
-  "Bolgatanga":    { lat: 10.7866, lon: -0.9462 },
-  "Wa":            { lat: 10.0601, lon: -2.5099 },
-  "Sunyani":       { lat: 7.3349, lon: -2.3287 },
+  "Ashanti": { lat: 6.6885, lon: -1.6244 },
+  "Western": { lat: 5.1186, lon: -1.7500 },
+  "Eastern": { lat: 6.2638, lon: -0.2255 },
+  "Central": { lat: 5.1135, lon: -1.2670 },
+  "Volta": { lat: 6.5735, lon: 0.4514 },
+  "Northern": { lat: 9.5583, lon: -0.9336 },
+  "Upper East": { lat: 10.7866, lon: -0.9462 },
+  "Upper West": { lat: 10.2552, lon: -2.3225 },
+  "Bono": { lat: 7.3349, lon: -1.6891 },
+  "Brong-Ahafo": { lat: 7.3349, lon: -1.6891 },
+  "Savannah": { lat: 9.0820, lon: -1.7177 },
+  "Oti": { lat: 7.9528, lon: 0.1779 },
+  "Ahafo": { lat: 7.0, lon: -2.3 },
+  "Bono East": { lat: 7.7, lon: -1.2 },
+  "North East": { lat: 10.5, lon: -0.35 },
+  "Western North": { lat: 6.3, lon: -2.8 },
+  "Accra": { lat: 5.6037, lon: -0.1870 },
+  "Kumasi": { lat: 6.6885, lon: -1.6244 },
+  "Tamale": { lat: 9.4008, lon: -0.8393 },
+  "Cape Coast": { lat: 5.1037, lon: -1.2465 },
+  "Takoradi": { lat: 4.8981, lon: -1.7557 },
+  "Ho": { lat: 6.6011, lon: 0.4712 },
+  "Bolgatanga": { lat: 10.7866, lon: -0.9462 },
+  "Wa": { lat: 10.0601, lon: -2.5099 },
+  "Sunyani": { lat: 7.3349, lon: -2.3287 },
 };
 
 function resolveCoords(regionOrCity: string): { lat: number; lon: number } {
@@ -72,7 +72,7 @@ function resolveCoords(regionOrCity: string): { lat: number; lon: number } {
   return key ? GHANA_REGION_COORDS[key] : { lat: 6.6885, lon: -1.6244 };
 }
 
-// ── Weather fetch ─────────────────────────────────────────────────
+// ── Weather fetch 
 async function getWeatherData(lat = 6.6885, lon = -1.6244) {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=5`;
@@ -84,7 +84,7 @@ async function getWeatherData(lat = 6.6885, lon = -1.6244) {
   }
 }
 
-// ── Compute which week of the AI plan "today" falls in ───────────
+// ── Compute which week of the AI plan "today" falls in 
 function computeCurrentWeek(plantingDate: string, totalWeeks: number): number {
   const planted = new Date(plantingDate).getTime();
   const daysElapsed = Math.max(
@@ -122,11 +122,11 @@ const QUICK_ACTIONS: Array<{
   color: string;
   bg: string;
 }> = [
-  { label: "Add New Farm", icon: Tractor, href: "/farm/new", color: "text-emerald-600", bg: "bg-emerald-50 hover:bg-emerald-100/80 border-emerald-200" },
-  { label: "Create Listing", icon: Package, href: "/marketplace/new", color: "text-blue-600", bg: "bg-blue-50 hover:bg-blue-100/80 border-blue-200" },
-  { label: "AI Crop Scan", icon: Sparkles, href: "/ai-center", color: "text-purple-600", bg: "bg-purple-50 hover:bg-purple-100/80 border-purple-200" },
-  { label: "View Finances", icon: Wallet, href: "/finances", color: "text-amber-600", bg: "bg-amber-50 hover:bg-amber-100/80 border-amber-200" },
-];
+    { label: "Add New Farm", icon: Tractor, href: "/farm/new", color: "text-emerald-600", bg: "bg-emerald-50 hover:bg-emerald-100/80 border-emerald-200" },
+    { label: "Create Listing", icon: Package, href: "/marketplace/new", color: "text-blue-600", bg: "bg-blue-50 hover:bg-blue-100/80 border-blue-200" },
+    { label: "AI Crop Scan", icon: Sparkles, href: "/ai-center", color: "text-purple-600", bg: "bg-purple-50 hover:bg-purple-100/80 border-purple-200" },
+    { label: "View Finances", icon: Wallet, href: "/finances", color: "text-amber-600", bg: "bg-amber-50 hover:bg-amber-100/80 border-amber-200" },
+  ];
 
 const getActivityMeta = (type: string) => {
   switch (type) {
@@ -210,10 +210,10 @@ export default async function DashboardPage() {
   const [cropsRes, weatherData] = await Promise.all([
     farmIds.length > 0
       ? supabase
-          .from("crops")
-          .select("*")
-          .in("farm_id", farmIds)
-          .eq("status", "active")
+        .from("crops")
+        .select("*")
+        .in("farm_id", farmIds)
+        .eq("status", "active")
       : Promise.resolve({ data: [] }),
     getWeatherData(lat, lon),
   ]);
@@ -284,8 +284,8 @@ export default async function DashboardPage() {
             {today.getHours() < 12
               ? "morning"
               : today.getHours() < 17
-              ? "afternoon"
-              : "evening"}
+                ? "afternoon"
+                : "evening"}
             , {firstName} 👋
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500">
