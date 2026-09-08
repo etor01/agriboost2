@@ -154,7 +154,7 @@ export default function BuyerAccountPage() {
       <FarmerPageHeader
         badge="Account & Security"
         title="Buyer Account Settings"
-        description="Update your personal details, contact number, delivery address, and security credentials."
+        description="Update your personal details, so the farmers know you."
       />
 
       {/* ── Profile Section ─────────────────────────────────────── */}

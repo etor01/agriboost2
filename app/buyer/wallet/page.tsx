@@ -155,59 +155,14 @@ export default function BuyerWalletPage() {
             <p className="text-xl font-bold text-zinc-900 mt-0.5">
               GH₵ {totalSpent.toFixed(2)}
             </p>
-            <p className="text-[11px] text-zinc-500">Lifetime purchases</p>
+            <p className="text-[11px] text-zinc-500">See Transactions History below</p>
           </div>
           <div className="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-700 flex items-center justify-center">
             <CreditCard className="h-4 w-4" />
           </div>
         </div>
 
-        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">In Escrow</span>
-            <p className="text-xl font-bold text-zinc-900 mt-0.5">
-              GH₵ {inEscrow.toFixed(2)}
-            </p>
-            <p className="text-[11px] text-amber-700 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Released upon confirmation
-            </p>
-          </div>
-          <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-            <Lock className="h-4 w-4" />
-          </div>
-        </div>
 
-        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Escrow Protection</span>
-            <p className="text-sm font-bold text-zinc-900 mt-0.5">100% Protected</p>
-            <p className="text-[11px] text-zinc-500">Locked until OTP handoff</p>
-          </div>
-          <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-            <ShieldCheck className="h-4 w-4" />
-          </div>
-        </div>
-      </div>
-
-      {/* Test Sandbox Info Card */}
-      <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-xs text-zinc-700 space-y-2 shadow-2xs">
-        <p className="font-bold flex items-center gap-2 text-zinc-900 text-xs">
-          <CreditCard className="h-4 w-4 text-emerald-600" /> Paystack Sandbox Testing Card Details
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
-          <div className="bg-white border border-zinc-200 rounded-lg p-2.5">
-            <p className="font-semibold text-zinc-400">Card Number</p>
-            <p className="font-mono font-bold text-zinc-900">4084 0840 8408 4081</p>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-lg p-2.5">
-            <p className="font-semibold text-zinc-400">Expiry Date</p>
-            <p className="font-mono font-bold text-zinc-900">Any future date</p>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-lg p-2.5">
-            <p className="font-semibold text-zinc-400">CVV</p>
-            <p className="font-mono font-bold text-zinc-900">Any 3 digits (e.g. 123)</p>
-          </div>
-        </div>
       </div>
 
       {/* Transaction History Table */}
