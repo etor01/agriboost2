@@ -12,6 +12,8 @@ import {
   Layers,
   ArrowRight,
   X,
+  FileText,
+  Download,
 } from "lucide-react";
 import { addFarm } from "../farm/new/actions";
 import { useForm } from "react-hook-form";
@@ -35,12 +37,282 @@ type FarmItem = {
   status: string;
 };
 
+// ── Farms Overview PDF generator ──────────────────────────────────────────────
+type FarmerProfile = {
+  full_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  region?: string | null;
+  avatar_url?: string | null;
+  member_since?: string | null;
+};
+
+function printFarmsReport(farms: any[], profile: FarmerProfile | null) {
+  const date = new Date().toLocaleDateString("en-GH", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+  const time = new Date().toLocaleTimeString("en-GH", { hour: "2-digit", minute: "2-digit" });
+
+  const totalAcres = farms.reduce((s, f) => s + (Number(f.size_in_acres) || 0), 0);
+  const uniqueCrops = [...new Set(farms.map((f) => (f.primary_crop || f.crop || "").trim()).filter(Boolean))];
+
+  // Absolute URL to logo — works in print context
+  const logoUrl = `${window.location.origin}/icons/logo.png`;
+
+  // Name/contact comes pre-resolved from page.tsx (same logic as profile page)
+  const farmerName = profile?.full_name || "";
+  const farmerEmail = profile?.email || "—";
+  const farmerPhone = profile?.phone || "—";
+  const farmerRegion = profile?.region || "Ghana";
+  const memberSince = profile?.member_since
+    ? new Date(profile.member_since).toLocaleDateString("en-GH", { month: "long", year: "numeric" })
+    : "—";
+
+  const farmRows = farms
+    .map((f, i) => {
+      const plantDate = f.planting_date
+        ? new Date(f.planting_date).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })
+        : "—";
+      const harvestDate = f.estimated_harvest_date
+        ? new Date(f.estimated_harvest_date).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })
+        : "—";
+      const estDate = f.established_date || "—";
+      const statusClass = (f.status || "").toLowerCase() === "active" ? "status-active" : "status-other";
+      return `
+      <tr>
+        <td class="idx">${i + 1}</td>
+        <td><strong>${f.name ?? "—"}</strong></td>
+        <td>${f.location ?? "—"}</td>
+        <td>${f.region ?? "—"}</td>
+        <td>${(f.size_in_acres ?? 0).toLocaleString()} ac</td>
+        <td>${f.primary_crop || f.crop || "Mixed"}</td>
+        <td>${f.soil_type || "—"}</td>
+        <td>${f.irrigation_type || "—"}</td>
+        <td>${estDate}</td>
+        <td><span class="badge ${statusClass}">${f.status || "Active"}</span></td>
+      </tr>`;
+    })
+    .join("");
+
+  // Crop-level harvest summary rows
+  const cropRows = farms
+    .map((f) => {
+      const crop = f.primary_crop || f.crop || "Mixed";
+      const planted = f.planting_date
+        ? new Date(f.planting_date).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })
+        : "—";
+      const harvest = f.estimated_harvest_date
+        ? new Date(f.estimated_harvest_date).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })
+        : "—";
+      const status = (f.status || "").toLowerCase();
+      const harvestStatus = status === "harvested" ? "Harvested" : status === "active" ? "Growing" : f.status || "—";
+      return `
+      <tr>
+        <td>${f.name ?? "—"}</td>
+        <td>${crop}</td>
+        <td>${planted}</td>
+        <td>${harvest}</td>
+        <td>${(f.size_in_acres ?? 0)} ac</td>
+        <td class="${status === 'harvested' ? 'status-harvest' : 'status-active'}">${harvestStatus}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Farm Report — AgriBoost</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; color: #111827; background: #fff; font-size: 12px; line-height: 1.5; }
+    /* ---- Page layout ---- */
+    .page { padding: 36px 44px; max-width: 1040px; margin: 0 auto; }
+    /* ---- Header ---- */
+    .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 3px solid #15803d; padding-bottom: 20px; margin-bottom: 28px; }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo { height: 44px; width: auto; }
+    .brand-name { font-size: 20px; font-weight: 800; color: #14532d; letter-spacing: -0.3px; }
+    .brand-tagline { font-size: 10px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+    .header-right { text-align: right; }
+    .report-title { font-size: 15px; font-weight: 700; color: #111827; }
+    .report-meta { font-size: 10px; color: #9ca3af; margin-top: 3px; }
+    /* ---- Farmer card ---- */
+    .farmer-card { display: grid; grid-template-columns: auto 1fr 1fr; gap: 0; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; margin-bottom: 28px; }
+    .farmer-avatar-cell { background: #f0fdf4; border-right: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .farmer-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 3px solid #86efac; }
+    .farmer-avatar-placeholder { width: 64px; height: 64px; border-radius: 50%; background: #d1fae5; border: 3px solid #86efac; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #15803d; }
+    .farmer-info-cell { padding: 16px 18px; border-right: 1px solid #e5e7eb; }
+    .farmer-info-cell h2 { font-size: 15px; font-weight: 700; color: #111827; }
+    .farmer-detail { font-size: 11px; color: #4b5563; margin-top: 4px; }
+    .farmer-detail strong { color: #111827; }
+    .farmer-stat-cell { padding: 16px 18px; }
+    .farmer-stat-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 4px; }
+    .farmer-stat-value { font-size: 22px; font-weight: 800; color: #111827; }
+    .farmer-stat-sub { font-size: 10px; color: #6b7280; margin-top: 2px; }
+    /* ---- Section ---- */
+    .section { margin-bottom: 28px; }
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    .section-icon { width: 20px; height: 20px; border-radius: 4px; background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: center; }
+    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #374151; }
+    .section-count { font-size: 10px; font-weight: 600; color: #6b7280; margin-left: auto; }
+    /* ---- Table ---- */
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead th { background: #f9fafb; border-top: 1px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; padding: 8px 10px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7280; white-space: nowrap; }
+    tbody td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f9fafb; }
+    td.idx { color: #9ca3af; font-weight: 600; text-align: center; width: 28px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .status-active { color: #15803d; background: #dcfce7; }
+    .status-other { color: #6b7280; background: #f3f4f6; }
+    .status-harvest { color: #92400e; background: #fef3c7; }
+    /* ---- Crop portfolio pills ---- */
+    .crop-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .crop-pill { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 600; }
+    /* ---- Disease table ---- */
+    .risk-high { color: #dc2626; }
+    .risk-header { background: #fff7ed; }
+    /* ---- Footer ---- */
+    .footer { margin-top: 36px; border-top: 1px solid #e5e7eb; padding-top: 14px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-left { font-size: 10px; color: #9ca3af; }
+    .footer-logo { height: 20px; opacity: 0.4; }
+    @media print {
+      .page { padding: 20px 28px; }
+      @page { margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <img src="${logoUrl}" alt="AgriBoost" class="logo" onerror="this.style.display='none'" />
+      <div>
+        <div class="brand-name">AgriBoost</div>
+        <div class="brand-tagline">Better farming, better Ghana</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="report-title">Farm Report</div>
+      <div class="report-meta">Generated ${date} at ${time}</div>
+    </div>
+  </div>
+
+  <!-- FARMER DETAILS -->
+  <div class="farmer-card">
+    <div class="farmer-avatar-cell">
+      ${profile?.avatar_url
+        ? `<img src="${profile.avatar_url}" alt="${farmerName}" class="farmer-avatar" />`
+        : `<div class="farmer-avatar-placeholder">${farmerName ? farmerName.charAt(0).toUpperCase() : "F"}</div>`
+      }
+    </div>
+    <div class="farmer-info-cell">
+      <h2>${farmerName}</h2>
+      <div class="farmer-detail"><strong>Email:</strong> ${farmerEmail}</div>
+      <div class="farmer-detail"><strong>Phone:</strong> ${farmerPhone}</div>
+      <div class="farmer-detail"><strong>Region:</strong> ${farmerRegion}</div>
+      <div class="farmer-detail"><strong>Member since:</strong> ${memberSince}</div>
+    </div>
+    <div class="farmer-stat-cell">
+      <div class="farmer-stat-label">Total Farms</div>
+      <div class="farmer-stat-value">${farms.length}</div>
+      <div class="farmer-stat-sub">Registered plots</div>
+    </div>
+    <div class="farmer-stat-cell">
+      <div class="farmer-stat-label">Total Acreage</div>
+      <div class="farmer-stat-value">${totalAcres.toLocaleString()}</div>
+      <div class="farmer-stat-sub">Acres under management</div>
+    </div>
+  </div>
+
+  <!-- CROP PORTFOLIO -->
+  ${uniqueCrops.length > 0 ? `
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Crop Portfolio</div>
+      <div class="section-count">${uniqueCrops.length} crop ${uniqueCrops.length === 1 ? "type" : "types"}</div>
+    </div>
+    <div class="crop-pills">
+      ${uniqueCrops.map(c => `<span class="crop-pill">${c}</span>`).join("")}
+    </div>
+  </div>` : ""}
+
+  <!-- FARM DIRECTORY -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Farm Directory</div>
+      <div class="section-count">${farms.length} farm${farms.length !== 1 ? "s" : ""} total</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Farm Name</th>
+          <th>Location</th>
+          <th>Region</th>
+          <th>Area</th>
+          <th>Primary Crop</th>
+          <th>Soil Type</th>
+          <th>Irrigation</th>
+          <th>Established</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>${farmRows || "<tr><td colspan='10' style='text-align:center;color:#9ca3af;padding:16px'>No farms registered</td></tr>"}</tbody>
+    </table>
+  </div>
+
+  <!-- HARVEST SCHEDULE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Crop Harvest Schedule</div>
+      <div class="section-count">Planting &amp; harvest dates per farm</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Farm Name</th>
+          <th>Primary Crop</th>
+          <th>Date Planted</th>
+          <th>Est. Harvest Date</th>
+          <th>Area</th>
+          <th>Harvest Status</th>
+        </tr>
+      </thead>
+      <tbody>${cropRows || "<tr><td colspan='6' style='text-align:center;color:#9ca3af;padding:16px'>No crop data available</td></tr>"}</tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">AgriBoost Farm Report &nbsp;&middot;&nbsp; ${farmerName} &nbsp;&middot;&nbsp; ${date}</div>
+    <img src="${logoUrl}" alt="AgriBoost" class="footer-logo" onerror="this.style.display='none'" />
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
+
 export default function FarmsClientPage({
   user,
   initialFarms,
+  profile,
 }: {
   user: any;
   initialFarms: any[];
+  profile: FarmerProfile | null;
 }) {
   const [farms, setFarms] = useState<FarmItem[]>(() =>
     initialFarms.map((farm) => ({
@@ -55,6 +327,17 @@ export default function FarmsClientPage({
 
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+  const handleGenerateFarmsReport = () => {
+    setIsGeneratingReport(true);
+    try {
+      // Pass raw initialFarms (full DB rows) to the report for richer data
+      printFarmsReport(initialFarms, profile);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
 
   const totalFarms = farms.length;
   const totalAcres = farms.reduce((sum, f) => sum + (f.size_in_acres || 0), 0);
@@ -78,10 +361,10 @@ export default function FarmsClientPage({
     <div className="space-y-6">
       {/* Page Header */}
       <FarmerPageHeader
-        badge="Agricultural Assets"
+        badge="Farms"
         badgeIcon={Tractor}
         title="My Farms"
-        description="Manage your agricultural properties, track crop types, and monitor land acreage across your registered farms."
+        description="Manage your land, track crop growths, and monitor activities on your farms."
         action={
           <button
             id="add-farm-btn"
@@ -118,12 +401,14 @@ export default function FarmsClientPage({
           sub="Active crop varieties"
         />
         <FarmerStatCard
-          title="Active Status"
-          value={activeFarmsCount}
-          icon={CheckCircle2}
+          title="Generate Report"
+          value=""
+          icon={isGeneratingReport ? Download : FileText}
           iconColor="text-emerald-600"
-          sub="Properties in production"
+          iconBg="bg-emerald-50 border-emerald-100"
+          sub="Download a PDF report on all farms"
           accent
+          onClick={handleGenerateFarmsReport}
         />
       </div>
 

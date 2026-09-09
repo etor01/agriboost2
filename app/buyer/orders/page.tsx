@@ -30,7 +30,13 @@ import ChatDrawer from "@/components/messaging/ChatDrawer";
 import { createClient } from "@/lib/supabase/client";
 import { FarmerPageHeader, FarmerEmptyState } from "@/components/farmer/ui";
 
-type OrderStatus = "processing" | "confirmed" | "delivered" | "cancelled";
+type OrderStatus =
+  | "processing"
+  | "confirmed"
+  | "packed"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 interface DisplayOrder {
   id: string;
@@ -63,10 +69,24 @@ const STATUS_CONFIG: Record<
     Icon: Clock,
   },
   confirmed: {
-    label: "In Transit",
+    label: "Confirmed",
     color: "text-blue-700",
     bg: "bg-blue-50",
     border: "border-blue-200",
+    Icon: Truck,
+  },
+  packed: {
+    label: "Packed",
+    color: "text-indigo-700",
+    bg: "bg-indigo-50",
+    border: "border-indigo-200",
+    Icon: Package,
+  },
+  shipped: {
+    label: "Out for Delivery",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
+    border: "border-violet-200",
     Icon: Truck,
   },
   delivered: {
@@ -175,6 +195,36 @@ export default function BuyerOrdersPage() {
     fetchOrders();
   }, []);
 
+  // ── Realtime: update order status as farmer changes it ─────────────────────
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase
+      .channel("buyer_orders_realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders" },
+        (payload) => {
+          const updated = payload.new as any;
+          // Only refresh if this order belongs to the current buyer
+          if (updated.buyer_id === currentUserId) {
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === updated.id
+                  ? { ...o, status: updated.status as OrderStatus }
+                  : o
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId, supabase]);
+
   const handleCopyOtp = (otp: string) => {
     navigator.clipboard.writeText(otp);
     setCopiedOtp(otp);
@@ -236,7 +286,11 @@ export default function BuyerOrdersPage() {
     .reduce((s, o) => s + o.total, 0);
 
   const pendingDeliveries = orders.filter(
-    (o) => o.status === "processing" || o.status === "confirmed"
+    (o) =>
+      o.status === "processing" ||
+      o.status === "confirmed" ||
+      o.status === "packed" ||
+      o.status === "shipped"
   );
 
   return (
@@ -331,8 +385,19 @@ export default function BuyerOrdersPage() {
 
       {/* Status Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {Object.entries(STATUS_CONFIG).map(([status, cfg]) => {
-          const count = orders.filter((o) => o.status === status).length;
+        {([
+          ["processing", "New"],
+          ["confirmed", "Confirmed"],
+          ["shipped", "In Transit"],
+          ["delivered", "Delivered"],
+        ] as const).map(([status, label]) => {
+          const cfg = STATUS_CONFIG[status];
+          const count =
+            status === "shipped"
+              ? orders.filter(
+                  (o) => o.status === "packed" || o.status === "shipped"
+                ).length
+              : orders.filter((o) => o.status === status).length;
           const Icon = cfg.Icon;
           return (
             <div
@@ -346,12 +411,13 @@ export default function BuyerOrdersPage() {
               </div>
               <div>
                 <p className="text-lg font-bold text-zinc-900">{count}</p>
-                <p className="text-[11px] text-zinc-500 font-medium">{cfg.label}</p>
+                <p className="text-[11px] text-zinc-500 font-medium">{label}</p>
               </div>
             </div>
           );
         })}
       </div>
+
 
       {/* Orders Table or States */}
       {loading ? (

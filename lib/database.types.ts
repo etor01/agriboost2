@@ -116,9 +116,14 @@ export interface Order {
   quantity: number;
   unit_price: number;
   total_amount: number;
-  status: 'processing' | 'confirmed' | 'delivered' | 'cancelled' | string;
+  status: 'processing' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled' | string;
   delivery_otp: string | null;
   delivery_confirmed_at: string | null;
+  confirmed_at: string | null;
+  packed_at: string | null;
+  shipped_at: string | null;
+  cancelled_at: string | null;
+  cancellation_note: string | null;
   created_at: string;
   updated_at: string;
 }

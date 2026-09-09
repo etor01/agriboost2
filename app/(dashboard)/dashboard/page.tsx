@@ -324,15 +324,17 @@ export default async function DashboardPage() {
           icon={Leaf}
           iconColor="text-lime-600"
           iconBg="bg-lime-50 border-lime-100"
-          sub="Across all farms"
-          trend={`${crops.filter((c: Crop) => c.ai_growth_data).length} with AI plan`}
+          sub="Crops cultivated"
+          trend=""
         />
+        {/* Active AI Plan  logic removed for fixing later --Across all farms--*/}
+        {/* {`${crops.filter((c: Crop) => c.ai_growth_data).length} with AI plan`} */}
         <FarmerStatCard
-          title="Revenue (MTD)"
+          title="Total Revenue"
           value={`GH₵ ${totalRevenue.toFixed(2)}`}
           icon={Wallet}
           iconColor="text-emerald-600"
-          sub="Total completed payouts"
+          sub="Completed Payouts & Top-ups"
           accent
         />
         <FarmerStatCard

@@ -48,6 +48,7 @@ export function FarmerStatCard({
   sub,
   trend,
   accent,
+  onClick,
 }: {
   title: string;
   value: string | number;
@@ -57,13 +58,14 @@ export function FarmerStatCard({
   sub?: string;
   trend?: string;
   accent?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <div
-      className={`rounded-lg border bg-white p-5 shadow-sm transition-all hover:border-zinc-300 ${
-        accent ? 'border-l-4 border-l-emerald-500 border-zinc-200' : 'border-zinc-200'
-      }`}
-    >
+  const baseClass = `rounded-lg border bg-white p-5 shadow-sm transition-all hover:border-zinc-300 ${
+    accent ? 'border-l-4 border-l-emerald-500 border-zinc-200' : 'border-zinc-200'
+  }${onClick ? ' cursor-pointer hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.99]' : ''}`;
+
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-zinc-500">{title}</p>
         {Icon && (
@@ -87,8 +89,18 @@ export function FarmerStatCard({
         )}
         {sub && <p className="text-xs text-zinc-400 truncate">{sub}</p>}
       </div>
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={baseClass}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={baseClass}>{content}</div>;
 }
 
 // ── FarmerBadge ───────────────────────────────────────────────────────────────

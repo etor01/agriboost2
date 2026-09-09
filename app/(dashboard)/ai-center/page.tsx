@@ -36,6 +36,8 @@ import {
   ArrowRight,
   WifiOff,
   X,
+  GlassWaterIcon,
+  Search,
 } from "lucide-react";
 import {
   FarmerPageHeader,
@@ -54,8 +56,8 @@ function ConfidencePill({ confidence }: { confidence: string | null }) {
     confidence === "high"
       ? ("success" as const)
       : confidence === "medium"
-      ? ("warn" as const)
-      : ("danger" as const);
+        ? ("warn" as const)
+        : ("danger" as const);
   return (
     <FarmerBadge variant={variant}>
       {confidence.charAt(0).toUpperCase() + confidence.slice(1)} Confidence
@@ -138,11 +140,10 @@ function AnalysisResultCard({ result }: { result: DiagnosisResult }) {
     <div className="space-y-4">
       {/* Header banner */}
       <div
-        className={`flex items-start gap-3 p-3.5 rounded-lg border ${
-          result.is_healthy
-            ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
-            : "bg-red-50/70 border-red-200 text-red-950"
-        }`}
+        className={`flex items-start gap-3 p-3.5 rounded-lg border ${result.is_healthy
+          ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+          : "bg-red-50/70 border-red-200 text-red-950"
+          }`}
       >
         {result.is_healthy ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -279,7 +280,7 @@ export default function AiCenterPage() {
     };
     init();
 
-    getPendingCount().then(setPendingOfflineScans).catch(() => {});
+    getPendingCount().then(setPendingOfflineScans).catch(() => { });
 
     const processSyncQueueOnline = async () => {
       const pending = await getPendingScans().catch(() => []);
@@ -297,7 +298,7 @@ export default function AiCenterPage() {
           // Will retry on next online event
         }
       }
-      getPendingCount().then(setPendingOfflineScans).catch(() => {});
+      getPendingCount().then(setPendingOfflineScans).catch(() => { });
     };
     window.addEventListener("online", processSyncQueueOnline);
     return () => window.removeEventListener("online", processSyncQueueOnline);
@@ -343,9 +344,9 @@ export default function AiCenterPage() {
               diagnosis: result.diagnosis ?? null,
               healthyPractices: result.healthy_practices ?? [],
               createdAt: scan.created_at,
-            }).catch(() => {});
+            }).catch(() => { });
           }
-          pruneOldScans(userId, 50).catch(() => {});
+          pruneOldScans(userId, 50).catch(() => { });
         }
       } else if (error && replace && userId) {
         const cached = await getCachedScans(userId, PAGE_SIZE);
@@ -415,7 +416,7 @@ export default function AiCenterPage() {
             diagnosis: aiResult.diagnosis ?? null,
             healthyPractices: aiResult.healthy_practices ?? [],
             createdAt: new Date().toISOString(),
-          }).catch(() => {});
+          }).catch(() => { });
         }
         fetchHistory(0, true);
       } else {
@@ -467,14 +468,14 @@ export default function AiCenterPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <FarmerPageHeader
-        badge="Agronomy & AI Diagnostics"
+        badge="Diagnostics"
         badgeIcon={Sparkles}
         title="AI Diagnostic Center"
-        description="Scan crop foliage for disease identification, disease mitigation advice, and growth optimization."
+        description="Scan crop images for disease identification, disease mitigation advice, and growth optimizations."
         action={
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white rounded-md text-xs font-semibold shadow-sm">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-            <span>{scansRemaining} Scan{scansRemaining !== 1 ? "s" : ""} Remaining</span>
+            <Search className="h-3.5 w-3.5 text-emerald-200" />
+            <span><span className="text-emerald-400">{scansRemaining}</span> Scan{scansRemaining !== 1 ? "s" : ""} Remaining</span>
           </div>
         }
       />
@@ -483,16 +484,16 @@ export default function AiCenterPage() {
       <div>
         <div className="mb-3">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Intelligent Farm Operations
+            Farm Operations
           </h2>
           <p className="text-xs text-zinc-500">
-            AI-powered advisory tools tailored for Ghanaian farming conditions.
+            AI-powered advisory tools to help you manage and optimize your farm operations.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* CARD 1 — AI Crop Disease Scanner */}
-          <FarmerCard className="p-5 flex flex-col justify-between border-zinc-300 shadow-xs">
+          {/* <FarmerCard className="p-5 flex flex-col justify-between border-zinc-300 shadow-xs">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
@@ -513,25 +514,22 @@ export default function AiCenterPage() {
               <span>Ready to scan below</span>
               <span>↓</span>
             </div>
-          </FarmerCard>
+          </FarmerCard> */}
 
-          {/* CARD 2 — AI Growth Plan Generator */}
+          {/* CARD 2 — AI Growth Plan  */}
           <FarmerCard className="p-5 flex flex-col justify-between">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
                   <Sprout className="h-4 w-4" />
                 </div>
-                <FarmerBadge variant="warn">
-                  <Crown className="h-3 w-3 inline mr-1" /> Pro Tier
-                </FarmerBadge>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-zinc-900">
-                  AI Growth Plan Generator
+                  Generated Crop Growth Plan
                 </h3>
                 <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
-                  Generate week-by-week crop care schedule tailored to your region and planting dates.
+                  Generate AI week-by-week crop care schedule for your region, planting dates and soil type.
                 </p>
               </div>
             </div>
@@ -555,7 +553,7 @@ export default function AiCenterPage() {
           </FarmerCard>
 
           {/* CARD 3 — AI Market Price Predictor */}
-          <FarmerCard className="p-5 flex flex-col justify-between opacity-85">
+          {/* <FarmerCard className="p-5 flex flex-col justify-between opacity-85">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-md bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
@@ -580,7 +578,7 @@ export default function AiCenterPage() {
                 In Development
               </button>
             </div>
-          </FarmerCard>
+          </FarmerCard> */}
 
           {/* CARD 4 — Pest & Weather Risk Alert */}
           <FarmerCard className="p-5 flex flex-col justify-between">
@@ -589,16 +587,14 @@ export default function AiCenterPage() {
                 <div className="w-8 h-8 rounded-md bg-lime-50 border border-lime-100 flex items-center justify-center text-lime-700">
                   <ShieldAlert className="h-4 w-4" />
                 </div>
-                <FarmerBadge variant="warn">
-                  <Crown className="h-3 w-3 inline mr-1" /> Pro Tier
-                </FarmerBadge>
+
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-zinc-900">
                   Pest &amp; Weather Risk Alerts
                 </h3>
                 <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
-                  Proactive warnings for armyworms, blight outbreaks, and adverse rainfall anomalies.
+                  Proactive warnings for pest, disease outbreaks, and adverse weather updates will be displayed here if any is expected.
                 </p>
               </div>
             </div>
@@ -656,11 +652,10 @@ export default function AiCenterPage() {
 
           {error && (
             <div
-              className={`flex items-start gap-2 p-2.5 rounded-md text-xs font-medium ${
-                invalidPlant
-                  ? "bg-amber-50 text-amber-800 border border-amber-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}
+              className={`flex items-start gap-2 p-2.5 rounded-md text-xs font-medium ${invalidPlant
+                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                : "bg-red-50 text-red-700 border border-red-200"
+                }`}
             >
               <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
@@ -742,11 +737,10 @@ export default function AiCenterPage() {
                 <button
                   key={status}
                   onClick={() => setHistoryStatusFilter(status as any)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                    historyStatusFilter === status
-                      ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
-                      : "text-zinc-500 hover:text-zinc-900"
-                  }`}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${historyStatusFilter === status
+                    ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
+                    : "text-zinc-500 hover:text-zinc-900"
+                    }`}
                 >
                   {status}
                 </button>

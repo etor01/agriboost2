@@ -143,25 +143,9 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
       };
     }
 
-    // ── Deduct Listing Inventory ──────────────────────────────────────────────
-    const { data: listingData } = await supabase
-      .from("listings")
-      .select("quantity")
-      .eq("id", item.listingId)
-      .single();
-
-    if (listingData) {
-      const currentQty = Number(listingData.quantity ?? 0);
-      const newQty = Math.max(0, currentQty - item.qty);
-      await supabase
-        .from("listings")
-        .update({
-          quantity: newQty,
-          status: newQty === 0 ? "sold" : "active",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", item.listingId);
-    }
+    // NOTE: Inventory is deducted when the farmer confirms the order,
+    // not at checkout. This keeps listings visible until the farmer
+    // explicitly accepts — preventing double-deduction.
 
     // ── Insert Escrow Transaction with full fee breakdown ─────────────────────
     const { error: txErr } = await supabase.from("transactions").insert({
@@ -548,15 +532,25 @@ export async function getFarmerOrdersWithEscrow() {
         status,
         delivery_otp,
         delivery_confirmed_at,
+        confirmed_at,
+        packed_at,
+        shipped_at,
+        cancelled_at,
+        cancellation_note,
         created_at,
+        listing_id,
+        buyer_id,
         listings (
+          id,
           name,
           unit_type,
-          image_urls
+          image_urls,
+          quantity
         ),
         buyers (
           delivery_address,
           profiles (
+            id,
             firstname,
             lastname,
             phone
@@ -575,6 +569,7 @@ export async function getFarmerOrdersWithEscrow() {
 
   return txs || [];
 }
+
 
 /**
  * Get farmer's escrow summary:
@@ -721,4 +716,225 @@ export async function getFarmerAverageRating(farmerId: string): Promise<{
     average: Number((total / data.length).toFixed(1)),
     count: data.length
   };
+}
+
+// ── Farmer Order Management Actions ───────────────────────────────────────────
+
+/**
+ * Farmer confirms (accepts) an incoming order:
+ *  - Updates status to 'confirmed'
+ *  - Deducts listing inventory
+ *  - Notifies buyer
+ */
+export async function confirmFarmerOrder(orderId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { data: order, error: fetchErr } = await supabase
+    .from("orders")
+    .select("id, status, listing_id, quantity, buyer_id")
+    .eq("id", orderId)
+    .single();
+
+  if (fetchErr || !order) return { success: false, error: "Order not found." };
+  if (order.status !== "processing") {
+    return { success: false, error: "Order is not in a state that can be confirmed." };
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: updateErr } = await supabase
+    .from("orders")
+    .update({ status: "confirmed", confirmed_at: now })
+    .eq("id", orderId);
+
+  if (updateErr) return { success: false, error: updateErr.message };
+
+  // Deduct listing inventory now that farmer has confirmed
+  if (order.listing_id) {
+    const { data: listingData } = await supabase
+      .from("listings")
+      .select("quantity")
+      .eq("id", order.listing_id)
+      .single();
+
+    if (listingData) {
+      const currentQty = Number(listingData.quantity ?? 0);
+      const newQty = Math.max(0, currentQty - (order.quantity ?? 1));
+      await supabase
+        .from("listings")
+        .update({
+          quantity: newQty,
+          status: newQty === 0 ? "sold" : "active",
+          updated_at: now,
+        })
+        .eq("id", order.listing_id);
+    }
+  }
+
+  // Notify buyer
+  if (order.buyer_id) {
+    await createNotification(
+      order.buyer_id,
+      "order_placed",
+      "Order Confirmed! 🎉",
+      "Order #" + orderId.slice(0, 8).toUpperCase() + " has been confirmed by the farmer and is being prepared."
+    );
+    await supabase.from("activities").insert({
+      profile_id: order.buyer_id,
+      activity_type: "payment_received",
+      title: "Order Confirmed",
+      description: "Your order #" + orderId.slice(0, 8).toUpperCase() + " has been confirmed by the farmer.",
+    });
+  }
+
+  revalidatePath("/buyer/orders");
+  revalidatePath("/orders");
+  revalidatePath("/my-listings");
+  return { success: true };
+}
+
+/**
+ * Farmer updates order status to 'packed' or 'shipped'.
+ * Final delivery step is handled by OTP verification.
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  newStatus: "packed" | "shipped"
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { data: order, error: fetchErr } = await supabase
+    .from("orders")
+    .select("id, status, buyer_id")
+    .eq("id", orderId)
+    .single();
+
+  if (fetchErr || !order) return { success: false, error: "Order not found." };
+
+  const now = new Date().toISOString();
+  const updatePayload: Record<string, string> = { status: newStatus };
+  if (newStatus === "packed") updatePayload.packed_at = now;
+  if (newStatus === "shipped") updatePayload.shipped_at = now;
+
+  const { error: updateErr } = await supabase
+    .from("orders")
+    .update(updatePayload)
+    .eq("id", orderId);
+
+  if (updateErr) return { success: false, error: updateErr.message };
+
+  const statusLabel = newStatus === "packed" ? "Packed & Ready 📦" : "Out for Delivery 🚚";
+  const statusDesc =
+    newStatus === "packed"
+      ? "Order #" + orderId.slice(0, 8).toUpperCase() + " has been packed and is ready for dispatch."
+      : "Order #" + orderId.slice(0, 8).toUpperCase() + " is out for delivery. Prepare your 4-digit OTP to confirm receipt.";
+
+  if (order.buyer_id) {
+    await createNotification(order.buyer_id, "order_placed", statusLabel, statusDesc);
+    await supabase.from("activities").insert({
+      profile_id: order.buyer_id,
+      activity_type: "payment_received",
+      title: statusLabel,
+      description: statusDesc,
+    });
+  }
+
+  revalidatePath("/buyer/orders");
+  revalidatePath("/orders");
+  return { success: true };
+}
+
+/**
+ * Farmer cancels an incoming order:
+ *  - Updates status to 'cancelled'
+ *  - Refunds buyer's wallet balance (full total_amount)
+ *  - Voids the escrow transaction
+ *  - Notifies buyer
+ */
+export async function cancelFarmerOrder(orderId: string, note?: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { data: order, error: fetchErr } = await supabase
+    .from("orders")
+    .select("id, status, total_amount, buyer_id")
+    .eq("id", orderId)
+    .single();
+
+  if (fetchErr || !order) return { success: false, error: "Order not found." };
+  if (order.status === "delivered" || order.status === "cancelled") {
+    return { success: false, error: "Order cannot be cancelled at this stage." };
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: cancelErr } = await supabase
+    .from("orders")
+    .update({
+      status: "cancelled",
+      cancelled_at: now,
+      cancellation_note: note || "Cancelled by farmer.",
+    })
+    .eq("id", orderId);
+
+  if (cancelErr) return { success: false, error: cancelErr.message };
+
+  // Void escrow transaction
+  await supabase
+    .from("transactions")
+    .update({
+      escrow_held: false,
+      status: "refunded",
+      transaction_type: "escrow_release",
+      release_date: now,
+    })
+    .eq("order_id", orderId);
+
+  // Refund buyer's wallet
+  if (order.buyer_id && order.total_amount) {
+    const refundAmt = Number(order.total_amount);
+
+    const { data: buyerProfile } = await supabase
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", order.buyer_id)
+      .single();
+
+    const currentBal = Number(buyerProfile?.wallet_balance ?? 0);
+    const newBal = Number((currentBal + refundAmt).toFixed(2));
+
+    await supabase
+      .from("profiles")
+      .update({ wallet_balance: newBal })
+      .eq("id", order.buyer_id);
+
+    await createNotification(
+      order.buyer_id,
+      "order_placed",
+      "Order Cancelled — Refund Issued 💳",
+      "Your order #" + orderId.slice(0, 8).toUpperCase() + " was cancelled by the farmer. GH₵ " + refundAmt.toFixed(2) + " has been refunded to your wallet."
+    );
+    await supabase.from("activities").insert({
+      profile_id: order.buyer_id,
+      activity_type: "payment_received",
+      title: "Order Cancelled — Wallet Refunded",
+      description: "Order #" + orderId.slice(0, 8).toUpperCase() + " cancelled. GH₵ " + refundAmt.toFixed(2) + " refunded to your wallet.",
+    });
+  }
+
+  revalidatePath("/buyer/orders");
+  revalidatePath("/orders");
+  revalidatePath("/finances");
+  return { success: true };
 }

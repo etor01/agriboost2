@@ -16,15 +16,43 @@ export default async function FarmsPage() {
 
   if (!user) redirect("/login");
 
-  const { data: farms, error } = await supabase
-    .from("farms")
-    .select("*")
-    .eq("profile_id", user.id)
-    .order("created_at", { ascending: false });
+  const [{ data: farms, error }, { data: profile }] = await Promise.all([
+    supabase
+      .from("farms")
+      .select("*")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("firstname, lastname, phone, region, avatar_url, verification_status")
+      .eq("id", user.id)
+      .single(),
+  ]);
 
   if (error) {
     console.error("Error loading farms:", error);
   }
 
-  return <FarmsClientPage user={user} initialFarms={farms || []} />;
+  // Resolve name using same logic as profile-client-page.tsx
+  const firstName = (profile as any)?.firstname ?? "";
+  const lastName = (profile as any)?.lastname ?? "";
+  const fullName =
+    [firstName, lastName].filter(Boolean).join(" ") ||
+    user.email ||
+    "";
+
+  return (
+    <FarmsClientPage
+      user={user}
+      initialFarms={farms || []}
+      profile={{
+        full_name: fullName,
+        email: user.email ?? "",
+        phone: (profile as any)?.phone ?? "",
+        region: (profile as any)?.region ?? "",
+        avatar_url: (profile as any)?.avatar_url ?? null,
+        member_since: user.created_at ?? null,
+      }}
+    />
+  );
 }

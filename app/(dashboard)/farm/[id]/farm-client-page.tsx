@@ -22,6 +22,9 @@ import {
   RefreshCw,
   Edit2,
   Trash2,
+  FileText,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { addCrop, toggleTask, deleteCrop, regenerateCropPlan } from "./actions";
 import CropGrowthPlanSection from "@/components/features/crop/CropGrowthPlan";
@@ -47,6 +50,189 @@ interface FarmDetailClientProps {
   initialCompletions: any[];
 }
 
+// ── CSV generation helper ──────────────────────────────────────────────────────
+function generateFarmCSV(farm: any, crops: any[], tasks: any[]) {
+  const rows: string[][] = [];
+
+  rows.push(["FARM REPORT"]);
+  rows.push(["Generated", new Date().toLocaleDateString("en-GH", { day: "numeric", month: "long", year: "numeric" })]);
+  rows.push([]);
+  rows.push(["FARM DETAILS"]);
+  rows.push(["Farm Name", farm.name ?? ""]);
+  rows.push(["Location", farm.location ?? ""]);
+  rows.push(["Region", farm.region ?? ""]);
+  rows.push(["Size (Acres)", String(farm.size_in_acres ?? 0)]);
+  rows.push(["Soil Type", farm.soil_type ?? "Loamy"]);
+  rows.push(["Irrigation Type", farm.irrigation_type ?? "Rain-fed"]);
+  rows.push(["Primary Crop", farm.primary_crop ?? "Mixed Crops"]);
+  rows.push(["Total Crops Registered", String(crops.length)]);
+  rows.push([]);
+
+  rows.push(["CROP DETAILS"]);
+  rows.push([
+    "Crop Type", "Growth Stage", "Area (Acres)", "Planting Date", "Harvest Date",
+    "AI Plan", "Watering Tasks", "Fertilizer Tasks", "Weeding Tasks", "Pest Control Tasks", "Total Tasks",
+  ]);
+
+  crops.forEach((crop) => {
+    const cropTasks = tasks.filter((t) => t.crop_id === crop.id);
+    const watering = cropTasks.filter((t) => t.task_type === "Irrigation").length;
+    const fertilizer = cropTasks.filter((t) => t.task_type === "Fertilizer").length;
+    const weeding = cropTasks.filter((t) => t.task_type === "Weeding").length;
+    const pest = cropTasks.filter((t) => t.task_type === "Pest Control").length;
+
+    let aiWatering = 0, aiFertilizer = 0, aiWeeding = 0, aiPest = 0;
+    if (crop.ai_growth_data) {
+      const plan = crop.ai_growth_data as any;
+      (plan.weeks ?? []).forEach((w: any) => {
+        (w.tasks ?? []).forEach((t: any) => {
+          if (t.category === "watering") aiWatering++;
+          if (t.category === "fertilizer") aiFertilizer++;
+          if (t.category === "weeding") aiWeeding++;
+          if (t.category === "pest_control") aiPest++;
+        });
+      });
+    }
+
+    rows.push([
+      crop.crop_type ?? "", crop.current_growth_stage ?? "", String(crop.area ?? ""),
+      crop.planting_date ?? "", crop.estimated_harvest_date ?? "",
+      crop.ai_growth_data ? "Yes" : "No",
+      String(watering + aiWatering), String(fertilizer + aiFertilizer),
+      String(weeding + aiWeeding), String(pest + aiPest), String(cropTasks.length),
+    ]);
+  });
+
+  rows.push([]);
+  rows.push(["TASK DETAILS"]);
+  rows.push(["Crop Type", "Task Description", "Type", "Due Date", "Priority", "Status"]);
+  tasks.forEach((task) => {
+    const crop = crops.find((c) => c.id === task.crop_id);
+    rows.push([
+      crop?.crop_type ?? "", task.description ?? "", task.task_type ?? "",
+      task.due_date ?? "", task.priority ?? "", task.completed ? "Completed" : "Pending",
+    ]);
+  });
+
+  return rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+}
+
+function downloadCSV(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── PDF print helper ───────────────────────────────────────────────────────────
+function printFarmReport(farm: any, crops: any[], tasks: any[]) {
+  const date = new Date().toLocaleDateString("en-GH", { day: "numeric", month: "long", year: "numeric" });
+
+  const cropRows = crops.map((crop) => {
+    const cropTasks = tasks.filter((t) => t.crop_id === crop.id);
+    let aiTaskCount = 0;
+    if (crop.ai_growth_data) {
+      const plan = crop.ai_growth_data as any;
+      (plan.weeks ?? []).forEach((w: any) => { aiTaskCount += (w.tasks ?? []).length; });
+    }
+    return `
+    <tr>
+      <td>${crop.crop_type ?? ""}</td>
+      <td>${crop.current_growth_stage ?? "—"}</td>
+      <td>${crop.area ?? "—"} ac</td>
+      <td>${crop.planting_date ?? "—"}</td>
+      <td>${crop.estimated_harvest_date ?? "—"}</td>
+      <td>${crop.ai_growth_data ? "✓ Active" : "None"}</td>
+      <td>${cropTasks.length + aiTaskCount}</td>
+    </tr>`;
+  }).join("");
+
+  const taskRows = tasks.slice(0, 30).map((task) => {
+    const crop = crops.find((c) => c.id === task.crop_id);
+    return `
+    <tr>
+      <td>${crop?.crop_type ?? "—"}</td>
+      <td>${task.description ?? ""}</td>
+      <td>${task.task_type ?? ""}</td>
+      <td>${task.due_date ?? "—"}</td>
+      <td class="${task.priority === "high" ? "high" : ""}">${task.priority ?? "normal"}</td>
+      <td>${task.completed ? "✓ Done" : "Pending"}</td>
+    </tr>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Farm Report — ${farm.name}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 32px; font-size: 13px; }
+    .header { border-bottom: 3px solid #16a34a; padding-bottom: 16px; margin-bottom: 24px; }
+    .header h1 { font-size: 22px; font-weight: 800; color: #14532d; }
+    .header p { color: #6b7280; margin-top: 4px; font-size: 12px; }
+    .badge { display: inline-block; background: #dcfce7; color: #166534; border: 1px solid #86efac; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .info-item { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; }
+    .info-item label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #9ca3af; display: block; margin-bottom: 2px; }
+    .info-item span { font-size: 14px; font-weight: 700; color: #111827; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #f3f4f6; text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    .high { color: #dc2626; font-weight: 600; }
+    .footer { margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 12px; color: #9ca3af; font-size: 10px; text-align: center; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${farm.name} <span class="badge">Farm Report</span></h1>
+    <p>${farm.location ?? ""} · Generated on ${date} · AgriBoost Platform</p>
+  </div>
+  <div class="section">
+    <div class="section-title">Farm Overview</div>
+    <div class="info-grid">
+      <div class="info-item"><label>Total Size</label><span>${farm.size_in_acres ?? 0} Acres</span></div>
+      <div class="info-item"><label>Soil Type</label><span>${farm.soil_type ?? "Loamy"}</span></div>
+      <div class="info-item"><label>Irrigation</label><span>${farm.irrigation_type ?? "Rain-fed"}</span></div>
+      <div class="info-item"><label>Primary Crop</label><span>${farm.primary_crop ?? "Mixed Crops"}</span></div>
+      <div class="info-item"><label>No. of Crops</label><span>${crops.length}</span></div>
+      <div class="info-item"><label>Total Tasks</label><span>${tasks.length}</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Crop Records (${crops.length})</div>
+    <table>
+      <thead><tr><th>Crop</th><th>Stage</th><th>Area</th><th>Planted</th><th>Est. Harvest</th><th>AI Plan</th><th>Tasks</th></tr></thead>
+      <tbody>${cropRows || "<tr><td colspan='7'>No crops registered</td></tr>"}</tbody>
+    </table>
+  </div>
+  ${tasks.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Field Tasks (showing up to 30)</div>
+    <table>
+      <thead><tr><th>Crop</th><th>Task</th><th>Type</th><th>Due Date</th><th>Priority</th><th>Status</th></tr></thead>
+      <tbody>${taskRows}</tbody>
+    </table>
+  </div>` : ""}
+  <div class="footer">AgriBoost Farm Report · ${farm.name} · ${date}</div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+
 export default function FarmDetailClient({
   user,
   initialFarm,
@@ -67,6 +253,7 @@ export default function FarmDetailClient({
   const [showEditFarm, setShowEditFarm] = useState(false);
   const [editingCrop, setEditingCrop] = useState<any | null>(null);
   const [harvestingCrop, setHarvestingCrop] = useState<any | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const handleToggleTask = async (
     taskId: string,
@@ -126,10 +313,9 @@ export default function FarmDetailClient({
 
     if (res.success && res.crop) {
       setAddCropStatus(null);
-      setCrops((prev) => [...prev, res.crop]);
       setShowAddCrop(false);
       toast({ title: "Crop Registered!", description: "Your crop has been added to the farm.", type: "success" });
-      router.refresh();
+      window.location.reload();
     } else {
       toast.error("Error adding crop: " + res.message);
       setAddCropStatus(null);
@@ -164,7 +350,24 @@ export default function FarmDetailClient({
     }
   };
 
+  const handleGenerateCSV = () => {
+    const csv = generateFarmCSV(initialFarm, crops, tasks);
+    const safeName = (initialFarm.name ?? "farm").replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    downloadCSV(csv, `${safeName}_report_${new Date().toISOString().split("T")[0]}.csv`);
+    toast({ title: "CSV Downloaded", description: "Farm report exported successfully.", type: "success" });
+  };
+
+  const handleGeneratePDF = () => {
+    setIsGeneratingReport(true);
+    try {
+      printFarmReport(initialFarm, crops, tasks);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const completedTasksCount = tasks.filter((t) => t.completed).length;
+  const cropsWithPlan = crops.filter((c) => c.ai_growth_data);
 
   return (
     <div className="space-y-6">
@@ -414,7 +617,7 @@ export default function FarmDetailClient({
         />
       )}
 
-      {/* Activity Logs + Insights */}
+      {/* Activity Logs + Generate Farm Report */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Activity Logs */}
         <FarmerCard>
@@ -459,40 +662,81 @@ export default function FarmDetailClient({
           </FarmerCardContent>
         </FarmerCard>
 
-        {/* AI Insight Panel */}
+        {/* Generate Farm Report Card */}
         <FarmerCard>
-          <FarmerCardHeader title="AI Farm Insights" icon={Sparkles} />
-          <FarmerCardContent className="space-y-3">
-            <div className="p-3.5 rounded-md bg-emerald-50/60 border border-emerald-200/70">
-              <p className="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Crop Health Score
-              </p>
-              <div className="flex items-center gap-3">
-                <p className="text-2xl font-bold text-emerald-800 tabular-nums">
-                  85<span className="text-xs font-normal text-emerald-600">/100</span>
-                </p>
-                <div className="flex-1">
-                  <div className="h-1.5 rounded-full bg-emerald-200/70 overflow-hidden">
-                    <div className="h-full w-[85%] rounded-full bg-emerald-600" />
-                  </div>
-                  <p className="text-[11px] text-emerald-700 mt-1 font-medium">
-                    {crops.filter((c) => c.ai_growth_data).length > 0
-                      ? `AI care plan active for ${crops.filter((c) => c.ai_growth_data).length} crop(s)`
-                      : "Add crops to get AI-powered insights"}
-                  </p>
-                </div>
-              </div>
+          <FarmerCardHeader title="Generate Farm Report" icon={FileText} />
+          <FarmerCardContent className="space-y-4">
+            {/* Summary of what's included */}
+            <div className="p-3.5 rounded-md bg-zinc-50 border border-zinc-200">
+              <p className="text-xs font-semibold text-zinc-700 mb-2">Report includes:</p>
+              <ul className="space-y-1.5">
+                {[
+                  `${crops.length} crop record${crops.length !== 1 ? "s" : ""}`,
+                  `Soil type: ${initialFarm.soil_type || "Loamy"}`,
+                  `Irrigation: ${initialFarm.irrigation_type || "Rain-fed"}`,
+                  `${tasks.length} field task${tasks.length !== 1 ? "s" : ""} with priorities`,
+                  "Per-crop activity breakdown",
+                  "Fertilizer & pest control logs",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-1.5 text-xs text-zinc-600">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-500 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="p-3.5 rounded-md bg-blue-50/60 border border-blue-200/70">
-              <p className="text-xs font-semibold text-blue-800 mb-0.5 flex items-center gap-1">
-                <Sparkles className="h-3.5 w-3.5 text-blue-600" /> AI Recommendation
-              </p>
-              <p className="text-xs text-blue-900 leading-relaxed font-normal">
-                {crops.filter((c) => c.ai_growth_data).length > 0
-                  ? "AI growth plans are active. Check the timeline section below for this week's field tasks."
-                  : "Add a crop to automatically generate a week-by-week agronomy schedule."}
-              </p>
+            {/* AI Plan status chip */}
+            <div
+              className={`flex items-center gap-2 px-3 py-2 rounded-md border text-xs font-medium ${
+                cropsWithPlan.length > 0
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : "bg-amber-50 border-amber-200 text-amber-800"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+              {cropsWithPlan.length > 0
+                ? `${cropsWithPlan.length} crop${cropsWithPlan.length !== 1 ? "s" : ""} with active AI care plans`
+                : "No AI plans yet — add crops to enrich the report"}
+            </div>
+
+            {/* Export buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                id="download-farm-csv-btn"
+                onClick={handleGenerateCSV}
+                disabled={crops.length === 0}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-dashed border-zinc-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all duration-200 group disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-200 transition-colors">
+                  <FileSpreadsheet className="h-4 w-4" />
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-zinc-800">Export CSV</p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Spreadsheet format</p>
+                </div>
+              </button>
+
+              <button
+                id="download-farm-pdf-btn"
+                onClick={handleGeneratePDF}
+                disabled={isGeneratingReport}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-dashed border-zinc-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 group disabled:opacity-60"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 group-hover:bg-blue-200 transition-colors">
+                  {isGeneratingReport ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-zinc-800">
+                    {isGeneratingReport ? "Preparing…" : "Export PDF"}
+                  </p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Print-ready report</p>
+                </div>
+              </button>
             </div>
 
             <Link
@@ -732,4 +976,3 @@ function AddCropModal({
     </div>
   );
 }
-
