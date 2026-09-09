@@ -69,13 +69,14 @@ export default function EditCropModal({
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
-              Crop Type
+              Crop Name
             </label>
             <input
               required
               type="text"
               value={formData.crop_type}
               onChange={(e) => setFormData({ ...formData, crop_type: e.target.value })}
+              placeholder="e.g. Maize, Tomatoes, Cassava"
               className="w-full px-3 py-1.5 bg-white border border-zinc-200 rounded-md text-sm text-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all outline-none"
             />
           </div>

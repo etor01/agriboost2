@@ -813,7 +813,7 @@ function AddCropModal({
   isSaving,
   statusMessage,
 }: AddCropModalProps) {
-  const [cropType, setCropType] = useState("Maize");
+  const [cropType, setCropType] = useState("");
   const [planted, setPlanted] = useState("");
   const [harvest, setHarvest] = useState("");
   const [area, setArea] = useState("");
@@ -821,8 +821,8 @@ function AddCropModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cropType || !planted || !area) return;
-    onAdd(cropType, planted, harvest || null, parseFloat(area), stage);
+    if (!cropType.trim() || !planted || !area) return;
+    onAdd(cropType.trim(), planted, harvest || null, parseFloat(area), stage);
   };
 
   return (
@@ -855,33 +855,17 @@ function AddCropModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
-              Crop Type *
+              Crop Name *
             </label>
-            <select
+            <input
+              type="text"
               value={cropType}
               onChange={(e) => setCropType(e.target.value)}
+              required
               disabled={isSaving}
+              placeholder="e.g. Maize, Tomatoes, Cassava"
               className="mt-1.5 w-full px-3 py-2 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 text-sm"
-            >
-              {[
-                "Maize",
-                "Cassava",
-                "Yam",
-                "Cocoyam",
-                "Tomatoes",
-                "Pepper",
-                "Groundnuts",
-                "Soybeans",
-                "Rice",
-                "Plantain",
-                "Vegetables (Mixed)",
-                "Other",
-              ].map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

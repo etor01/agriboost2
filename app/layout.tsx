@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
+import { AgriBoostToaster } from "@/components/ui/Toast";
 import LenisAutoScroll from "@/components/ui/LenisAutoScroll";
 import SmoothScroll from "@/components/ui/SmoothScroll";
 
@@ -59,7 +59,7 @@ export default function RootLayout({
       >
         <SmoothScroll>
           <LenisAutoScroll />
-          <Toaster position="top-center" reverseOrder={false} />
+          <AgriBoostToaster />
           {children}
         </SmoothScroll>
       </body>

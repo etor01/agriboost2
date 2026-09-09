@@ -6,7 +6,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
-import { AgriBoostToaster } from "@/components/ui/Toast";
 import type { Profile } from "@/lib/database.types";
 import {
   type LucideIcon,
@@ -307,7 +306,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         profileLoading={profileLoading}
         user={user}
       />
-      <AgriBoostToaster />
 
       <div className="lg:pl-64 min-h-screen flex flex-col">
         {/* Mobile top bar */}

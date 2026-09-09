@@ -82,6 +82,7 @@ function HealthBadge({ isHealthy }: { isHealthy: boolean | null }) {
 }
 
 function ScanHistoryCard({ scan }: { scan: CropDiagnostic }) {
+  const [imgError, setImgError] = useState(false);
   const result = scan.ai_result as DiagnosisResult | null;
   if (!result) return null;
 
@@ -95,11 +96,12 @@ function ScanHistoryCard({ scan }: { scan: CropDiagnostic }) {
     <div className="flex gap-3.5 p-3.5 bg-white rounded-lg border border-zinc-200 hover:border-zinc-300 transition-colors">
       {/* Thumbnail */}
       <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-zinc-100 border border-zinc-100">
-        {scan.image_url ? (
+        {scan.image_url && !imgError ? (
           <img
             src={scan.image_url}
             alt={result.crop_name ?? "Crop"}
             className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

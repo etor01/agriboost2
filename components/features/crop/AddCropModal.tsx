@@ -37,7 +37,7 @@ export default function AddCropModal({ isOpen, setIsOpen, onAddCrop }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="cropType" className="block text-sm font-medium text-gray-700">
-            Crop Type
+            Crop Name
           </label>
           <input
             id="cropType"
