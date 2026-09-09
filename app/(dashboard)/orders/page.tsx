@@ -41,7 +41,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface FarmerOrderDisplay {
-  id: string;          // transactions.id
+  id: string;          // order.id
   orderId: string;     // orders.id (the real UUID — used for actions + chat)
   product: string;
   buyerName: string;
@@ -49,7 +49,8 @@ interface FarmerOrderDisplay {
   deliveryAddress: string;
   qty: number;
   unit: string;
-  amount: number;
+  amount: number;      // total gross amount
+  earnings: number;    // farmer net earnings
   status: string;
   escrowHeld: boolean;
   date: string;
@@ -147,8 +148,7 @@ export default function FarmerOrdersPage() {
 
       const liveData = await getFarmerOrdersWithEscrow();
       if (liveData && liveData.length > 0) {
-        const mapped: FarmerOrderDisplay[] = liveData.map((tx: any) => {
-          const order = tx.orders || {};
+        const mapped: FarmerOrderDisplay[] = liveData.map((order: any) => {
           const listing = order.listings || {};
           const buyer = order.buyers || {};
           const buyerProf = buyer.profiles || {};
@@ -157,20 +157,35 @@ export default function FarmerOrdersPage() {
               .filter(Boolean)
               .join(" ") || "Verified Buyer";
 
+          const tx =
+            (Array.isArray(order.transactions)
+              ? order.transactions[0]
+              : order.transactions) || {};
+          const subtotal = Number((order.quantity || 1) * (order.unit_price || 0));
+          const estimatedEarnings = Number((subtotal * 0.95).toFixed(2));
+          const earnings =
+            tx.sales_amount !== undefined
+              ? Number(tx.sales_amount)
+              : estimatedEarnings;
+          const isHeld =
+            tx.escrow_held !== undefined
+              ? tx.escrow_held
+              : order.status !== "delivered" && order.status !== "cancelled";
+
           return {
-            id: tx.id,
-            // Always use the real orders.id UUID for actions and chat
-            orderId: order.id || tx.order_id || "",
+            id: order.id,
+            orderId: order.id,
             product: listing.name || "Farm Produce",
             buyerName,
             buyerPhone: buyerProf.phone || "+233 24 000 0000",
             deliveryAddress: buyer.delivery_address || "Standard Delivery",
             qty: order.quantity || 1,
             unit: listing.unit_type || "unit",
-            amount: Number(tx.amount) || 0,
+            amount: Number(order.total_amount) || subtotal,
+            earnings,
             status: order.status || "processing",
-            escrowHeld: tx.escrow_held,
-            date: tx.created_at || new Date().toISOString(),
+            escrowHeld: isHeld,
+            date: order.created_at || new Date().toISOString(),
             image:
               (listing.image_urls && listing.image_urls[0]) ||
               "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=80&h=80&fit=crop",
@@ -278,7 +293,7 @@ export default function FarmerOrdersPage() {
 
       setMessage({
         type: "success",
-        text: `Delivery verified! GH₵ ${selectedOrder.amount.toFixed(
+        text: `Delivery verified! GH₵ ${selectedOrder.earnings.toFixed(
           2
         )} released to your available balance.`,
       });
@@ -307,10 +322,10 @@ export default function FarmerOrdersPage() {
   const pendingOrders = orders.filter(
     (o) => o.escrowHeld && o.status !== "delivered"
   );
-  const totalEscrowLocked = pendingOrders.reduce((s, o) => s + o.amount, 0);
+  const totalEscrowLocked = pendingOrders.reduce((s, o) => s + (o.earnings ?? o.amount), 0);
   const totalCompletedEarnings = orders
     .filter((o) => o.status === "delivered")
-    .reduce((s, o) => s + o.amount, 0);
+    .reduce((s, o) => s + (o.earnings ?? o.amount), 0);
 
   const filteredOrders = orders.filter((o) => {
     if (filterTab === "new") return o.status === "processing";
@@ -632,7 +647,7 @@ export default function FarmerOrdersPage() {
 
                         <td className="p-3.5">
                           <p className="text-xs font-bold text-zinc-900">
-                            GH₵ {order.amount.toFixed(2)}
+                            GH₵ {order.earnings.toFixed(2)}
                           </p>
                           <p className="text-[10px] text-zinc-400 mt-0.5">
                             {order.escrowHeld && order.status !== "delivered"
@@ -640,6 +655,7 @@ export default function FarmerOrdersPage() {
                               : order.status === "cancelled"
                                 ? "Refunded"
                                 : "Released"}
+                            {" · "}GH₵ {order.amount.toFixed(2)} total
                           </p>
                         </td>
 
@@ -693,7 +709,7 @@ export default function FarmerOrdersPage() {
                 Enter the 4-digit code from{" "}
                 <strong>{selectedOrder.buyerName}</strong> to release{" "}
                 <strong className="text-zinc-900">
-                  GH₵ {selectedOrder.amount.toFixed(2)}
+                  GH₵ {selectedOrder.earnings.toFixed(2)}
                 </strong>{" "}
                 from escrow.
               </p>

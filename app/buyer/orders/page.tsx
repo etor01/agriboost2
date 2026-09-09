@@ -25,6 +25,7 @@ import {
   getBuyerOrdersWithEscrow,
   confirmDeliveryAndReleaseEscrow,
   submitReview,
+  cancelBuyerOrder,
 } from "@/app/marketplace/actions";
 import ChatDrawer from "@/components/messaging/ChatDrawer";
 import { createClient } from "@/lib/supabase/client";
@@ -119,6 +120,9 @@ export default function BuyerOrdersPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState<DisplayOrder | null>(null);
+  const [cancellingLoading, setCancellingLoading] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
 
   const [releasing, setReleasing] = useState(false);
   const supabase = createClient();
@@ -195,7 +199,7 @@ export default function BuyerOrdersPage() {
     fetchOrders();
   }, []);
 
-  // ── Realtime: update order status as farmer changes it ─────────────────────
+  // ── Realtime: refresh buyer orders when any status changes ─────────────────
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -203,18 +207,11 @@ export default function BuyerOrdersPage() {
       .channel("buyer_orders_realtime")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders" },
+        { event: "*", schema: "public", table: "orders" },
         (payload) => {
-          const updated = payload.new as any;
-          // Only refresh if this order belongs to the current buyer
-          if (updated.buyer_id === currentUserId) {
-            setOrders((prev) =>
-              prev.map((o) =>
-                o.id === updated.id
-                  ? { ...o, status: updated.status as OrderStatus }
-                  : o
-              )
-            );
+          const row = (payload.new || payload.old) as any;
+          if (!row || row.buyer_id === currentUserId) {
+            fetchOrders();
           }
         }
       )
@@ -229,6 +226,25 @@ export default function BuyerOrdersPage() {
     navigator.clipboard.writeText(otp);
     setCopiedOtp(otp);
     setTimeout(() => setCopiedOtp(null), 2500);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancellingOrder) return;
+    setCancellingLoading(true);
+    try {
+      const res = await cancelBuyerOrder(cancellingOrder.id, cancelNote || undefined);
+      if (!res.success) {
+        alert("Error cancelling order: " + res.error);
+        return;
+      }
+      setCancellingOrder(null);
+      setCancelNote("");
+      fetchOrders();
+    } catch (e: any) {
+      alert("Failed to cancel order: " + e.message);
+    } finally {
+      setCancellingLoading(false);
+    }
   };
 
   const handleReleaseEscrow = async () => {
@@ -509,22 +525,26 @@ export default function BuyerOrdersPage() {
                         </p>
                       </td>
                       <td className="px-4 py-3.5">
-                        <div className="inline-flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5">
-                          <span className="font-mono font-bold text-xs text-zinc-800 tracking-wider">
-                            {order.deliveryOtp}
-                          </span>
-                          <button
-                            onClick={() => handleCopyOtp(order.deliveryOtp)}
-                            className="p-0.5 rounded hover:bg-zinc-200 text-zinc-400 hover:text-zinc-700 transition-colors"
-                            title="Copy Delivery OTP"
-                          >
-                            {copiedOtp === order.deliveryOtp ? (
-                              <Check className="h-3 w-3 text-emerald-600" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </button>
-                        </div>
+                        {order.status === "cancelled" ? (
+                          <span className="text-zinc-400 font-mono text-xs">—</span>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5">
+                            <span className="font-mono font-bold text-xs text-zinc-800 tracking-wider">
+                              {order.deliveryOtp}
+                            </span>
+                            <button
+                              onClick={() => handleCopyOtp(order.deliveryOtp)}
+                              className="p-0.5 rounded hover:bg-zinc-200 text-zinc-400 hover:text-zinc-700 transition-colors"
+                              title="Copy Delivery OTP"
+                            >
+                              {copiedOtp === order.deliveryOtp ? (
+                                <Check className="h-3 w-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3.5">
                         {isHeld ? (
@@ -543,28 +563,71 @@ export default function BuyerOrdersPage() {
                         <div className="flex flex-col gap-2.5 items-start w-full">
                           <OrderStepper status={order.status} />
 
-                          {order.status !== "delivered" &&
-                            order.status !== "cancelled" && (
-                              <div className="w-full flex gap-1.5">
-                                <button
-                                  onClick={() => setChattingOrder(order)}
-                                  className="text-[11px] font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center justify-center gap-1 flex-1 relative"
-                                >
-                                  <MessageSquare className="h-3 w-3" /> Message
-                                  {unreadCount > 0 && (
-                                    <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 rounded-full ml-0.5">
-                                      {unreadCount}
-                                    </span>
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => setConfirmingOrder(order)}
-                                  className="text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center gap-1 flex-1 justify-center"
-                                >
-                                  Confirm →
-                                </button>
-                              </div>
-                            )}
+                          {order.status === "processing" && (
+                            <div className="w-full flex gap-1.5">
+                              <button
+                                onClick={() => setChattingOrder(order)}
+                                className="text-[11px] font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center justify-center gap-1 flex-1 relative"
+                              >
+                                <MessageSquare className="h-3 w-3" /> Message
+                                {unreadCount > 0 && (
+                                  <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 rounded-full ml-0.5">
+                                    {unreadCount}
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setCancellingOrder(order);
+                                  setCancelNote("");
+                                }}
+                                className="text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center gap-1 justify-center"
+                              >
+                                <XCircle className="h-3 w-3" /> Cancel
+                              </button>
+                            </div>
+                          )}
+
+                          {(order.status === "confirmed" || order.status === "packed") && (
+                            <div className="w-full flex items-center justify-between gap-1.5">
+                              <button
+                                onClick={() => setChattingOrder(order)}
+                                className="text-[11px] font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center justify-center gap-1 flex-1 relative"
+                              >
+                                <MessageSquare className="h-3 w-3" /> Message
+                                {unreadCount > 0 && (
+                                  <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 rounded-full ml-0.5">
+                                    {unreadCount}
+                                  </span>
+                                )}
+                              </button>
+                              <span className="text-[10px] text-zinc-500 italic px-1 whitespace-nowrap">
+                                {order.status === "confirmed" ? "Farmer preparing" : "Packed & ready"}
+                              </span>
+                            </div>
+                          )}
+
+                          {order.status === "shipped" && (
+                            <div className="w-full flex gap-1.5">
+                              <button
+                                onClick={() => setChattingOrder(order)}
+                                className="text-[11px] font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center justify-center gap-1 flex-1 relative"
+                              >
+                                <MessageSquare className="h-3 w-3" /> Message
+                                {unreadCount > 0 && (
+                                  <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 rounded-full ml-0.5">
+                                    {unreadCount}
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setConfirmingOrder(order)}
+                                className="text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded transition-colors shadow-2xs flex items-center gap-1 flex-1 justify-center"
+                              >
+                                Confirm Delivery
+                              </button>
+                            </div>
+                          )}
 
                           {order.status === "delivered" && !order.hasReviewed && (
                             <button
@@ -647,28 +710,71 @@ export default function BuyerOrdersPage() {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {order.status !== "delivered" &&
-                      order.status !== "cancelled" && (
-                        <div className="flex gap-2 w-full">
-                          <button
-                            onClick={() => setChattingOrder(order)}
-                            className="flex-1 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 py-1.5 rounded-lg shadow-2xs flex items-center justify-center gap-1.5"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" /> Message
-                            {unreadCount > 0 && (
-                              <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 rounded-full ml-0.5">
-                                {unreadCount}
-                              </span>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => setConfirmingOrder(order)}
-                            className="flex-1 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 py-1.5 rounded-lg shadow-2xs"
-                          >
-                            Confirm Delivery
-                          </button>
-                        </div>
-                      )}
+                    {order.status === "processing" && (
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={() => setChattingOrder(order)}
+                          className="flex-1 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 py-1.5 rounded-lg shadow-2xs flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" /> Message
+                          {unreadCount > 0 && (
+                            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 rounded-full ml-0.5">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCancellingOrder(order);
+                            setCancelNote("");
+                          }}
+                          className="flex-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 py-1.5 rounded-lg shadow-2xs flex items-center justify-center gap-1"
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Cancel Order
+                        </button>
+                      </div>
+                    )}
+
+                    {(order.status === "confirmed" || order.status === "packed") && (
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <button
+                          onClick={() => setChattingOrder(order)}
+                          className="flex-1 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 py-1.5 rounded-lg shadow-2xs flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" /> Message
+                          {unreadCount > 0 && (
+                            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 rounded-full ml-0.5">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </button>
+                        <span className="text-[11px] text-zinc-500 italic px-2">
+                          {order.status === "confirmed" ? "Farmer preparing" : "Packed & ready"}
+                        </span>
+                      </div>
+                    )}
+
+                    {order.status === "shipped" && (
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={() => setChattingOrder(order)}
+                          className="flex-1 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 py-1.5 rounded-lg shadow-2xs flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" /> Message
+                          {unreadCount > 0 && (
+                            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 rounded-full ml-0.5">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmingOrder(order)}
+                          className="flex-1 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 py-1.5 rounded-lg shadow-2xs"
+                        >
+                          Confirm Delivery
+                        </button>
+                      </div>
+                    )}
 
                     {order.status === "delivered" && !order.hasReviewed && (
                       <button
@@ -791,6 +897,79 @@ export default function BuyerOrdersPage() {
                 className="px-4 py-2 border border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs font-semibold rounded-lg transition-colors shadow-2xs"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Order Modal */}
+      {cancellingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm">
+          <div className="relative bg-white rounded-xl border border-zinc-200 max-w-md w-full p-6 shadow-xl z-10 space-y-4 animate-in fade-in-0 zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+                  <XCircle className="h-4 w-4" />
+                </div>
+                <h3 className="text-sm font-bold text-zinc-900">
+                  Cancel Order
+                </h3>
+              </div>
+              <button
+                onClick={() => setCancellingOrder(null)}
+                className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-800 leading-relaxed">
+              ⚠️ Cancelling order{" "}
+              <strong>#{cancellingOrder.id.slice(0, 8).toUpperCase()}</strong>{" "}
+              will instantly refund{" "}
+              <strong>GH₵ {cancellingOrder.total.toFixed(2)}</strong> back to your
+              wallet balance.
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-zinc-700">
+                Reason for cancellation{" "}
+                <span className="text-zinc-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={cancelNote}
+                onChange={(e) => setCancelNote(e.target.value)}
+                placeholder="e.g. Ordered by mistake, changed delivery requirements..."
+                rows={3}
+                className="w-full text-xs p-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setCancellingOrder(null)}
+                className="px-3.5 py-2 rounded-lg border border-zinc-200 text-zinc-700 font-semibold text-xs hover:bg-zinc-50 transition-colors shadow-2xs"
+              >
+                Keep Order
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancellingLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors shadow-2xs"
+              >
+                {cancellingLoading ? (
+                  <>
+                    <span className="h-3 w-3 border border-white border-t-transparent rounded-full animate-spin" />
+                    Cancelling…
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-3.5 w-3.5" />
+                    Confirm Cancellation
+                  </>
+                )}
               </button>
             </div>
           </div>

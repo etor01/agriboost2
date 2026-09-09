@@ -33,6 +33,7 @@ type CartItem = { listing: Listing; qty: number };
 
 type SupabaseListingRow = {
   id: string;
+  profile_id?: string | null;
   name: string;
   quantity?: number | string | null;
   unit_type?: string | null;
@@ -159,6 +160,7 @@ export default function MarketplaceClient() {
         .select(
           `
           id,
+          profile_id,
           name,
           description,
           quantity,
@@ -228,6 +230,7 @@ export default function MarketplaceClient() {
               : "";
             return {
               id: item.id,
+              profile_id: item.profile_id || undefined,
               title: item.name,
               category: item.crops?.crop_type || "General",
               price: Number(item.price_per_unit),

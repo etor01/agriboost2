@@ -25,6 +25,9 @@ export interface OrderRecord {
 
 const statusConfig: Record<string, { label: string; icon: LucideIcon; variant: StatusVariant }> = {
   processing: { label: "Processing", icon: Clock,       variant: "warn" },
+  confirmed:  { label: "Confirmed",  icon: CheckCircle, variant: "blue" },
+  packed:     { label: "Packed",     icon: CheckCircle, variant: "purple" },
+  shipped:    { label: "Shipped",    icon: Truck,       variant: "purple" },
   paid:       { label: "Paid",       icon: CheckCircle, variant: "blue" },
   in_transit: { label: "In Transit", icon: Truck,       variant: "purple" },
   delivered:  { label: "Delivered",  icon: CheckCircle, variant: "success" },
@@ -34,8 +37,9 @@ const statusConfig: Record<string, { label: string; icon: LucideIcon; variant: S
 const STATUS_FILTERS = [
   { value: "all",        label: "All" },
   { value: "processing", label: "Processing" },
-  { value: "paid",       label: "Paid" },
-  { value: "in_transit", label: "In Transit" },
+  { value: "confirmed",  label: "Confirmed" },
+  { value: "packed",     label: "Packed" },
+  { value: "shipped",    label: "Shipped" },
   { value: "delivered",  label: "Delivered" },
   { value: "cancelled",  label: "Cancelled" },
 ];

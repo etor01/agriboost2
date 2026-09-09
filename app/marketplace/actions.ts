@@ -116,6 +116,19 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
     );
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
+    // Fetch the real farmer profile_id directly from the database to ensure correctness
+    let farmerProfileId = item.farmerProfileId;
+    if (item.listingId) {
+      const { data: listingData } = await supabase
+        .from("listings")
+        .select("profile_id, name")
+        .eq("id", item.listingId)
+        .single();
+      if (listingData?.profile_id) {
+        farmerProfileId = listingData.profile_id;
+      }
+    }
+
     // ── Insert Order ──────────────────────────────────────────────────────────
     const { data: orderData, error: orderErr } = await supabase
       .from("orders")
@@ -148,26 +161,30 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
     // explicitly accepts — preventing double-deduction.
 
     // ── Insert Escrow Transaction with full fee breakdown ─────────────────────
-    const { error: txErr } = await supabase.from("transactions").insert({
-      order_id: orderData.id,
-      profile_id: item.farmerProfileId, // farmer who will receive the sales_amount
-      paystack_reference:
-        payload.paystackRef ||
-        `WALLET-${orderData.id.slice(0, 8).toUpperCase()}`,
-      amount: itemTotal,
-      service_name: `Escrow: ${item.title} (${item.qty} ${item.unit}) — Order #${orderData.id.slice(0, 8).toUpperCase()}`,
-      escrow_held: true,
-      status: "pending",
-      transaction_type: "escrow_hold",
-      delivery_fee: itemDeliveryFee,
-      platform_fee: itemPlatformFee,
-      sales_amount: itemSalesAmount,
-      platform_fee_collected: false,
-      farmer_balance_credited: false,
-    });
+    if (farmerProfileId && farmerProfileId.trim().length > 0) {
+      const { error: txErr } = await supabase.from("transactions").insert({
+        order_id: orderData.id,
+        profile_id: farmerProfileId, // verified farmer who will receive the sales_amount
+        paystack_reference:
+          payload.paystackRef ||
+          `WALLET-${orderData.id.slice(0, 8).toUpperCase()}`,
+        amount: itemTotal,
+        service_name: `Escrow: ${item.title} (${item.qty} ${item.unit}) — Order #${orderData.id.slice(0, 8).toUpperCase()}`,
+        escrow_held: true,
+        status: "pending",
+        transaction_type: "escrow_hold",
+        delivery_fee: itemDeliveryFee,
+        platform_fee: itemPlatformFee,
+        sales_amount: itemSalesAmount,
+        platform_fee_collected: false,
+        farmer_balance_credited: false,
+      });
 
-    if (txErr) {
-      console.error("Error creating escrow transaction:", txErr);
+      if (txErr) {
+        console.error("Error creating escrow transaction:", txErr);
+      }
+    } else {
+      console.warn("Could not determine farmerProfileId for order", orderData.id);
     }
 
     // ── Log Activity for Buyer ────────────────────────────────────────────────
@@ -183,9 +200,9 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
     });
 
     // ── Log Activity for Farmer ───────────────────────────────────────────────
-    if (item.farmerProfileId) {
+    if (farmerProfileId) {
       await supabase.from("activities").insert({
-        profile_id: item.farmerProfileId,
+        profile_id: farmerProfileId,
         activity_type: "payment_received",
         title: "New Produce Order Received 🌱",
         description: `New order for ${item.qty} ${item.unit} of ${
@@ -196,7 +213,7 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
       });
 
       await createNotification(
-        item.farmerProfileId,
+        farmerProfileId,
         "order_placed",
         "New Order Received!",
         `You have a new order for ${item.qty} ${item.unit} of ${item.title}. The funds (GH₵ ${itemSalesAmount.toFixed(2)}) are secured in escrow.`
@@ -247,7 +264,7 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
   // ── 1. Verify order exists ─────────────────────────────────────────────────
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
-    .select("id, status, total_amount, listing_id")
+    .select("id, status, total_amount, listing_id, buyer_id, listings(profile_id)")
     .eq("id", orderId)
     .single();
 
@@ -259,6 +276,13 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
     return {
       success: true,
       message: "Order is already marked as delivered and escrow released.",
+    };
+  }
+
+  if (order.status === "cancelled") {
+    return {
+      success: false,
+      error: "Cannot release escrow for a cancelled order.",
     };
   }
 
@@ -306,6 +330,7 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
   }
 
   // ── 5. Credit farmer's available_balance with sales_amount ───────────────
+  let creditedFarmer = false;
   if (txList && txList.length > 0) {
     for (const tx of txList) {
       if (tx.profile_id) {
@@ -326,6 +351,8 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
           .update({ available_balance: newAvail })
           .eq("id", tx.profile_id);
 
+        creditedFarmer = true;
+
         // ── Notify farmer ───────────────────────────────────────────────────
         await supabase.from("activities").insert({
           profile_id: tx.profile_id,
@@ -339,6 +366,38 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
         });
       }
     }
+  }
+
+  // Fallback: if no tx record was found, credit the listing's farmer profile
+  const listingFarmerId = (order as any).listings?.profile_id;
+  if (!creditedFarmer && listingFarmerId) {
+    const subtotal = Number(order.total_amount) || 0;
+    const salesAmt = Number((subtotal * (1 - PLATFORM_FEE_RATE)).toFixed(2));
+
+    const { data: farmerProfile } = await supabase
+      .from("profiles")
+      .select("available_balance")
+      .eq("id", listingFarmerId)
+      .single();
+
+    const currentAvail = Number(farmerProfile?.available_balance ?? 0);
+    const newAvail = Number((currentAvail + salesAmt).toFixed(2));
+
+    await supabase
+      .from("profiles")
+      .update({ available_balance: newAvail })
+      .eq("id", listingFarmerId);
+
+    await supabase.from("activities").insert({
+      profile_id: listingFarmerId,
+      activity_type: "payment_received",
+      title: "Escrow Released! 💰",
+      description: `Delivery confirmed for Order #${orderId
+        .slice(0, 8)
+        .toUpperCase()}. GH₵ ${salesAmt.toFixed(
+        2
+      )} added to your Available Payout balance!`,
+    });
   }
 
   revalidatePath("/buyer/orders");
@@ -510,64 +569,63 @@ export async function getFarmerOrdersWithEscrow() {
     return [];
   }
 
-  const { data: txs, error: txErr } = await supabase
-    .from("transactions")
+  const { data: orders, error: ordersErr } = await supabase
+    .from("orders")
     .select(`
       id,
-      order_id,
-      amount,
-      sales_amount,
-      delivery_fee,
-      platform_fee,
-      escrow_held,
+      quantity,
+      unit_price,
+      total_amount,
       status,
-      transaction_type,
+      delivery_otp,
+      delivery_confirmed_at,
+      confirmed_at,
+      packed_at,
+      shipped_at,
+      cancelled_at,
+      cancellation_note,
       created_at,
-      release_date,
-      orders (
+      listing_id,
+      buyer_id,
+      listings!inner (
         id,
+        name,
+        unit_type,
+        image_urls,
         quantity,
-        unit_price,
-        total_amount,
-        status,
-        delivery_otp,
-        delivery_confirmed_at,
-        confirmed_at,
-        packed_at,
-        shipped_at,
-        cancelled_at,
-        cancellation_note,
-        created_at,
-        listing_id,
-        buyer_id,
-        listings (
+        profile_id
+      ),
+      buyers (
+        delivery_address,
+        profiles (
           id,
-          name,
-          unit_type,
-          image_urls,
-          quantity
-        ),
-        buyers (
-          delivery_address,
-          profiles (
-            id,
-            firstname,
-            lastname,
-            phone
-          )
+          firstname,
+          lastname,
+          phone
         )
+      ),
+      transactions (
+        id,
+        amount,
+        sales_amount,
+        delivery_fee,
+        platform_fee,
+        escrow_held,
+        status,
+        transaction_type,
+        created_at,
+        release_date
       )
     `)
-    .eq("profile_id", user.id)
-    .not("order_id", "is", null)
+    .eq("listings.profile_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (txErr) {
-    console.error("Error fetching farmer orders:", txErr);
+  if (ordersErr) {
+    console.error("Error fetching farmer orders:", ordersErr);
     return [];
   }
 
-  return txs || [];
+  return orders || [];
 }
 
 
@@ -868,16 +926,45 @@ export async function cancelFarmerOrder(orderId: string, note?: string) {
 
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
-    .select("id, status, total_amount, buyer_id")
+    .select("id, status, total_amount, buyer_id, listing_id, quantity, listings(profile_id)")
     .eq("id", orderId)
     .single();
 
   if (fetchErr || !order) return { success: false, error: "Order not found." };
+  const listingProfileId = (order as any).listings?.profile_id;
+  if (listingProfileId && listingProfileId !== user.id) {
+    return { success: false, error: "You are not authorized to cancel this order." };
+  }
   if (order.status === "delivered" || order.status === "cancelled") {
     return { success: false, error: "Order cannot be cancelled at this stage." };
   }
 
   const now = new Date().toISOString();
+
+  // Restore listing inventory if order was confirmed, packed, or shipped
+  if (
+    order.listing_id &&
+    ["confirmed", "packed", "shipped"].includes(order.status)
+  ) {
+    const { data: listingData } = await supabase
+      .from("listings")
+      .select("quantity")
+      .eq("id", order.listing_id)
+      .single();
+
+    if (listingData) {
+      const currentQty = Number(listingData.quantity ?? 0);
+      const restoredQty = currentQty + (order.quantity ?? 1);
+      await supabase
+        .from("listings")
+        .update({
+          quantity: restoredQty,
+          status: "active",
+          updated_at: now,
+        })
+        .eq("id", order.listing_id);
+    }
+  }
 
   const { error: cancelErr } = await supabase
     .from("orders")
@@ -931,6 +1018,105 @@ export async function cancelFarmerOrder(orderId: string, note?: string) {
       title: "Order Cancelled — Wallet Refunded",
       description: "Order #" + orderId.slice(0, 8).toUpperCase() + " cancelled. GH₵ " + refundAmt.toFixed(2) + " refunded to your wallet.",
     });
+  }
+
+  revalidatePath("/buyer/orders");
+  revalidatePath("/orders");
+  revalidatePath("/finances");
+  revalidatePath("/my-listings");
+  return { success: true };
+}
+
+/**
+ * Buyer cancels an order before farmer has accepted it (status === 'processing'):
+ *  - Updates status to 'cancelled'
+ *  - Restores buyer's wallet balance
+ *  - Voids escrow transaction
+ *  - Notifies farmer
+ */
+export async function cancelBuyerOrder(orderId: string, note?: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { data: order, error: fetchErr } = await supabase
+    .from("orders")
+    .select("id, status, total_amount, buyer_id, listing_id, quantity, listings(name, profile_id)")
+    .eq("id", orderId)
+    .single();
+
+  if (fetchErr || !order) return { success: false, error: "Order not found." };
+  if (order.buyer_id !== user.id) {
+    return { success: false, error: "You are not authorized to cancel this order." };
+  }
+  if (order.status !== "processing") {
+    return {
+      success: false,
+      error: "Orders can only be cancelled while awaiting farmer acceptance.",
+    };
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: cancelErr } = await supabase
+    .from("orders")
+    .update({
+      status: "cancelled",
+      cancelled_at: now,
+      cancellation_note: note || "Cancelled by buyer before confirmation.",
+    })
+    .eq("id", orderId);
+
+  if (cancelErr) return { success: false, error: cancelErr.message };
+
+  // Void escrow transaction
+  await supabase
+    .from("transactions")
+    .update({
+      escrow_held: false,
+      status: "refunded",
+      transaction_type: "escrow_release",
+      release_date: now,
+    })
+    .eq("order_id", orderId);
+
+  // Refund buyer's wallet
+  if (order.total_amount) {
+    const refundAmt = Number(order.total_amount);
+
+    const { data: buyerProfile } = await supabase
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", user.id)
+      .single();
+
+    const currentBal = Number(buyerProfile?.wallet_balance ?? 0);
+    const newBal = Number((currentBal + refundAmt).toFixed(2));
+
+    await supabase
+      .from("profiles")
+      .update({ wallet_balance: newBal })
+      .eq("id", user.id);
+
+    await supabase.from("activities").insert({
+      profile_id: user.id,
+      activity_type: "payment_received",
+      title: "Order Cancelled — Wallet Refunded",
+      description: `Order #${orderId.slice(0, 8).toUpperCase()} cancelled. GH₵ ${refundAmt.toFixed(2)} refunded to your wallet.`,
+    });
+  }
+
+  // Notify farmer
+  const farmerProfileId = (order as any).listings?.profile_id;
+  if (farmerProfileId) {
+    await createNotification(
+      farmerProfileId,
+      "order_placed",
+      "Order Cancelled by Buyer",
+      `Order #${orderId.slice(0, 8).toUpperCase()} for ${(order as any).listings?.name || "produce"} was cancelled by the buyer.`
+    );
   }
 
   revalidatePath("/buyer/orders");

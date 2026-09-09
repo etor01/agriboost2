@@ -3,6 +3,7 @@
 
 export type Listing = {
   id: string;
+  profile_id?: string;
   title: string;
   price: number;
   unit: string;

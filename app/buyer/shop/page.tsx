@@ -30,6 +30,7 @@ type CartItem = { listing: Listing; qty: number };
 
 type SupabaseListingRow = {
   id: string;
+  profile_id?: string | null;
   name: string;
   quantity?: number | string | null;
   unit_type?: string | null;
@@ -104,7 +105,7 @@ export default function BuyerShopPage() {
         .from("listings")
         .select(
           `
-          id, name, description, quantity, unit_type, price_per_unit,
+          id, profile_id, name, description, quantity, unit_type, price_per_unit,
           status, image_urls, rating, reviews, is_featured, discount,
           delivery_available,
           farmers!listings_profile_id_fkey (
@@ -122,6 +123,7 @@ export default function BuyerShopPage() {
         const formatted: Listing[] = (data as SupabaseListingRow[]).map(
           (item) => ({
             id: item.id,
+            profile_id: item.profile_id || undefined,
             title: item.name,
             category: item.crops?.crop_type || "General",
             price: Number(item.price_per_unit),
