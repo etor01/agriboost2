@@ -2,7 +2,7 @@
 // components/marketplace/CheckoutModal.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   ShieldCheck,
@@ -104,31 +104,32 @@ export default function CheckoutModal({
     farmerEarns: number;
   } | null>(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      setWalletLoading(true);
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  const fetchUser = useCallback(async () => {
+    setWalletLoading(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("phone, location, wallet_balance")
-          .eq("id", user.id)
-          .single();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone, location, wallet_balance")
+        .eq("id", user.id)
+        .single();
 
-        if (profile) {
-          if (profile.phone) setPhone(profile.phone);
-          if (profile.location) setAddress(profile.location);
-          setWalletBalance(Number(profile.wallet_balance ?? 0));
-        }
+      if (profile) {
+        if (profile.phone) setPhone(profile.phone);
+        if (profile.location) setAddress(profile.location);
+        setWalletBalance(Number(profile.wallet_balance ?? 0));
       }
-      setWalletLoading(false);
-    };
-    fetchUser();
+    }
+    setWalletLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   const selectedDelivery =
     DELIVERY_OPTIONS.find((o) => o.id === deliveryOption) ||
@@ -397,16 +398,27 @@ export default function CheckoutModal({
                   </div>
                 </div>
 
-                {!walletLoading && !hasEnoughBalance && (
-                  <a
-                    href="/buyer/wallet"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-medium transition-colors shadow-2xs"
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={fetchUser}
+                    title="Refresh wallet balance"
+                    className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors"
                   >
-                    <Plus className="h-3 w-3" /> Top Up
-                  </a>
-                )}
+                    <RefreshCw className={`h-3 w-3 ${walletLoading ? "animate-spin" : ""}`} />
+                  </button>
+
+                  {!walletLoading && !hasEnoughBalance && (
+                    <a
+                      href="/buyer/wallet"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-medium transition-colors shadow-2xs"
+                    >
+                      <Plus className="h-3 w-3" /> Top Up
+                    </a>
+                  )}
+                </div>
               </div>
 
               {/* Delivery Option Selector */}

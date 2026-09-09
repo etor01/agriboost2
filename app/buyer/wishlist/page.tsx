@@ -88,17 +88,18 @@ export default function BuyerWishlistPage() {
       {loading ? (
         <WishlistSkeleton />
       ) : wishlist.length === 0 ? (
-        /* Empty state */
         <FarmerEmptyState
           icon={Heart}
           title="Your wishlist is empty"
           description="Save your favorite fresh produce, seeds, and farm goods from the marketplace so you can easily purchase them later."
-          action={{
-            label: "Explore Market",
-            onClick: () => {
-              window.location.href = "/buyer/shop";
-            },
-          }}
+          action={
+            <Link
+              href="/buyer/shop"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-2xs transition-colors"
+            >
+              Explore Market →
+            </Link>
+          }
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

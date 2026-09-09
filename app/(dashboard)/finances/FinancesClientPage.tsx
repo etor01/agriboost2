@@ -136,7 +136,7 @@ function WithdrawModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: withdrawAmt,
-          method: method === "momo" ? "Mobile Money" : "Bank Transfer",
+          method,
           accountDetails,
         }),
       });
@@ -149,10 +149,10 @@ function WithdrawModal({
         });
         onSuccess(
           withdrawAmt,
-          data.newAvailableBalance ?? availableBalance - withdrawAmt
+          data.newBalance ?? data.newAvailableBalance ?? (availableBalance - withdrawAmt)
         );
       } else {
-        setError(data.message || "Withdrawal failed. Please try again.");
+        setError(data.error || data.message || "Withdrawal failed. Please try again.");
       }
     } catch {
       setError("Network error. Please check your connection.");
@@ -405,9 +405,6 @@ export default function FinancesClientPage({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const [paystackReady, setPaystackReady] = useState(false);
-  const initializePaymentRef = useRef<any>(null);
-
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const {
@@ -440,29 +437,6 @@ export default function FinancesClientPage({
       )
     );
   }, []);
-
-  useEffect(() => {
-    async function loadPaystack() {
-      try {
-        const { usePaystackPayment } = await import("react-paystack");
-        const config = {
-          reference: new Date().getTime().toString(),
-          email: userEmail || "farmer@agriboost.com",
-          amount: 12000,
-          currency: "GHS",
-          publicKey:
-            process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ||
-            "pk_test_placeholder_key",
-        };
-        const initPayment = usePaystackPayment(config);
-        initializePaymentRef.current = initPayment;
-        setPaystackReady(true);
-      } catch {
-        /* noop */
-      }
-    }
-    loadPaystack();
-  }, [userEmail]);
 
   const onSubscriptionSuccess = async (reference: any) => {
     const ref = reference?.reference || `PAY-${Date.now()}`;

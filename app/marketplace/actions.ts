@@ -58,31 +58,60 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
   // ── 2. Atomic wallet deduction via row-locked RPC ───────────────────────────
   //      The SQL function acquires a FOR UPDATE lock on the profiles row,
   //      checks the balance, deducts, and returns the result — all inside a
-  //      single DB transaction.  Two concurrent checkouts will serialize here;
+  //      single DB transaction. Two concurrent checkouts will serialize here;
   //      the second will see the already-deducted balance and fail gracefully.
+  let walletBalance: number = 0;
+  let newWalletBalance: number = 0;
+
   const { data: rpcRows, error: rpcErr } = await supabase.rpc(
     "deduct_wallet_balance",
     { user_id: user.id, deduct_amount: grandTotal }
   );
 
-  if (rpcErr) {
-    console.error("[createOrderWithEscrow] RPC error:", rpcErr);
-    return { success: false, error: "Failed to process wallet deduction. Please try again." };
+  if (!rpcErr) {
+    // rpc() with a RETURNS TABLE function returns an array; grab the first row.
+    const rpcResult = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+
+    if (!rpcResult?.success) {
+      return {
+        success: false,
+        error: rpcResult?.error_message ?? "Insufficient wallet balance. Please top up your wallet.",
+      };
+    }
+
+    newWalletBalance = Number(rpcResult.new_balance);
+    walletBalance = Number((newWalletBalance + grandTotal).toFixed(2));
+  } else {
+    console.warn("[createOrderWithEscrow] deduct_wallet_balance RPC unavailable or failed, executing fallback:", rpcErr.message);
+
+    const { data: profile, error: profileErr } = await supabase
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", user.id)
+      .single();
+
+    if (profileErr || !profile) {
+      return { success: false, error: "Failed to verify wallet balance. Please try again." };
+    }
+
+    walletBalance = Number(profile.wallet_balance ?? 0);
+    if (walletBalance < grandTotal) {
+      return {
+        success: false,
+        error: `Insufficient wallet balance. Required: GH₵ ${grandTotal.toFixed(2)}, Available: GH₵ ${walletBalance.toFixed(2)}. Please top up your wallet.`,
+      };
+    }
+
+    newWalletBalance = Number((walletBalance - grandTotal).toFixed(2));
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .update({ wallet_balance: newWalletBalance })
+      .eq("id", user.id);
+
+    if (updateErr) {
+      return { success: false, error: "Failed to deduct wallet balance. Please try again." };
+    }
   }
-
-  // rpc() with a RETURNS TABLE function returns an array; grab the first row.
-  const rpcResult = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
-
-  if (!rpcResult?.success) {
-    return {
-      success: false,
-      error: rpcResult?.error_message ?? "Insufficient wallet balance. Please top up your wallet.",
-    };
-  }
-
-  // Capture the pre-deduction balance for rollback use (new_balance + grandTotal)
-  const newWalletBalance = Number(rpcResult.new_balance);
-  const walletBalance = Number((newWalletBalance + grandTotal).toFixed(2));
 
   // ── 4. Ensure buyer record exists ──────────────────────────────────────────
   await supabase
@@ -186,6 +215,25 @@ export async function createOrderWithEscrow(payload: CheckoutPayload) {
     } else {
       console.warn("Could not determine farmerProfileId for order", orderData.id);
     }
+
+    // ── Insert Buyer Purchase Transaction (so buyer sees deduction in wallet) ──
+    await supabase.from("transactions").insert({
+      order_id: orderData.id,
+      profile_id: user.id, // Buyer
+      paystack_reference:
+        payload.paystackRef ||
+        `PURCHASE-${orderData.id.slice(0, 8).toUpperCase()}`,
+      amount: itemTotal,
+      service_name: `Produce Order — ${item.title} (${item.qty} ${item.unit})`,
+      escrow_held: true,
+      status: "completed",
+      transaction_type: "purchase",
+      delivery_fee: itemDeliveryFee,
+      platform_fee: itemPlatformFee,
+      sales_amount: itemSalesAmount,
+      platform_fee_collected: false,
+      farmer_balance_credited: false,
+    });
 
     // ── Log Activity for Buyer ────────────────────────────────────────────────
     await supabase.from("activities").insert({
@@ -323,18 +371,26 @@ export async function confirmDeliveryAndReleaseEscrow(orderId: string) {
       platform_fee_collected: true,
       farmer_balance_credited: true,
     })
-    .eq("order_id", orderId);
+    .eq("order_id", orderId)
+    .eq("transaction_type", "escrow_hold");
 
   if (txReleaseErr) {
     console.error("Error releasing escrow transaction:", txReleaseErr);
   }
+
+  // Also release the escrow hold flag on the buyer's purchase record
+  await supabase
+    .from("transactions")
+    .update({ escrow_held: false })
+    .eq("order_id", orderId)
+    .eq("transaction_type", "purchase");
 
   // ── 5. Credit farmer's available_balance with sales_amount ───────────────
   let creditedFarmer = false;
   if (txList && txList.length > 0) {
     for (const tx of txList) {
       if (tx.profile_id) {
-        const salesAmt = Number(tx.sales_amount ?? tx.amount ?? 0);
+        const salesAmt = Number(tx.sales_amount) > 0 ? Number(tx.sales_amount) : Number(tx.amount ?? 0);
 
         // Fetch current available_balance
         const { data: farmerProfile } = await supabase
@@ -983,7 +1039,6 @@ export async function cancelFarmerOrder(orderId: string, note?: string) {
     .update({
       escrow_held: false,
       status: "refunded",
-      transaction_type: "escrow_release",
       release_date: now,
     })
     .eq("order_id", orderId);
@@ -1077,7 +1132,6 @@ export async function cancelBuyerOrder(orderId: string, note?: string) {
     .update({
       escrow_held: false,
       status: "refunded",
-      transaction_type: "escrow_release",
       release_date: now,
     })
     .eq("order_id", orderId);

@@ -16,7 +16,7 @@ const WithdrawSchema = z.object({
     .number({ invalid_type_error: 'Amount must be a number.' })
     .positive('Amount must be greater than zero.')
     .max(100_000, 'Single withdrawal cannot exceed GH₵ 100,000.'),
-  method: z.enum(['momo', 'bank'], {
+  method: z.enum(['momo', 'bank', 'Mobile Money', 'Bank Transfer'], {
     errorMap: () => ({ message: "Method must be 'momo' or 'bank'." }),
   }),
   accountDetails: z
@@ -36,7 +36,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: firstError }, { status: 400 });
     }
 
-    const { amount: withdrawAmount, method, accountDetails } = parseResult.data;
+    const { amount: withdrawAmount, method: rawMethod, accountDetails } = parseResult.data;
+    const method = rawMethod.toLowerCase().includes('momo') || rawMethod.toLowerCase().includes('mobile')
+      ? 'momo'
+      : 'bank';
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

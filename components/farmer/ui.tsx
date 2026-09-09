@@ -1,6 +1,5 @@
-// components/farmer/ui.tsx
-// Shared farmer UI primitives — shadcn design philosophy, pure Tailwind
 import React from 'react';
+import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 
 // ── FarmerPageHeader ──────────────────────────────────────────────────────────
@@ -206,8 +205,45 @@ export function FarmerEmptyState({
   icon: LucideIcon;
   title: string;
   description?: string;
-  action?: React.ReactNode;
+  action?:
+    | React.ReactNode
+    | {
+        label: string;
+        onClick?: () => void;
+        href?: string;
+      };
 }) {
+  let actionElement: React.ReactNode = null;
+  if (action) {
+    if (React.isValidElement(action)) {
+      actionElement = action;
+    } else if (typeof action === 'object' && 'label' in action) {
+      const act = action as { label: string; onClick?: () => void; href?: string };
+      if (act.href) {
+        actionElement = (
+          <Link
+            href={act.href}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg shadow-2xs transition-colors"
+          >
+            {act.label}
+          </Link>
+        );
+      } else {
+        actionElement = (
+          <button
+            type="button"
+            onClick={act.onClick}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg shadow-2xs transition-colors cursor-pointer"
+          >
+            {act.label}
+          </button>
+        );
+      }
+    } else {
+      actionElement = action as React.ReactNode;
+    }
+  }
+
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       <div className="rounded-full bg-zinc-100 p-3 mb-3 border border-zinc-200">
@@ -217,7 +253,7 @@ export function FarmerEmptyState({
       {description && (
         <p className="mt-1 text-xs text-zinc-400 max-w-sm">{description}</p>
       )}
-      {action && <div className="mt-4">{action}</div>}
+      {actionElement && <div className="mt-4">{actionElement}</div>}
     </div>
   );
 }
