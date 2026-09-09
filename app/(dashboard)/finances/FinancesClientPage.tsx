@@ -250,22 +250,20 @@ function WithdrawModal({
                 <button
                   type="button"
                   onClick={() => setMethod("momo")}
-                  className={`p-2.5 rounded-md border text-xs font-medium flex items-center justify-center gap-2 transition-colors ${
-                    method === "momo"
+                  className={`p-2.5 rounded-md border text-xs font-medium flex items-center justify-center gap-2 transition-colors ${method === "momo"
                       ? "border-zinc-900 bg-zinc-900 text-white"
                       : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                  }`}
+                    }`}
                 >
                   <Smartphone className="h-3.5 w-3.5" /> Mobile Money
                 </button>
                 <button
                   type="button"
                   onClick={() => setMethod("bank")}
-                  className={`p-2.5 rounded-md border text-xs font-medium flex items-center justify-center gap-2 transition-colors ${
-                    method === "bank"
+                  className={`p-2.5 rounded-md border text-xs font-medium flex items-center justify-center gap-2 transition-colors ${method === "bank"
                       ? "border-zinc-900 bg-zinc-900 text-white"
                       : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                  }`}
+                    }`}
                 >
                   <Banknote className="h-3.5 w-3.5" /> Bank Account
                 </button>
@@ -452,8 +450,7 @@ export default function FinancesClientPage({
         router.refresh();
       } else {
         toast.error(
-          `Payment received but activation failed: ${
-            (result as any).error ?? "Unknown error"
+          `Payment received but activation failed: ${(result as any).error ?? "Unknown error"
           }. Contact support with ref: ${ref}`
         );
       }
@@ -731,11 +728,10 @@ export default function FinancesClientPage({
                 <button
                   key={id}
                   onClick={() => setFilterTab(id)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    filterTab === id
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${filterTab === id
                       ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
                       : "text-zinc-500 hover:text-zinc-900"
-                  }`}
+                    }`}
                 >
                   {label}
                 </button>
@@ -758,9 +754,8 @@ export default function FinancesClientPage({
               />
               <button
                 onClick={() => {
-                  window.location.href = `/api/transactions/export?tab=${filterTab}${
-                    startDate ? `&start=${startDate}` : ""
-                  }${endDate ? `&end=${endDate}` : ""}`;
+                  window.location.href = `/api/transactions/export?tab=${filterTab}${startDate ? `&start=${startDate}` : ""
+                    }${endDate ? `&end=${endDate}` : ""}`;
                 }}
                 className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium rounded-md transition-colors shadow-xs inline-flex items-center gap-1"
                 title="Export CSV"
@@ -840,7 +835,7 @@ export default function FinancesClientPage({
                         <FarmerBadge
                           variant={
                             txn.status === "completed" ||
-                            txn.status === "Completed"
+                              txn.status === "Completed"
                               ? "success"
                               : "warn"
                           }

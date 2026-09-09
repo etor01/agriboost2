@@ -196,11 +196,10 @@ export default function WalletTopUpModalContent({
                         setCustomAmount("");
                         setError(null);
                       }}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
-                        selectedAmount === amt && !customAmount
-                          ? "border-emerald-600 bg-emerald-50 text-emerald-950 shadow-2xs"
-                          : "border-zinc-200 text-zinc-700 hover:border-emerald-300 hover:bg-zinc-50/80"
-                      }`}
+                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${selectedAmount === amt && !customAmount
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-950 shadow-2xs"
+                        : "border-zinc-200 text-zinc-700 hover:border-emerald-300 hover:bg-zinc-50/80"
+                        }`}
                     >
                       GH₵ {amt}
                     </button>
@@ -238,7 +237,7 @@ export default function WalletTopUpModalContent({
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-zinc-500 mt-1">
-                    <span>Payment gateway fee</span>
+                    <span>Total Payment + Fees</span>
                     <span className="text-emerald-700 font-medium">Covered by Paystack</span>
                   </div>
                 </div>
@@ -251,15 +250,6 @@ export default function WalletTopUpModalContent({
                 </div>
               )}
 
-              {/* Test card hint */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-xs text-zinc-600 space-y-1">
-                <p className="font-semibold text-zinc-800 flex items-center gap-1.5 text-[11px]">
-                  <CreditCard className="h-3.5 w-3.5 text-zinc-500" /> Paystack Sandbox Card
-                </p>
-                <p className="text-[11px] font-mono text-zinc-700">
-                  Card: <span className="font-bold">4084 0840 8408 4081</span> &bull; Exp: Any &bull; CVV: 123
-                </p>
-              </div>
 
               <button
                 onClick={handlePay}
