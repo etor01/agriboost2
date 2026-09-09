@@ -8,16 +8,16 @@ type StatusVariant = 'success' | 'warn' | 'danger';
 
 const statusConfig: Record<string, { label: string; variant: StatusVariant; icon: LucideIcon }> = {
   completed: { label: 'Completed', variant: 'success', icon: CheckCircle },
-  pending:   { label: 'Pending',   variant: 'warn',    icon: Clock },
-  failed:    { label: 'Failed',    variant: 'danger',  icon: AlertTriangle },
+  pending: { label: 'Pending', variant: 'warn', icon: Clock },
+  failed: { label: 'Failed', variant: 'danger', icon: AlertTriangle },
 };
 
 const REGIONAL_TRENDS = [
-  { region: 'Ashanti Region', scans: 24, topDisease: 'Maize Rust',      severity: 'high',   pct: 82 },
-  { region: 'Eastern Region', scans: 18, topDisease: 'Tomato Blight',   severity: 'medium', pct: 60 },
-  { region: 'Brong-Ahafo',    scans: 11, topDisease: 'Cassava Mosaic',  severity: 'low',    pct: 35 },
-  { region: 'Northern Region', scans: 7, topDisease: 'Leaf Spot',        severity: 'low',    pct: 20 },
-  { region: 'Volta Region',    scans: 5, topDisease: 'Root Rot',         severity: 'medium', pct: 45 },
+  { region: 'Ashanti Region', scans: 24, topDisease: 'Maize Rust', severity: 'high', pct: 82 },
+  { region: 'Eastern Region', scans: 18, topDisease: 'Tomato Blight', severity: 'medium', pct: 60 },
+  { region: 'Brong-Ahafo', scans: 11, topDisease: 'Cassava Mosaic', severity: 'low', pct: 35 },
+  { region: 'Northern Region', scans: 7, topDisease: 'Leaf Spot', severity: 'low', pct: 20 },
+  { region: 'Volta Region', scans: 5, topDisease: 'Root Rot', severity: 'medium', pct: 45 },
 ];
 
 type SeverityKey = 'high' | 'medium' | 'low';
@@ -53,10 +53,10 @@ export default async function DiagnosticsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Scans',   value: totalScans ?? 0,     color: 'text-zinc-900' },
-          { label: 'Completed',     value: completedScans ?? 0, color: 'text-emerald-600' },
-          { label: 'Failed',        value: failedScans ?? 0,    color: 'text-red-600' },
-          { label: 'Success Rate',  value: `${successRate}%`,   color: successRate >= 90 ? 'text-emerald-600' : 'text-amber-600' },
+          { label: 'Total Scans', value: totalScans ?? 0, color: 'text-zinc-900' },
+          { label: 'Completed', value: completedScans ?? 0, color: 'text-emerald-600' },
+          { label: 'Failed', value: failedScans ?? 0, color: 'text-red-600' },
+          { label: 'Success Rate', value: `${successRate}%`, color: successRate >= 90 ? 'text-emerald-600' : 'text-amber-600' },
         ].map((s) => (
           <div key={s.label} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm text-center">
             <p className={`text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</p>
@@ -100,17 +100,17 @@ export default async function DiagnosticsPage() {
           </div>
           <div className="p-5 space-y-3">
             {[
-              { title: 'Broadcast Disease Alert',      desc: 'Push a regional warning to all affected farmers',           action: 'Broadcast',  cls: 'bg-red-600 hover:bg-red-700' },
-              { title: 'Update AI Model Parameters',   desc: 'Adjust confidence thresholds and disease definitions',      action: 'Configure',  cls: 'bg-zinc-900 hover:bg-zinc-700' },
-              { title: 'Export Scan Report',           desc: "Download this month's diagnostic log as CSV",              action: 'Export CSV', cls: 'bg-emerald-600 hover:bg-emerald-700' },
-              { title: 'Review Failed Scans',          desc: `${failedScans ?? 0} scans failed and need manual review`,  action: 'Review',     cls: 'bg-amber-600 hover:bg-amber-700' },
+              { title: 'Broadcast Disease Alert', desc: 'Push a regional warning to all affected farmers', action: 'Broadcast', cls: 'bg-red-600 hover:bg-red-700' },
+              { title: 'Update AI Model Parameters', desc: 'Adjust confidence thresholds and disease definitions', action: 'Configure', cls: 'bg-zinc-900 hover:bg-zinc-700' },
+              { title: 'Export Scan Report', desc: "Download this month's diagnostic log as CSV", action: 'Export CSV', cls: 'bg-emerald-600 hover:bg-emerald-700' },
+              { title: 'Review Failed Scans', desc: `${failedScans ?? 0} scans failed and need manual review`, action: 'Review', cls: 'bg-amber-600 hover:bg-amber-700' },
             ].map((item) => (
               <div key={item.title} className="flex items-center justify-between gap-4 p-3.5 rounded-md border border-zinc-100 hover:border-zinc-200 transition-colors">
                 <div>
                   <p className="text-sm font-medium text-zinc-800">{item.title}</p>
                   <p className="text-xs text-zinc-400 mt-0.5">{item.desc}</p>
                 </div>
-                <button className={`text-xs font-medium text-white px-3 py-1.5 rounded-md transition-colors flex-shrink-0 ${item.cls}`}>
+                <button className={`text-xs font-medium text-white px-3 py-1.5 rounded-md transition-colors flex-shrink-0 ${item.cls} disabled:opacity-50 disabled:pointer-events-none`} disabled={true}>
                   {item.action}
                 </button>
               </div>
